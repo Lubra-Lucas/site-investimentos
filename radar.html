@@ -42,29 +42,19 @@
       <p class="sub" id="f-descricao"></p>
     </section>
 
-    <section class="grade-radar">
+    <section class="area-radar">
       <div class="painel painel-grafico" id="painel-grafico"></div>
 
-      <div class="lados">
-        <section class="painel lado lado-compra">
-          <div class="painel-cab">
-            <div>
-              <h2><span class="seta">▲</span> Oportunidades de compra</h2>
-              <p class="sub" id="sub-compra"></p>
-            </div>
-          </div>
-          <div id="lista-compra"></div>
-        </section>
-        <section class="painel lado lado-venda">
-          <div class="painel-cab">
-            <div>
-              <h2><span class="seta">▼</span> Oportunidades de venda</h2>
-              <p class="sub" id="sub-venda"></p>
-            </div>
-          </div>
-          <div id="lista-venda"></div>
-        </section>
-      </div>
+      <aside class="painel lista-sinais" aria-label="Oportunidades">
+        <div class="abas-lado" role="tablist">
+          <button role="tab" data-lado="compra" class="aba-compra ativo">▲ Compra <span class="contagem" id="n-compra">0</span></button>
+          <button role="tab" data-lado="venda" class="aba-venda">▼ Venda <span class="contagem" id="n-venda">0</span></button>
+        </div>
+        <div class="categorias" id="categorias" role="group" aria-label="Estratégia"></div>
+        <p class="sub cat-descricao" id="cat-descricao"></p>
+        <ol class="lista-ativos" id="lista-ativos"></ol>
+        <p class="dica"><kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista · <kbd>Alt</kbd>+<kbd>R</kbd> centraliza</p>
+      </aside>
     </section>
 
     <section class="painel">

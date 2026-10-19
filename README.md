@@ -3,23 +3,25 @@
 Painel pessoal com três telas:
 
 - **Carteira** (`index.html`): patrimônio em BRL, posições, evolução da carteira e sinais nos ativos acompanhados.
-- **Radar** (`radar.html`): ~270 ações do Brasil e dos EUA, com oportunidades de compra e venda separadas por estratégia,
-  destacando os ativos com confluência (2 ou mais estratégias). Também tem filtros de estado: tendência forte,
-  IFR extremo e Bollinger comprimida.
+- **Radar** (`radar.html`): ~420 ações (todas as da B3 com volume médio acima de R$ 10 mi/dia e ~260 dos EUA).
+  Gráfico à esquerda e, à direita, as oportunidades em abas **Compra** e **Venda**, separadas por estratégia,
+  com o bloco **Prioridade** para quem dispara 2 ou mais estratégias. Clicou, o gráfico abre ao lado, com setas
+  nos candles em que cada sinal apareceu; <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista. Também tem filtros de estado:
+  tendência forte, IFR extremo e Bollinger comprimida.
 - **Multitela** (`multitela.html`): grade de gráficos (2×2, 3×3 ou 4×3) para bater o olho nas oportunidades do dia.
 
 Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (20, 2) e IFR 14, nos tempos
-diário, semanal e mensal. **Alt+R** centraliza o gráfico no preço.
+**60 min, 4 horas**, diário, semanal e mensal. **Alt+R** centraliza o gráfico no preço.
 
 ## Como funciona
 
 ```
 GitHub Actions (todo dia 19:30 BRT)
    └─ scripts/atualizar_dados.py
-        ├─ fontes.py       baixa candles diários (6 anos) e de 60 min (60 pregões) do Yahoo Finance
+        ├─ fontes.py       baixa candles diários (6 anos) e de 60 min (6 meses) do Yahoo Finance
         ├─ validacao.py    verifica a integridade e confere os fechamentos com outra fonte
         ├─ estrategias.py  calcula indicadores e sinais datados (diário e semanal)
-        └─ grava data/radar.json, data/resumo.json e data/ativos/<ticker>.json
+        └─ grava data/radar.json, data/resumo.json, data/ativos/<ticker>.json e data/intraday/<ticker>.json
    └─ publica o site estático no GitHub Pages
 ```
 
@@ -32,13 +34,17 @@ Na dúvida, o dado não entra:
    (feriados que o Yahoo preenche), pico isolado que vai e volta no dia seguinte e pavio fora do padrão do ativo.
 3. **Quebra de série:** gap acima de 40% sem volume que o justifique (grupamento não ajustado, incorporação).
    Nesse caso o histórico anterior é descartado, e nada é "consertado" ou inventado.
-4. **Conferência com segunda fonte:** os 5 últimos fechamentos precisam bater em até 0,6% com a referência.
-   - EUA: API pública da Nasdaq (sem chave).
-   - B3: [brapi.dev](https://brapi.dev). Precisa de um token gratuito. Crie a conta, gere o token e cadastre-o em
-     **Settings → Secrets and variables → Actions → New repository secret** com o nome `BRAPI_TOKEN`.
-     Sem o token, as ações da B3 passam só pela verificação interna (selo "interno" no site).
+4. **Conferência com fonte oficial** (selo "✓ conferido até dd/mm" no site):
+   - Os 5 últimos fechamentos precisam bater em até 0,6% com a referência.
+   - O candle de hoje precisa ter máxima e mínima iguais às oficiais (tolerância de 0,6%) e o fechamento dentro dessa faixa.
+   - **B3:** arquivo oficial COTAHIST (fechamentos dos pregões anteriores) e a API de cotações da B3 (faixa do dia).
+     Sem chave. Opcional: um token gratuito da [brapi.dev](https://brapi.dev) no secret `BRAPI_TOKEN` acrescenta
+     uma terceira fonte.
+   - **EUA:** API pública da Nasdaq (histórico oficial e faixa do dia). Sem chave.
 5. Um ativo que falha em qualquer etapa fica **retido**: sem gráfico e sem sinais no dia. A lista de retidos aparece no fim do Radar.
-6. O 60 min só é usado se o último candle bater com o fechamento diário (diferença de até 2%).
+6. **60 min e 4h:** cada dia de intraday é comparado com o candle diário já verificado. A máxima e a mínima
+   precisam caber na do dia (folga de 0,5%), e o último fechamento precisa estar a até 2% do oficial (a diferença normal
+   vem do leilão de fechamento). Os dias que não batem são descartados.
 
 ## Estratégias
 
@@ -65,7 +71,7 @@ ficam fora dos sinais. Os parâmetros ficam no topo de `scripts/estrategias.py`.
 
 ## Configuração
 
-- `config/universo.json`: ações do radar (BR e EUA).
+- `config/universo.json`: ações do radar (BR e EUA). As da B3 foram escolhidas pelo volume médio no COTAHIST.
 - `config/carteira.json`: capital inicial, ativos acompanhados (inclusive cripto) e `transacoes`:
 
 ```json

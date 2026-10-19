@@ -1,6 +1,6 @@
 /* Radar: oportunidades de compra e venda agrupadas por estratégia, com confluência. */
 
-const estado = { mercado: "", tf: "D", periodo: 1, tabela: "forte-alta", ticker: null };
+const estado = { mercado: "", tf: "D", periodo: 1, tabela: "forte-alta", lado: "compra", categoria: "prioridade", ticker: null };
 let R, porTicker, painel;
 
 const DESCRICAO_FAMILIA = {
@@ -28,59 +28,71 @@ function selecionar(tk, rolar = true) {
   if (!a) return;
   estado.ticker = tk;
   history.replaceState(null, "", `#${tk}`);
-  document.querySelectorAll("[data-tk]").forEach((n) => n.classList.toggle("selecionado", n.dataset.tk === tk));
-  painel.selecionar(a);
-  if (rolar && window.innerWidth < 1100) document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth" });
+  marcarSelecionado();
+  painel.selecionar(a, R.sinais.filter((s) => s.ticker === tk));
+  // rolar = true: só no celular (no desktop a lista fica ao lado do gráfico); "sempre": vem da tabela lá embaixo
+  if (rolar === "sempre" || (rolar && window.innerWidth < 1100))
+    document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-// ------------------------------------------------------------- listas compra / venda
+// ------------------------------------------------------------- lista lateral (compra / venda)
 
-function cartaoAtivo(item, lado) {
+const NOME_CATEGORIA = { prioridade: "★ Prioridade", todas: "Todas" };
+const DESCRICAO_CATEGORIA = {
+  prioridade: "Ativos que dispararam 2 ou mais estratégias do mesmo lado no período: merecem mais atenção.",
+  todas: "Todos os ativos com pelo menos um sinal no período.",
+};
+let grupos = { compra: [], venda: [] };
+let listaAtual = [];
+
+function itemLista(item) {
   const a = porTicker.get(item.ticker);
   const n = item.familias.size;
-  return el("li", { class: `cartao ${n >= 2 ? "confluencia" : ""}`, "data-tk": item.ticker, onclick: () => selecionar(item.ticker) },
-    el("div", { class: "cartao-topo" },
-      el("div", {},
-        el("span", { class: "cartao-ticker" }, semSufixo(item.ticker)), " ",
-        el("span", { class: "cartao-nome" }, a.nome)),
+  // na categoria de uma estratégia, o motivo dela vem primeiro
+  const sinais = [...item.sinais].sort((x, y) =>
+    (y.familia === estado.categoria) - (x.familia === estado.categoria) || y.data.localeCompare(x.data));
+  return el("li", { class: `item ${n >= 2 ? "confluencia" : ""}`, "data-tk": item.ticker, tabindex: "-1",
+    onclick: () => selecionar(item.ticker) },
+    el("div", { class: "item-topo" },
+      el("div", { class: "item-nome" }, el("b", { class: "mono" }, semSufixo(item.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
       el("div", { class: "cartao-preco" },
         el("span", { class: "mono" }, fmtMoeda(a.ultimo, a.moeda)), " ",
         el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)))),
     el("div", { class: "chips" },
-      n >= 2 ? el("span", { class: "chip destaque" }, `★ ${n} estratégias`) : null,
+      n >= 2 ? el("span", { class: "chip destaque" }, `★ ${n}`) : null,
       chipsFamilias(item.familias),
-      a.tendencia_forte === (lado === "compra" ? "alta" : "baixa") ? el("span", { class: "chip ctx" }, "Tendência forte D+S") : null),
-    el("ul", { class: "motivos" }, item.sinais.map((s) =>
-      el("li", {}, el("span", { class: "data" }, fmtData(s.data)), s.texto))));
+      a.tendencia_forte === (estado.lado === "compra" ? "alta" : "baixa") ? el("span", { class: "chip ctx" }, "forte D+S") : null),
+    el("ul", { class: "motivos" }, sinais.map((s) =>
+      el("li", { class: s.familia === estado.categoria ? "foco" : null }, el("span", { class: "data" }, fmtData(s.data)), s.texto))));
 }
 
-function renderLado(lado, grupos) {
-  const itens = grupos[lado].filter((i) => visivel(i.ticker));
-  const alvo = document.getElementById(`lista-${lado}`);
-  const prioridade = itens.filter((i) => i.familias.size >= 2);
-  document.getElementById(`sub-${lado}`).textContent =
-    `${itens.length} ativos · ${prioridade.length} com confluência de estratégias`;
-  if (!itens.length) {
-    alvo.replaceChildren(el("p", { class: "vazio" }, "Nenhum sinal no período."));
-    return;
-  }
+function renderLista() {
+  const itens = grupos[estado.lado];
+  const contagem = { prioridade: itens.filter((i) => i.familias.size >= 2).length, todas: itens.length };
+  for (const f of ORDEM_FAMILIAS) contagem[f] = itens.filter((i) => i.familias.has(f)).length;
+  if (!contagem[estado.categoria]) estado.categoria = contagem.prioridade ? "prioridade" : "todas";
 
-  const blocos = [];
-  if (prioridade.length) {
-    blocos.push(el("div", { class: "bloco bloco-prioridade" },
-      el("h3", {}, "Prioridade: 2 ou mais estratégias"),
-      el("ol", { class: "cartoes" }, prioridade.map((i) => cartaoAtivo(i, lado)))));
-  }
-  for (const fam of ORDEM_FAMILIAS) {
-    const daFamilia = itens.filter((i) => i.familias.has(fam));
-    if (!daFamilia.length) continue;
-    blocos.push(el("details", { class: "bloco", open: daFamilia.length <= 8 },
-      el("summary", {},
-        el("h3", {}, R.familias[fam] ?? fam, " ", el("span", { class: "contagem" }, daFamilia.length)),
-        el("p", { class: "sub" }, DESCRICAO_FAMILIA[fam])),
-      el("ol", { class: "cartoes" }, daFamilia.map((i) => cartaoAtivo(i, lado)))));
-  }
-  alvo.replaceChildren(...blocos);
+  document.getElementById("categorias").replaceChildren(...["prioridade", ...ORDEM_FAMILIAS, "todas"].map((c) =>
+    el("button", { class: `cat ${c === estado.categoria ? "ativo" : ""} ${c in FAMILIA_CURTA ? "fam-" + c : "cat-" + c}`,
+      disabled: !contagem[c], onclick: () => { estado.categoria = c; salvarFiltros(); renderLista(); abrirPrimeiro(); } },
+      NOME_CATEGORIA[c] ?? R.familias[c] ?? c, " ", el("span", { class: "contagem" }, contagem[c]))));
+  document.getElementById("cat-descricao").textContent = DESCRICAO_CATEGORIA[estado.categoria] ?? DESCRICAO_FAMILIA[estado.categoria];
+
+  listaAtual = itens.filter((i) => estado.categoria === "todas" ? true
+    : estado.categoria === "prioridade" ? i.familias.size >= 2 : i.familias.has(estado.categoria));
+  const ol = document.getElementById("lista-ativos");
+  ol.replaceChildren(...(listaAtual.length ? listaAtual.map(itemLista)
+    : [el("li", { class: "vazio" }, "Nenhum sinal no período.")]));
+  marcarSelecionado();
+}
+
+/** Se o ativo aberto não está na lista escolhida, abre o primeiro dela. */
+function abrirPrimeiro() {
+  if (listaAtual.length && !listaAtual.some((i) => i.ticker === estado.ticker)) selecionar(listaAtual[0].ticker, false);
+}
+
+function marcarSelecionado() {
+  document.querySelectorAll("[data-tk]").forEach((n) => n.classList.toggle("selecionado", n.dataset.tk === estado.ticker));
 }
 
 function renderSinais() {
@@ -91,11 +103,28 @@ function renderSinais() {
   document.getElementById("f-descricao").textContent = !ate ? "" : estado.periodo === 1
     ? `Sinais do último ${rotTf}: ${estado.tf === "D" ? fmtData(ate, true) : "semana de " + fmtData(ate)}${estado.tf === "S" ? " (semana em andamento até sexta)" : ""}`
     : `Sinais de ${fmtData(desde)} a ${fmtData(ate)}`;
-  const grupos = agruparSinais(R.sinais, { tf: estado.tf, desde });
-  renderLado("compra", grupos);
-  renderLado("venda", grupos);
-  if (estado.ticker) document.querySelectorAll("[data-tk]").forEach((n) => n.classList.toggle("selecionado", n.dataset.tk === estado.ticker));
+  const g = agruparSinais(R.sinais, { tf: estado.tf, desde });
+  grupos = { compra: g.compra.filter((i) => visivel(i.ticker)), venda: g.venda.filter((i) => visivel(i.ticker)) };
+  document.getElementById("n-compra").textContent = grupos.compra.length;
+  document.getElementById("n-venda").textContent = grupos.venda.length;
+  renderLista();
 }
+
+function mover(passo) {
+  if (!listaAtual.length) return;
+  const i = listaAtual.findIndex((x) => x.ticker === estado.ticker);
+  const prox = listaAtual[Math.max(0, Math.min(listaAtual.length - 1, i < 0 ? 0 : i + passo))];
+  selecionar(prox.ticker, false);
+  document.querySelector(`#lista-ativos [data-tk="${CSS.escape(prox.ticker)}"]`)?.scrollIntoView({ block: "nearest" });
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.altKey || e.ctrlKey || e.metaKey || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    mover(e.key === "ArrowDown" ? 1 : -1);
+  }
+});
 
 // ------------------------------------------------------------- tabela de estado
 
@@ -138,7 +167,7 @@ function renderTabela() {
     el("thead", {}, el("tr", {}, ["Ativo", "Mercado", "Último", "Dia", "Mês", "D", "S", "Desde",
       "IFR 60m", "IFR D", "IFR S", "IFR M", "BB larg.", "Dist. MM50", "Dados"].map((h, i) =>
       el("th", { class: i >= 2 && i !== 7 && i !== 14 ? "num" : "" }, h)))),
-    el("tbody", {}, linhas.map((a) => el("tr", { "data-tk": a.ticker, onclick: () => selecionar(a.ticker) },
+    el("tbody", {}, linhas.map((a) => el("tr", { "data-tk": a.ticker, onclick: () => selecionar(a.ticker, "sempre") },
       el("td", { class: "ticker-cel" }, el("b", {}, semSufixo(a.ticker)), el("span", {}, a.nome)),
       el("td", {}, el("span", { class: "tag" }, a.mercado)),
       el("td", { class: "num" }, fmtMoeda(a.ultimo, a.moeda)),
@@ -162,6 +191,11 @@ function renderRetidos() {
 
 // ------------------------------------------------------------- init
 
+const salvarFiltros = () => guardar.gravar("radar-filtros", {
+  mercado: estado.mercado, tf: estado.tf, periodo: estado.periodo, tabela: estado.tabela,
+  lado: estado.lado, categoria: estado.categoria,
+});
+
 async function iniciar() {
   try { R = await carregarRadar(); } catch (e) { montarTopo("radar"); return erroDados(e); }
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
@@ -169,21 +203,35 @@ async function iniciar() {
   painel = painelGrafico(document.getElementById("painel-grafico"));
 
   Object.assign(estado, guardar.ler("radar-filtros", {}));
-  const ligar = (id, chave, conv = (x) => x, depois) => {
-    const seg = segmento(id, ({ v }) => { estado[chave] = conv(v); guardar.gravar("radar-filtros", { mercado: estado.mercado, tf: estado.tf, periodo: estado.periodo, tabela: estado.tabela }); depois(); });
-    seg.marcar("v", String(estado[chave]));
+  const ligar = (id, chave, conv, depois) => {
+    segmento(id, ({ v }) => { estado[chave] = conv(v); salvarFiltros(); depois(); }).marcar("v", String(estado[chave]));
   };
   ligar("f-mercado", "mercado", String, () => { renderSinais(); renderTabela(); });
   ligar("f-tf", "tf", String, renderSinais);
   ligar("f-periodo", "periodo", Number, renderSinais);
   ligar("f-tabela", "tabela", String, renderTabela);
+  const abas = document.querySelector(".abas-lado");
+  abas.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    estado.lado = b.dataset.lado;
+    salvarFiltros();
+    marcarAba();
+    renderLista();
+    abrirPrimeiro();
+  });
+  const marcarAba = () => abas.querySelectorAll("button").forEach((b) => {
+    b.classList.toggle("ativo", b.dataset.lado === estado.lado);
+    b.setAttribute("aria-selected", b.dataset.lado === estado.lado);
+  });
+  marcarAba();
 
   renderSinais();
   renderTabela();
   renderRetidos();
 
   const doHash = decodeURIComponent(location.hash.slice(1));
-  const primeiro = document.querySelector("#lista-compra [data-tk]")?.dataset.tk;
+  const primeiro = listaAtual[0]?.ticker;
   selecionar(porTicker.has(doHash) ? doHash : primeiro ?? R.ativos[0].ticker, false);
 }
 

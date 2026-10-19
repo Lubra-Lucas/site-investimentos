@@ -76,27 +76,52 @@ def limpar(df: pd.DataFrame, mercado: str) -> tuple[pd.DataFrame, list[tuple[pd.
     return df, problemas
 
 
-def conferir(df: pd.DataFrame, ref: dict[str, float] | None) -> dict:
-    """Compara os últimos fechamentos com a fonte de referência."""
+def conferir(df: pd.DataFrame, ref: dict | None) -> dict:
+    """Compara os últimos fechamentos com a referência e, se houver, a faixa do pregão de hoje."""
+    vazio = {"status": "interno", "comparados": 0, "dif_max_pct": None, "ate": None}
     if not ref:
-        return {"status": "interno", "comparados": 0, "dif_max_pct": None}
+        return vazio
+    fech = ref.get("fechamentos") or {}
     datas = [d.strftime("%Y-%m-%d") for d in df.index[-DIAS_CONFERIDOS:]]
-    difs = {d: abs(float(df.loc[d, "Close"]) / ref[d] - 1) for d in datas if d in ref}
+    difs = {d: abs(float(df.loc[d, "Close"]) / fech[d] - 1) for d in datas if d in fech}
+
+    # Pregão de hoje: máxima/mínima oficiais (B3 ou Nasdaq); o fechamento precisa caber na faixa.
+    # A B3 informa a data; na Nasdaq, o fechamento anterior identifica de qual pregão é a faixa.
+    hoje, u = ref.get("hoje"), df.iloc[-1]
+    ultimo = df.index[-1].strftime("%Y-%m-%d")
+    mesmo_pregao = bool(hoje) and (
+        hoje.get("data") == ultimo
+        or ("fechamento_anterior" in hoje
+            and abs(float(df["Close"].iloc[-2]) / hoje["fechamento_anterior"] - 1) <= TOLERANCIA_FECHAMENTO))
+    faixa_ok = None
+    if mesmo_pregao and ultimo not in difs:
+        tol = TOLERANCIA_FECHAMENTO
+        faixa_ok = (abs(u["High"] / hoje["high"] - 1) <= tol and abs(u["Low"] / hoje["low"] - 1) <= tol
+                    and hoje["low"] * (1 - tol) <= u["Close"] <= hoje["high"] * (1 + tol))
+        if not faixa_ok:
+            return {**vazio, "status": "divergente", "pior_dia": ultimo,
+                    "motivo": (f"candle de hoje fora da faixa oficial (Yahoo máx/mín/fech "
+                               f"{u['High']:.2f}/{u['Low']:.2f}/{u['Close']:.2f} x {ref.get('fonte')} máx/mín "
+                               f"{hoje['high']:.2f}/{hoje['low']:.2f})")}
     if not difs:
-        return {"status": "interno", "comparados": 0, "dif_max_pct": None}
+        return {**vazio, "status": "conferido" if faixa_ok else "interno",
+                "fonte": ref.get("fonte"), "ate": ultimo if faixa_ok else None}
+
     pior = max(difs, key=difs.get)
-    status = "conferido" if difs[pior] <= TOLERANCIA_FECHAMENTO else "divergente"
+    if difs[pior] > TOLERANCIA_FECHAMENTO:
+        return {**vazio, "status": "divergente", "pior_dia": pior, "dif_max_pct": round(difs[pior] * 100, 3),
+                "motivo": (f"fechamento de {pd.Timestamp(pior):%d/%m} diverge {difs[pior] * 100:.2f}% "
+                           f"da referência ({float(df.loc[pior, 'Close']):.2f} x {fech[pior]:.2f})")}
     return {
-        "status": status,
-        "comparados": len(difs),
+        "status": "conferido",
+        "fonte": ref.get("fonte"),
+        "comparados": len(difs) + (1 if faixa_ok else 0),
         "dif_max_pct": round(difs[pior] * 100, 3),
-        "pior_dia": pior,
-        "yahoo": round(float(df.loc[pior, "Close"]), 4),
-        "referencia": ref[pior],
+        "ate": ultimo if faixa_ok or ultimo in difs else max(difs),
     }
 
 
-def avaliar(df_bruto: pd.DataFrame, mercado: str, ref: dict[str, float] | None,
+def avaliar(df_bruto: pd.DataFrame, mercado: str, ref: dict | None,
             hoje: pd.Timestamp) -> tuple[pd.DataFrame, dict]:
     """Limpa e confere um ativo. Retorna o df limpo e o laudo (com 'publicar')."""
     df, problemas = limpar(df_bruto, mercado)
@@ -115,8 +140,28 @@ def avaliar(df_bruto: pd.DataFrame, mercado: str, ref: dict[str, float] | None,
     conf = conferir(df, ref)
     laudo["conferencia"] = conf
     if conf["status"] == "divergente":
-        return df, {**laudo, "publicar": False,
-                    "motivo": (f"fechamento de {pd.Timestamp(conf['pior_dia']):%d/%m} diverge "
-                               f"{conf['dif_max_pct']:.2f}% da referência "
-                               f"({conf['yahoo']} x {conf['referencia']})")}
+        return df, {**laudo, "publicar": False, "motivo": conf["motivo"]}
     return df, {**laudo, "publicar": True}
+
+
+def limpar_intraday(h: pd.DataFrame, diario: pd.DataFrame) -> tuple[pd.DataFrame | None, int]:
+    """Candles de 60 min só entram nos dias em que batem com o candle diário verificado.
+
+    Por dia: a máxima/mínima do intraday precisa caber na do diário (0,5% de folga) e o
+    último fechamento de 60 min precisa estar a até 2% do fechamento oficial (a diferença
+    normal vem do leilão de fechamento). Dias que não batem são descartados inteiros.
+    """
+    h = h.dropna(subset=["Open", "High", "Low", "Close"])
+    h = h[(h[["Open", "High", "Low", "Close"]] > 0).all(axis=1)]
+    corpo = h[["Open", "Close"]]
+    h = h[(h["High"] >= corpo.max(axis=1) * 0.999999) & (h["Low"] <= corpo.min(axis=1) * 1.000001)]
+    if h.empty:
+        return None, 0
+    dia = h.index.normalize()
+    agg = h.groupby(dia).agg(High=("High", "max"), Low=("Low", "min"), Close=("Close", "last"))
+    ref = diario.reindex(agg.index)
+    ok = ((agg["High"] <= ref["High"] * 1.005) & (agg["Low"] >= ref["Low"] * 0.995)
+          & ((agg["Close"] / ref["Close"] - 1).abs() <= 0.02)).fillna(False)
+    descartados = int((~ok).sum())
+    h = h[ok.reindex(dia).to_numpy()]
+    return (h if len(h) >= 60 else None), descartados

@@ -54,6 +54,11 @@ function buscarJSON(url) {
 }
 const carregarRadar = () => buscarJSON("data/radar.json");
 const carregarResumo = () => buscarJSON("data/resumo.json");
+async function carregarIntraday(arquivo) {
+  const d = await buscarJSON(`data/intraday/${encodeURIComponent(arquivo)}.json`);
+  d.candles ??= d.h.map(([time, open, high, low, close]) => ({ time, open, high, low, close }));
+  return d;
+}
 async function carregarCandles(arquivo) {
   const d = await buscarJSON(`data/ativos/${encodeURIComponent(arquivo)}.json`);
   d.candles ??= d.c.map(([time, open, high, low, close]) => ({ time, open, high, low, close }));
@@ -92,8 +97,9 @@ function chipsFamilias(familias) {
 function seloVerificacao(a) {
   const v = a.verificacao ?? {};
   const txt = v.status === "conferido"
-    ? `Fechamento conferido com ${v.fonte} (dif. máx. ${fmtNum(v.dif_max_pct, 2)}%)`
-    : "Verificação interna (sem fonte de referência)";
+    ? `Conferido com ${v.fonte}${v.ate ? " até " + fmtData(v.ate) : ""}` +
+      (v.dif_max_pct != null ? ` · diferença máx. ${fmtNum(v.dif_max_pct, 2)}%` : "")
+    : "Só verificação interna (sem fonte de referência)";
   return el("span", { class: `selo selo-${v.status}`, title: txt }, v.status === "conferido" ? "✓ conferido" : "◦ interno");
 }
 
@@ -135,9 +141,24 @@ function bollinger(candles, n = 20, k = 2) {
   return { sup, inf };
 }
 
+/** 60 min -> 4 horas: blocos de 4h contados a partir da abertura de cada pregão. */
+function agregar4h(candles) {
+  const out = [];
+  let dia = null, abertura = 0, bloco = null, atual = null;
+  for (const c of candles) {
+    const d = Math.floor(c.time / 86400);
+    if (d !== dia) { dia = d; abertura = c.time; }
+    const b = `${d}:${Math.floor((c.time - abertura) / 14400)}`;
+    if (b !== bloco) { bloco = b; atual = { ...c }; out.push(atual); }
+    else { atual.high = Math.max(atual.high, c.high); atual.low = Math.min(atual.low, c.low); atual.close = c.close; }
+  }
+  return out;
+}
+
 /** Agrega candles diários em semanais (chave = segunda-feira) ou mensais. */
 function agregar(candles, tf) {
-  if (tf === "D") return candles;
+  if (tf === "D" || tf === "60") return candles;
+  if (tf === "240") return agregar4h(candles);
   const grupos = new Map();
   for (const c of candles) {
     let chave;
@@ -156,7 +177,9 @@ function agregar(candles, tf) {
 // ------------------------------------------------------------- gráfico
 
 const graficos = new Set();
-const BARRAS_VISIVEIS = { D: 180, W: 110, M: 72 };
+const BARRAS_VISIVEIS = { 60: 160, 240: 120, D: 180, W: 110, M: 72 };
+const INTRADAY = new Set(["60", "240"]);
+const ROTULO_TF = { 60: "60 min", 240: "4 horas", D: "Diário", W: "Semanal", M: "Mensal" };
 
 class Grafico {
   /** opcoes: { mini: bool } — o mini não tem painel de IFR nem eixo de tempo detalhado. */
@@ -196,6 +219,8 @@ class Grafico {
     const bb = { color: css("--bb"), lineWidth: 1, lineStyle: LWC.LineStyle.Dotted };
     this.bbSup = linha(bb.color, 0, bb);
     this.bbInf = linha(bb.color, 0, bb);
+    this.marcadores = LWC.createSeriesMarkers(this.candles, []);
+    this.sinais = [];
     if (!this.mini) {
       this.ifr = linha(css("--acento"), 1, { lastValueVisible: true, priceFormat: { type: "price", precision: 0, minMove: 1 } });
       for (const [p, c] of [[80, "--baixa"], [70, "--borda-forte"], [30, "--borda-forte"], [20, "--alta"]])
@@ -208,8 +233,10 @@ class Grafico {
   async mostrar(arquivo, tf = this.tf) {
     const pedido = ++this.pedido;  // descarta respostas de cliques anteriores que chegarem depois
     this.tf = tf;
-    const dados = await carregarCandles(arquivo);
+    const intraday = INTRADAY.has(tf);
+    const dados = await (intraday ? carregarIntraday(arquivo) : carregarCandles(arquivo));
     if (pedido !== this.pedido) return false;
+    this.chart.timeScale().applyOptions({ timeVisible: intraday, secondsVisible: false });
     const c = agregar(dados.candles, tf);
     this.candles.setData(c);
     this.mm20.setData(sma(c, 20));
@@ -219,10 +246,30 @@ class Grafico {
     this.bbSup.setData(sup);
     this.bbInf.setData(inf);
     this.ifr?.setData(ifr(c));
+    this.marcar(c);
     this.n = c.length;
     this.aplicarCamadas();
     this.centralizar();
     return true;
+  }
+
+  /** Setas nos candles em que as estratégias dispararam (diário e semanal). */
+  marcar(candles) {
+    const tfSinal = { D: "D", W: "S" }[this.tf];
+    const existe = new Set(candles.map((c) => c.time));
+    const porDia = new Map();
+    for (const s of this.sinais) {
+      if (s.tf !== tfSinal || !existe.has(s.data)) continue;
+      const chave = `${s.data}:${s.lado}`;
+      if (!porDia.has(chave)) porDia.set(chave, s);
+    }
+    const m = [...porDia.values()].sort((a, b) => a.data.localeCompare(b.data)).map((s) => ({
+      time: s.data,
+      position: s.lado === "compra" ? "belowBar" : "aboveBar",
+      shape: s.lado === "compra" ? "arrowUp" : "arrowDown",
+      color: css(s.lado === "compra" ? "--alta" : "--baixa"),
+    }));
+    this.marcadores.setMarkers(m);
   }
 
   aplicarCamadas() {
@@ -296,10 +343,12 @@ function painelGrafico(alvo, { aoSelecionar } = {}) {
   const sub = el("p", { class: "sub" });
   const contexto = el("div", { class: "contexto" });
   const corpo = el("div", { class: "grafico" });
+  const nota = el("p", { class: "nota-tf", hidden: true },
+    "60 min e 4h: o último candle é o do pregão contínuo; o fechamento oficial do dia sai no leilão e pode diferir um pouco.");
   const tfs = el("div", { class: "segmento", role: "group", "aria-label": "Tempo gráfico" },
-    ["D:Diário", "W:Semanal", "M:Mensal"].map((x) => {
+    ["60:60m", "240:4h", "D:Diário", "W:Semanal", "M:Mensal"].map((x) => {
       const [tf, rot] = x.split(":");
-      return el("button", { "data-tf": tf, class: tf === "D" ? "ativo" : null }, rot);
+      return el("button", { "data-tf": tf, class: tf === "D" ? "ativo" : null, title: ROTULO_TF[tf] }, rot);
     }));
   const camadas = el("div", { class: "camadas" },
     el("label", { class: "leg mm" }, el("input", { type: "checkbox", checked: true, "data-c": "mm" }), "MM 20/50/200"),
@@ -308,15 +357,19 @@ function painelGrafico(alvo, { aoSelecionar } = {}) {
   alvo.replaceChildren(
     el("div", { class: "painel-cab" }, el("div", {}, titulo, sub), el("div", { class: "controles" }, tfs)),
     el("div", { class: "barra-grafico" }, camadas, contexto),
+    nota,
     corpo);
+  const atualizarNota = () => { nota.hidden = !INTRADAY.has(g.tf); };
 
   const g = new Grafico(corpo);
   let atual = null;
   tfs.addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b || !atual) return;
+    if (b.disabled) return;
     tfs.querySelectorAll("button").forEach((x) => x.classList.toggle("ativo", x === b));
     g.mostrar(atual.arquivo, b.dataset.tf);
+    atualizarNota();
   });
   camadas.addEventListener("change", (e) => {
     g.camadas[e.target.dataset.c] = e.target.checked;
@@ -325,14 +378,23 @@ function painelGrafico(alvo, { aoSelecionar } = {}) {
 
   return {
     grafico: g,
-    async selecionar(a, extras = []) {
+    async selecionar(a, sinais = []) {
       atual = a;
+      g.sinais = sinais;
       titulo.replaceChildren(el("span", { class: "mono" }, semSufixo(a.ticker)), " · ", a.nome);
       sub.replaceChildren(
         el("span", { class: "mono" }, fmtMoeda(a.ultimo, a.moeda)), " ",
         el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)), " · ",
         `fechamento de ${fmtData(a.data)} `, seloVerificacao(a));
-      contexto.replaceChildren(...contextoAtivo(a), ...extras);
+      contexto.replaceChildren(...contextoAtivo(a));
+      // 60 min/4h só existem para ações com intraday verificado
+      tfs.querySelectorAll("button").forEach((b) => {
+        b.disabled = INTRADAY.has(b.dataset.tf) && !a.tem_intraday;
+        b.title = b.disabled ? "Sem dados de 60 min verificados para este ativo" : ROTULO_TF[b.dataset.tf];
+      });
+      if (INTRADAY.has(g.tf) && !a.tem_intraday) g.tf = "D";
+      tfs.querySelectorAll("button").forEach((b) => b.classList.toggle("ativo", b.dataset.tf === g.tf));
+      atualizarNota();
       await g.mostrar(a.arquivo);
       aoSelecionar?.(a);
     },
