@@ -1,0 +1,50 @@
+name: Atualizar dados e publicar
+
+on:
+  schedule:
+    # 21:30 UTC = 18:30 em Brasília, depois do fechamento da B3 e da NYSE.
+    # Roda também no fim de semana para pegar o candle diário das criptos.
+    - cron: "30 21 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Baixar cotações e calcular sinais
+        run: python scripts/atualizar_dados.py
+
+      - name: Montar site
+        run: |
+          mkdir _site
+          cp -r index.html assets data _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

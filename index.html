@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carteira Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topo">
+    <div class="marca">
+      <span class="marca-ponto"></span>
+      <h1>Carteira<span>Terminal</span></h1>
+    </div>
+    <div class="topo-info">
+      <span>USD/BRL <b id="usdbrl">—</b></span>
+      <span>Atualizado <b id="atualizado">—</b></span>
+    </div>
+  </header>
+
+  <main>
+    <section class="kpis" id="kpis"></section>
+
+    <section class="grade">
+      <div class="painel painel-grafico">
+        <div class="painel-cab">
+          <div>
+            <h2 id="grafico-titulo">Gráfico</h2>
+            <p class="sub" id="grafico-sub"></p>
+          </div>
+          <div class="controles">
+            <select id="seletor-ativo" aria-label="Ativo"></select>
+            <div class="segmento" id="seletor-tf">
+              <button data-tf="D" class="ativo">Diário</button>
+              <button data-tf="W">Semanal</button>
+            </div>
+          </div>
+        </div>
+        <div class="legenda">
+          <span class="leg mm20">MM20</span>
+          <span class="leg mm50">MM50</span>
+          <span class="leg mm200">MM200</span>
+          <span class="leg ifr">IFR 14</span>
+        </div>
+        <div id="grafico"></div>
+      </div>
+
+      <aside class="painel painel-oportunidades">
+        <div class="painel-cab">
+          <div>
+            <h2>Oportunidades</h2>
+            <p class="sub">Confluência de sinais no diário e semanal</p>
+          </div>
+        </div>
+        <ol id="oportunidades" class="oportunidades"></ol>
+      </aside>
+    </section>
+
+    <section class="painel" id="painel-posicoes">
+      <div class="painel-cab">
+        <div>
+          <h2>Minha carteira</h2>
+          <p class="sub">Valores convertidos para BRL pelo câmbio do dia</p>
+        </div>
+        <div class="alocacao" id="alocacao"></div>
+      </div>
+      <div class="tabela-wrap"><table id="tabela-posicoes"></table></div>
+      <div id="grafico-patrimonio"></div>
+    </section>
+
+    <section class="painel">
+      <div class="painel-cab">
+        <div>
+          <h2>Radar</h2>
+          <p class="sub">Todos os ativos acompanhados</p>
+        </div>
+        <div class="segmento" id="filtro-mercado">
+          <button data-m="" class="ativo">Todos</button>
+          <button data-m="BR">Brasil</button>
+          <button data-m="US">EUA</button>
+          <button data-m="CRIPTO">Cripto</button>
+        </div>
+      </div>
+      <div class="tabela-wrap"><table id="tabela-radar"></table></div>
+    </section>
+  </main>
+
+  <footer>
+    Uso pessoal. Os sinais são filtros técnicos automáticos, não recomendação de investimento.
+    Dados: Yahoo Finance (fechamento diário).
+  </footer>
+
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "moeda_base": "BRL",
+  "capital_inicial": 10000,
+  "data_inicio": "2026-10-19",
+  "transacoes": [],
+  "ativos": [
+    { "ticker": "PETR4.SA", "nome": "Petrobras PN",        "mercado": "BR",     "moeda": "BRL" },
+    { "ticker": "VALE3.SA", "nome": "Vale ON",             "mercado": "BR",     "moeda": "BRL" },
+    { "ticker": "ITUB4.SA", "nome": "Itaú Unibanco PN",    "mercado": "BR",     "moeda": "BRL" },
+    { "ticker": "BBAS3.SA", "nome": "Banco do Brasil ON",  "mercado": "BR",     "moeda": "BRL" },
+    { "ticker": "WEGE3.SA", "nome": "WEG ON",              "mercado": "BR",     "moeda": "BRL" },
+    { "ticker": "TAEE11.SA","nome": "Taesa Unit",          "mercado": "BR",     "moeda": "BRL" },
+    { "ticker": "AAPL",     "nome": "Apple",               "mercado": "US",     "moeda": "USD" },
+    { "ticker": "MSFT",     "nome": "Microsoft",           "mercado": "US",     "moeda": "USD" },
+    { "ticker": "NVDA",     "nome": "NVIDIA",              "mercado": "US",     "moeda": "USD" },
+    { "ticker": "GOOGL",    "nome": "Alphabet",            "mercado": "US",     "moeda": "USD" },
+    { "ticker": "AMZN",     "nome": "Amazon",              "mercado": "US",     "moeda": "USD" },
+    { "ticker": "KO",       "nome": "Coca-Cola",           "mercado": "US",     "moeda": "USD" },
+    { "ticker": "BTC-USD",  "nome": "Bitcoin",             "mercado": "CRIPTO", "moeda": "USD" },
+    { "ticker": "ETH-USD",  "nome": "Ethereum",            "mercado": "CRIPTO", "moeda": "USD" },
+    { "ticker": "SOL-USD",  "nome": "Solana",              "mercado": "CRIPTO", "moeda": "USD" }
+  ]
+}
