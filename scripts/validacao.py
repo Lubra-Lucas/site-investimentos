@@ -11,6 +11,7 @@ import pandas as pd
 
 TOLERANCIA_FECHAMENTO = 0.006   # 0,6% de diferença máxima para a fonte de referência
 DIAS_CONFERIDOS = 5             # quantos pregões recentes comparar com a referência
+REFERENCIA_ABSURDA = 0.5        # ponto da referência a mais de 50% da mediana dela mesma = erro da fonte
 SALTO_ACAO, SALTO_CRIPTO = 0.20, 0.30
 QUEBRA_ACAO, QUEBRA_CRIPTO = 0.40, 0.60  # gap maior que isso = quebra de série (grupamento, reestruturação)
 MAX_CORRECOES_RECENTES = 3      # mais que isso nos últimos 60 pregões => dados instáveis
@@ -82,6 +83,11 @@ def conferir(df: pd.DataFrame, ref: dict | None) -> dict:
     if not ref:
         return vazio
     fech = ref.get("fechamentos") or {}
+    # Valor absurdo na própria referência (ex.: Nasdaq já devolveu 0,15 para uma ação de 430)
+    # não reprova o ativo: o ponto é ignorado e os demais dias seguem na comparação.
+    if len(fech) >= 3:
+        mediana = pd.Series(list(fech.values())).median()
+        fech = {d: v for d, v in fech.items() if v > 0 and abs(v / mediana - 1) <= REFERENCIA_ABSURDA}
     datas = [d.strftime("%Y-%m-%d") for d in df.index[-DIAS_CONFERIDOS:]]
     difs = {d: abs(float(df.loc[d, "Close"]) / fech[d] - 1) for d in datas if d in fech}
 
