@@ -1,0 +1,1082 @@
+{
+ "BR": [
+  {
+   "ticker": "PETR4.SA",
+   "nome": "Petrobras"
+  },
+  {
+   "ticker": "PETR3.SA",
+   "nome": "Petrobras"
+  },
+  {
+   "ticker": "VALE3.SA",
+   "nome": "Vale"
+  },
+  {
+   "ticker": "ITUB4.SA",
+   "nome": "Itaú Unibanco"
+  },
+  {
+   "ticker": "BBDC4.SA",
+   "nome": "Bradesco"
+  },
+  {
+   "ticker": "BBDC3.SA",
+   "nome": "Bradesco"
+  },
+  {
+   "ticker": "BBAS3.SA",
+   "nome": "Banco do Brasil"
+  },
+  {
+   "ticker": "B3SA3.SA",
+   "nome": "B3"
+  },
+  {
+   "ticker": "ABEV3.SA",
+   "nome": "Ambev"
+  },
+  {
+   "ticker": "WEGE3.SA",
+   "nome": "WEG"
+  },
+  {
+   "ticker": "ITSA4.SA",
+   "nome": "Itaúsa"
+  },
+  {
+   "ticker": "BPAC11.SA",
+   "nome": "BTG Pactual"
+  },
+  {
+   "ticker": "SANB11.SA",
+   "nome": "Santander Brasil"
+  },
+  {
+   "ticker": "SUZB3.SA",
+   "nome": "Suzano"
+  },
+  {
+   "ticker": "RENT3.SA",
+   "nome": "Localiza"
+  },
+  {
+   "ticker": "RADL3.SA",
+   "nome": "Raia Drogasil"
+  },
+  {
+   "ticker": "PRIO3.SA",
+   "nome": "PRIO"
+  },
+  {
+   "ticker": "EQTL3.SA",
+   "nome": "Equatorial"
+  },
+  {
+   "ticker": "AXIA3.SA",
+   "nome": "Axia Energia (Eletrobras)"
+  },
+  {
+   "ticker": "GGBR4.SA",
+   "nome": "Gerdau"
+  },
+  {
+   "ticker": "CSNA3.SA",
+   "nome": "CSN"
+  },
+  {
+   "ticker": "USIM5.SA",
+   "nome": "Usiminas"
+  },
+  {
+   "ticker": "GOAU4.SA",
+   "nome": "Metalúrgica Gerdau"
+  },
+  {
+   "ticker": "CMIG4.SA",
+   "nome": "Cemig"
+  },
+  {
+   "ticker": "CPLE3.SA",
+   "nome": "Copel"
+  },
+  {
+   "ticker": "SBSP3.SA",
+   "nome": "Sabesp"
+  },
+  {
+   "ticker": "VIVT3.SA",
+   "nome": "Telefônica Brasil"
+  },
+  {
+   "ticker": "TIMS3.SA",
+   "nome": "TIM"
+  },
+  {
+   "ticker": "MBRF3.SA",
+   "nome": "MBRF (Marfrig+BRF)"
+  },
+  {
+   "ticker": "BEEF3.SA",
+   "nome": "Minerva"
+  },
+  {
+   "ticker": "LREN3.SA",
+   "nome": "Lojas Renner"
+  },
+  {
+   "ticker": "MGLU3.SA",
+   "nome": "Magazine Luiza"
+  },
+  {
+   "ticker": "AZZA3.SA",
+   "nome": "Azzas 2154"
+  },
+  {
+   "ticker": "CSAN3.SA",
+   "nome": "Cosan"
+  },
+  {
+   "ticker": "RAIL3.SA",
+   "nome": "Rumo"
+  },
+  {
+   "ticker": "UGPA3.SA",
+   "nome": "Ultrapar"
+  },
+  {
+   "ticker": "VBBR3.SA",
+   "nome": "Vibra Energia"
+  },
+  {
+   "ticker": "KLBN11.SA",
+   "nome": "Klabin"
+  },
+  {
+   "ticker": "EMBJ3.SA",
+   "nome": "Embraer"
+  },
+  {
+   "ticker": "HYPE3.SA",
+   "nome": "Hypera"
+  },
+  {
+   "ticker": "TOTS3.SA",
+   "nome": "Totvs"
+  },
+  {
+   "ticker": "MOTV3.SA",
+   "nome": "Motiva (CCR)"
+  },
+  {
+   "ticker": "MULT3.SA",
+   "nome": "Multiplan"
+  },
+  {
+   "ticker": "CYRE3.SA",
+   "nome": "Cyrela"
+  },
+  {
+   "ticker": "MRVE3.SA",
+   "nome": "MRV"
+  },
+  {
+   "ticker": "EZTC3.SA",
+   "nome": "EZTec"
+  },
+  {
+   "ticker": "BBSE3.SA",
+   "nome": "BB Seguridade"
+  },
+  {
+   "ticker": "CXSE3.SA",
+   "nome": "Caixa Seguridade"
+  },
+  {
+   "ticker": "PSSA3.SA",
+   "nome": "Porto Seguro"
+  },
+  {
+   "ticker": "IRBR3.SA",
+   "nome": "IRB Re"
+  },
+  {
+   "ticker": "ENEV3.SA",
+   "nome": "Eneva"
+  },
+  {
+   "ticker": "EGIE3.SA",
+   "nome": "Engie Brasil"
+  },
+  {
+   "ticker": "TAEE11.SA",
+   "nome": "Taesa"
+  },
+  {
+   "ticker": "CPFE3.SA",
+   "nome": "CPFL Energia"
+  },
+  {
+   "ticker": "ALUP11.SA",
+   "nome": "Alupar"
+  },
+  {
+   "ticker": "NATU3.SA",
+   "nome": "Natura"
+  },
+  {
+   "ticker": "ASAI3.SA",
+   "nome": "Assaí"
+  },
+  {
+   "ticker": "PCAR3.SA",
+   "nome": "GPA"
+  },
+  {
+   "ticker": "HAPV3.SA",
+   "nome": "Hapvida"
+  },
+  {
+   "ticker": "RDOR3.SA",
+   "nome": "Rede D'Or"
+  },
+  {
+   "ticker": "FLRY3.SA",
+   "nome": "Fleury"
+  },
+  {
+   "ticker": "YDUQ3.SA",
+   "nome": "Yduqs"
+  },
+  {
+   "ticker": "COGN3.SA",
+   "nome": "Cogna"
+  },
+  {
+   "ticker": "SLCE3.SA",
+   "nome": "SLC Agrícola"
+  },
+  {
+   "ticker": "SMTO3.SA",
+   "nome": "São Martinho"
+  },
+  {
+   "ticker": "BRAP4.SA",
+   "nome": "Bradespar"
+  },
+  {
+   "ticker": "CMIN3.SA",
+   "nome": "CSN Mineração"
+  },
+  {
+   "ticker": "RECV3.SA",
+   "nome": "PetroReconcavo"
+  },
+  {
+   "ticker": "BRKM5.SA",
+   "nome": "Braskem"
+  },
+  {
+   "ticker": "DXCO3.SA",
+   "nome": "Dexco"
+  },
+  {
+   "ticker": "POMO4.SA",
+   "nome": "Marcopolo"
+  },
+  {
+   "ticker": "RAIZ4.SA",
+   "nome": "Raízen"
+  },
+  {
+   "ticker": "ALOS3.SA",
+   "nome": "Allos"
+  },
+  {
+   "ticker": "IGTI11.SA",
+   "nome": "Iguatemi"
+  },
+  {
+   "ticker": "AURE3.SA",
+   "nome": "Auren"
+  },
+  {
+   "ticker": "VAMO3.SA",
+   "nome": "Vamos"
+  },
+  {
+   "ticker": "SMFT3.SA",
+   "nome": "Smart Fit"
+  },
+  {
+   "ticker": "DIRR3.SA",
+   "nome": "Direcional"
+  },
+  {
+   "ticker": "CURY3.SA",
+   "nome": "Cury"
+  },
+  {
+   "ticker": "CVCB3.SA",
+   "nome": "CVC"
+  },
+  {
+   "ticker": "VIVA3.SA",
+   "nome": "Vivara"
+  },
+  {
+   "ticker": "LWSA3.SA",
+   "nome": "Locaweb"
+  },
+  {
+   "ticker": "CASH3.SA",
+   "nome": "Méliuz"
+  },
+  {
+   "ticker": "INTB3.SA",
+   "nome": "Intelbras"
+  },
+  {
+   "ticker": "BHIA3.SA",
+   "nome": "Casas Bahia"
+  },
+  {
+   "ticker": "SAPR11.SA",
+   "nome": "Sanepar"
+  },
+  {
+   "ticker": "CSMG3.SA",
+   "nome": "Copasa"
+  },
+  {
+   "ticker": "ISAE4.SA",
+   "nome": "ISA Energia"
+  },
+  {
+   "ticker": "ABCB4.SA",
+   "nome": "ABC Brasil"
+  },
+  {
+   "ticker": "BRSR6.SA",
+   "nome": "Banrisul"
+  },
+  {
+   "ticker": "ORVR3.SA",
+   "nome": "Orizon"
+  },
+  {
+   "ticker": "FRAS3.SA",
+   "nome": "Fras-le"
+  },
+  {
+   "ticker": "TUPY3.SA",
+   "nome": "Tupy"
+  },
+  {
+   "ticker": "MYPK3.SA",
+   "nome": "Iochpe-Maxion"
+  },
+  {
+   "ticker": "KEPL3.SA",
+   "nome": "Kepler Weber"
+  },
+  {
+   "ticker": "LEVE3.SA",
+   "nome": "Mahle Metal Leve"
+  },
+  {
+   "ticker": "RANI3.SA",
+   "nome": "Irani"
+  },
+  {
+   "ticker": "UNIP6.SA",
+   "nome": "Unipar"
+  },
+  {
+   "ticker": "SIMH3.SA",
+   "nome": "Simpar"
+  },
+  {
+   "ticker": "JHSF3.SA",
+   "nome": "JHSF"
+  },
+  {
+   "ticker": "GMAT3.SA",
+   "nome": "Grupo Mateus"
+  },
+  {
+   "ticker": "GRND3.SA",
+   "nome": "Grendene"
+  },
+  {
+   "ticker": "MOVI3.SA",
+   "nome": "Movida"
+  },
+  {
+   "ticker": "TTEN3.SA",
+   "nome": "3tentos"
+  },
+  {
+   "ticker": "PRNR3.SA",
+   "nome": "Priner"
+  },
+  {
+   "ticker": "VULC3.SA",
+   "nome": "Vulcabras"
+  },
+  {
+   "ticker": "BMOB3.SA",
+   "nome": "Bemobi"
+  },
+  {
+   "ticker": "BRAV3.SA",
+   "nome": "Brava Energia"
+  },
+  {
+   "ticker": "PGMN3.SA",
+   "nome": "Pague Menos"
+  },
+  {
+   "ticker": "MDIA3.SA",
+   "nome": "M. Dias Branco"
+  },
+  {
+   "ticker": "CEAB3.SA",
+   "nome": "C&A"
+  },
+  {
+   "ticker": "ANIM3.SA",
+   "nome": "Ânima"
+  },
+  {
+   "ticker": "TEND3.SA",
+   "nome": "Tenda"
+  },
+  {
+   "ticker": "PLPL3.SA",
+   "nome": "Plano & Plano"
+  },
+  {
+   "ticker": "LAVV3.SA",
+   "nome": "Lavvi"
+  },
+  {
+   "ticker": "HBSA3.SA",
+   "nome": "Hidrovias do Brasil"
+  },
+  {
+   "ticker": "WIZC3.SA",
+   "nome": "Wiz"
+  },
+  {
+   "ticker": "SOJA3.SA",
+   "nome": "Boa Safra"
+  },
+  {
+   "ticker": "AGRO3.SA",
+   "nome": "BrasilAgro"
+  },
+  {
+   "ticker": "JALL3.SA",
+   "nome": "Jalles Machado"
+  },
+  {
+   "ticker": "MILS3.SA",
+   "nome": "Mills"
+  },
+  {
+   "ticker": "POSI3.SA",
+   "nome": "Positivo"
+  },
+  {
+   "ticker": "MLAS3.SA",
+   "nome": "Multilaser"
+  },
+  {
+   "ticker": "ONCO3.SA",
+   "nome": "Oncoclínicas"
+  },
+  {
+   "ticker": "BLAU3.SA",
+   "nome": "Blau"
+  },
+  {
+   "ticker": "ENGI11.SA",
+   "nome": "Energisa"
+  },
+  {
+   "ticker": "CMIG3.SA",
+   "nome": "Cemig"
+  },
+  {
+   "ticker": "SBFG3.SA",
+   "nome": "Grupo SBF"
+  },
+  {
+   "ticker": "ALPA4.SA",
+   "nome": "Alpargatas"
+  },
+  {
+   "ticker": "AMER3.SA",
+   "nome": "Americanas"
+  },
+  {
+   "ticker": "EVEN3.SA",
+   "nome": "Even"
+  },
+  {
+   "ticker": "TGMA3.SA",
+   "nome": "Tegma"
+  }
+ ],
+ "US": [
+  {
+   "ticker": "AAPL",
+   "nome": "Apple"
+  },
+  {
+   "ticker": "MSFT",
+   "nome": "Microsoft"
+  },
+  {
+   "ticker": "NVDA",
+   "nome": "NVIDIA"
+  },
+  {
+   "ticker": "GOOGL",
+   "nome": "Alphabet"
+  },
+  {
+   "ticker": "AMZN",
+   "nome": "Amazon"
+  },
+  {
+   "ticker": "META",
+   "nome": "Meta"
+  },
+  {
+   "ticker": "TSLA",
+   "nome": "Tesla"
+  },
+  {
+   "ticker": "BRK-B",
+   "nome": "Berkshire Hathaway"
+  },
+  {
+   "ticker": "AVGO",
+   "nome": "Broadcom"
+  },
+  {
+   "ticker": "LLY",
+   "nome": "Eli Lilly"
+  },
+  {
+   "ticker": "JPM",
+   "nome": "JPMorgan Chase"
+  },
+  {
+   "ticker": "V",
+   "nome": "Visa"
+  },
+  {
+   "ticker": "UNH",
+   "nome": "UnitedHealth"
+  },
+  {
+   "ticker": "XOM",
+   "nome": "ExxonMobil"
+  },
+  {
+   "ticker": "MA",
+   "nome": "Mastercard"
+  },
+  {
+   "ticker": "JNJ",
+   "nome": "Johnson & Johnson"
+  },
+  {
+   "ticker": "PG",
+   "nome": "Procter & Gamble"
+  },
+  {
+   "ticker": "HD",
+   "nome": "Home Depot"
+  },
+  {
+   "ticker": "COST",
+   "nome": "Costco Wholesale"
+  },
+  {
+   "ticker": "ABBV",
+   "nome": "AbbVie"
+  },
+  {
+   "ticker": "MRK",
+   "nome": "Merck"
+  },
+  {
+   "ticker": "CVX",
+   "nome": "Chevron"
+  },
+  {
+   "ticker": "KO",
+   "nome": "Coca-Cola"
+  },
+  {
+   "ticker": "PEP",
+   "nome": "PepsiCo"
+  },
+  {
+   "ticker": "ADBE",
+   "nome": "Adobe"
+  },
+  {
+   "ticker": "CRM",
+   "nome": "Salesforce"
+  },
+  {
+   "ticker": "NFLX",
+   "nome": "Netflix"
+  },
+  {
+   "ticker": "AMD",
+   "nome": "Advanced Micro Devices"
+  },
+  {
+   "ticker": "ORCL",
+   "nome": "Oracle"
+  },
+  {
+   "ticker": "WMT",
+   "nome": "Walmart"
+  },
+  {
+   "ticker": "BAC",
+   "nome": "Bank of America"
+  },
+  {
+   "ticker": "TMO",
+   "nome": "Thermo Fisher Scientific"
+  },
+  {
+   "ticker": "ACN",
+   "nome": "Accenture"
+  },
+  {
+   "ticker": "MCD",
+   "nome": "McDonald's"
+  },
+  {
+   "ticker": "CSCO",
+   "nome": "Cisco Systems"
+  },
+  {
+   "ticker": "ABT",
+   "nome": "Abbott Laboratories"
+  },
+  {
+   "ticker": "LIN",
+   "nome": "Linde"
+  },
+  {
+   "ticker": "DHR",
+   "nome": "Danaher"
+  },
+  {
+   "ticker": "INTC",
+   "nome": "Intel"
+  },
+  {
+   "ticker": "DIS",
+   "nome": "Walt Disney"
+  },
+  {
+   "ticker": "WFC",
+   "nome": "Wells Fargo"
+  },
+  {
+   "ticker": "TXN",
+   "nome": "Texas Instruments"
+  },
+  {
+   "ticker": "VZ",
+   "nome": "Verizon Communications"
+  },
+  {
+   "ticker": "PM",
+   "nome": "Philip Morris International"
+  },
+  {
+   "ticker": "NEE",
+   "nome": "NextEra Energy"
+  },
+  {
+   "ticker": "CMCSA",
+   "nome": "Comcast"
+  },
+  {
+   "ticker": "IBM",
+   "nome": "IBM"
+  },
+  {
+   "ticker": "AMGN",
+   "nome": "Amgen"
+  },
+  {
+   "ticker": "QCOM",
+   "nome": "QUALCOMM"
+  },
+  {
+   "ticker": "HON",
+   "nome": "Honeywell International"
+  },
+  {
+   "ticker": "UNP",
+   "nome": "Union Pacific"
+  },
+  {
+   "ticker": "INTU",
+   "nome": "Intuit"
+  },
+  {
+   "ticker": "CAT",
+   "nome": "Caterpillar"
+  },
+  {
+   "ticker": "GE",
+   "nome": "GE Aerospace"
+  },
+  {
+   "ticker": "SPGI",
+   "nome": "S&P Global"
+  },
+  {
+   "ticker": "LOW",
+   "nome": "Lowe's"
+  },
+  {
+   "ticker": "BA",
+   "nome": "Boeing"
+  },
+  {
+   "ticker": "GS",
+   "nome": "Goldman Sachs"
+  },
+  {
+   "ticker": "NOW",
+   "nome": "ServiceNow"
+  },
+  {
+   "ticker": "AMAT",
+   "nome": "Applied Materials"
+  },
+  {
+   "ticker": "ISRG",
+   "nome": "Intuitive Surgical"
+  },
+  {
+   "ticker": "RTX",
+   "nome": "RTX"
+  },
+  {
+   "ticker": "BKNG",
+   "nome": "Booking"
+  },
+  {
+   "ticker": "PLD",
+   "nome": "Prologis"
+  },
+  {
+   "ticker": "ELV",
+   "nome": "Elevance Health"
+  },
+  {
+   "ticker": "MDT",
+   "nome": "Medtronic"
+  },
+  {
+   "ticker": "BLK",
+   "nome": "BlackRock"
+  },
+  {
+   "ticker": "SYK",
+   "nome": "Stryker"
+  },
+  {
+   "ticker": "T",
+   "nome": "AT&T"
+  },
+  {
+   "ticker": "DE",
+   "nome": "Deere"
+  },
+  {
+   "ticker": "MS",
+   "nome": "Morgan Stanley"
+  },
+  {
+   "ticker": "LMT",
+   "nome": "Lockheed Martin"
+  },
+  {
+   "ticker": "ADP",
+   "nome": "Automatic Data Processing"
+  },
+  {
+   "ticker": "GILD",
+   "nome": "Gilead Sciences"
+  },
+  {
+   "ticker": "VRTX",
+   "nome": "Vertex Pharmaceuticals"
+  },
+  {
+   "ticker": "TJX",
+   "nome": "TJX Companies"
+  },
+  {
+   "ticker": "C",
+   "nome": "Citigroup"
+  },
+  {
+   "ticker": "SCHW",
+   "nome": "Charles Schwab"
+  },
+  {
+   "ticker": "CB",
+   "nome": "Chubb"
+  },
+  {
+   "ticker": "MDLZ",
+   "nome": "Mondelez International"
+  },
+  {
+   "ticker": "ADI",
+   "nome": "Analog Devices"
+  },
+  {
+   "ticker": "REGN",
+   "nome": "Regeneron Pharmaceuticals"
+  },
+  {
+   "ticker": "LRCX",
+   "nome": "Lam Research"
+  },
+  {
+   "ticker": "PANW",
+   "nome": "Palo Alto Networks"
+  },
+  {
+   "ticker": "MU",
+   "nome": "Micron Technology"
+  },
+  {
+   "ticker": "SBUX",
+   "nome": "Starbucks"
+  },
+  {
+   "ticker": "MO",
+   "nome": "Altria"
+  },
+  {
+   "ticker": "SO",
+   "nome": "Southern Co."
+  },
+  {
+   "ticker": "CI",
+   "nome": "Cigna"
+  },
+  {
+   "ticker": "DUK",
+   "nome": "Duke Energy"
+  },
+  {
+   "ticker": "ZTS",
+   "nome": "Zoetis"
+  },
+  {
+   "ticker": "BMY",
+   "nome": "Bristol-Myers Squibb"
+  },
+  {
+   "ticker": "PGR",
+   "nome": "Progressive"
+  },
+  {
+   "ticker": "BSX",
+   "nome": "Boston Scientific"
+  },
+  {
+   "ticker": "ETN",
+   "nome": "Eaton"
+  },
+  {
+   "ticker": "SLB",
+   "nome": "SLB"
+  },
+  {
+   "ticker": "EOG",
+   "nome": "EOG Resources"
+  },
+  {
+   "ticker": "CME",
+   "nome": "CME"
+  },
+  {
+   "ticker": "UBER",
+   "nome": "Uber Technologies"
+  },
+  {
+   "ticker": "ABNB",
+   "nome": "Airbnb"
+  },
+  {
+   "ticker": "SHOP",
+   "nome": "Shopify"
+  },
+  {
+   "ticker": "PLTR",
+   "nome": "Palantir Technologies"
+  },
+  {
+   "ticker": "CRWD",
+   "nome": "CrowdStrike"
+  },
+  {
+   "ticker": "SNOW",
+   "nome": "Snowflake"
+  },
+  {
+   "ticker": "COIN",
+   "nome": "Coinbase Global"
+  },
+  {
+   "ticker": "MELI",
+   "nome": "MercadoLibre"
+  },
+  {
+   "ticker": "NU",
+   "nome": "Nu Holdings"
+  },
+  {
+   "ticker": "PYPL",
+   "nome": "PayPal"
+  },
+  {
+   "ticker": "XYZ",
+   "nome": "Block"
+  },
+  {
+   "ticker": "F",
+   "nome": "Ford Motor"
+  },
+  {
+   "ticker": "GM",
+   "nome": "General Motors"
+  },
+  {
+   "ticker": "NKE",
+   "nome": "Nike"
+  },
+  {
+   "ticker": "TGT",
+   "nome": "Target"
+  },
+  {
+   "ticker": "PFE",
+   "nome": "Pfizer"
+  },
+  {
+   "ticker": "CVS",
+   "nome": "CVS Health"
+  },
+  {
+   "ticker": "MRNA",
+   "nome": "Moderna"
+  },
+  {
+   "ticker": "ASML",
+   "nome": "ASML"
+  },
+  {
+   "ticker": "TSM",
+   "nome": "TSMC"
+  },
+  {
+   "ticker": "BABA",
+   "nome": "Alibaba"
+  },
+  {
+   "ticker": "PDD",
+   "nome": "PDD"
+  },
+  {
+   "ticker": "ARM",
+   "nome": "Arm"
+  },
+  {
+   "ticker": "SMCI",
+   "nome": "Super Micro Computer"
+  },
+  {
+   "ticker": "DELL",
+   "nome": "Dell Technologies"
+  },
+  {
+   "ticker": "ANET",
+   "nome": "Arista Networks"
+  },
+  {
+   "ticker": "KLAC",
+   "nome": "KLA"
+  },
+  {
+   "ticker": "SNPS",
+   "nome": "Synopsys"
+  },
+  {
+   "ticker": "CDNS",
+   "nome": "Cadence Design Systems"
+  },
+  {
+   "ticker": "MRVL",
+   "nome": "Marvell Technology"
+  },
+  {
+   "ticker": "WDAY",
+   "nome": "Workday"
+  },
+  {
+   "ticker": "TTD",
+   "nome": "The Trade Desk"
+  },
+  {
+   "ticker": "DDOG",
+   "nome": "Datadog"
+  },
+  {
+   "ticker": "NET",
+   "nome": "Cloudflare"
+  },
+  {
+   "ticker": "ZS",
+   "nome": "Zscaler"
+  },
+  {
+   "ticker": "MSTR",
+   "nome": "Strategy (MicroStrategy)"
+  },
+  {
+   "ticker": "HOOD",
+   "nome": "Robinhood Markets"
+  },
+  {
+   "ticker": "RBLX",
+   "nome": "Roblox"
+  },
+  {
+   "ticker": "SPOT",
+   "nome": "Spotify"
+  }
+ ]
+}

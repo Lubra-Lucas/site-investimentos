@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Radar de Ações</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topo" id="topo"></header>
+
+  <main>
+    <section class="filtros painel">
+      <div class="filtro">
+        <span class="filtro-rotulo">Mercado</span>
+        <div class="segmento" id="f-mercado">
+          <button data-v="" class="ativo">Todos</button>
+          <button data-v="BR">Brasil</button>
+          <button data-v="US">EUA</button>
+        </div>
+      </div>
+      <div class="filtro">
+        <span class="filtro-rotulo">Camada</span>
+        <div class="segmento" id="f-tf">
+          <button data-v="D" class="ativo">Diário</button>
+          <button data-v="S">Semanal</button>
+        </div>
+      </div>
+      <div class="filtro">
+        <span class="filtro-rotulo">Período</span>
+        <div class="segmento" id="f-periodo">
+          <button data-v="1" class="ativo">Último</button>
+          <button data-v="3">3</button>
+          <button data-v="5">5</button>
+          <button data-v="99">Todos</button>
+        </div>
+      </div>
+      <p class="sub" id="f-descricao"></p>
+    </section>
+
+    <section class="grade-radar">
+      <div class="painel painel-grafico" id="painel-grafico"></div>
+
+      <div class="lados">
+        <section class="painel lado lado-compra">
+          <div class="painel-cab">
+            <div>
+              <h2><span class="seta">▲</span> Oportunidades de compra</h2>
+              <p class="sub" id="sub-compra"></p>
+            </div>
+          </div>
+          <div id="lista-compra"></div>
+        </section>
+        <section class="painel lado lado-venda">
+          <div class="painel-cab">
+            <div>
+              <h2><span class="seta">▼</span> Oportunidades de venda</h2>
+              <p class="sub" id="sub-venda"></p>
+            </div>
+          </div>
+          <div id="lista-venda"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="painel">
+      <div class="painel-cab">
+        <div>
+          <h2>Filtros de estado</h2>
+          <p class="sub">A foto de hoje: onde cada ativo está, independente de evento</p>
+        </div>
+        <div class="segmento" id="f-tabela">
+          <button data-v="forte-alta" class="ativo">Tendência forte de alta</button>
+          <button data-v="forte-baixa">Tendência forte de baixa</button>
+          <button data-v="ifr">IFR extremo</button>
+          <button data-v="bb">Bollinger comprimida</button>
+          <button data-v="todos">Todos</button>
+        </div>
+      </div>
+      <p class="sub" id="tabela-descricao"></p>
+      <div class="tabela-wrap"><table id="tabela"></table></div>
+    </section>
+
+    <details class="painel retidos">
+      <summary><h2>Dados retidos na verificação</h2><span class="sub" id="retidos-resumo"></span></summary>
+      <p class="sub">Estes ativos não aparecem no radar porque o dado do dia não passou na checagem de integridade.</p>
+      <ul id="lista-retidos"></ul>
+    </details>
+  </main>
+
+  <footer>
+    Uso pessoal. Os sinais são filtros técnicos automáticos, não recomendação de investimento.
+    Dados: Yahoo Finance, conferidos com Nasdaq (EUA) e brapi (B3, quando configurado).
+  </footer>
+
+  <script src="assets/js/comum.js"></script>
+  <script src="assets/js/radar.js"></script>
+</body>
+</html>

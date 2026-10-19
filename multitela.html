@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multitela</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topo" id="topo"></header>
+
+  <main class="larga">
+    <section class="filtros painel">
+      <div class="filtro">
+        <span class="filtro-rotulo">Lista</span>
+        <select id="f-fonte" aria-label="Lista de ativos">
+          <option value="prioridade-compra">Compra: 2+ estratégias (5 pregões)</option>
+          <option value="compra">Compra: último pregão</option>
+          <option value="venda">Venda: último pregão</option>
+          <option value="prioridade-venda">Venda: 2+ estratégias (5 pregões)</option>
+          <option value="forte-alta">Tendência forte de alta</option>
+          <option value="bb">Bollinger comprimida</option>
+          <option value="carteira">Minha carteira</option>
+          <option value="personalizada">Personalizada</option>
+        </select>
+      </div>
+      <div class="filtro">
+        <span class="filtro-rotulo">Mercado</span>
+        <div class="segmento" id="f-mercado">
+          <button data-v="" class="ativo">Todos</button>
+          <button data-v="BR">Brasil</button>
+          <button data-v="US">EUA</button>
+        </div>
+      </div>
+      <div class="filtro">
+        <span class="filtro-rotulo">Grade</span>
+        <div class="segmento" id="f-grade">
+          <button data-v="2">2×2</button>
+          <button data-v="3" class="ativo">3×3</button>
+          <button data-v="4">4×3</button>
+        </div>
+      </div>
+      <div class="filtro">
+        <span class="filtro-rotulo">Tempo</span>
+        <div class="segmento" id="f-tf">
+          <button data-v="D" class="ativo">Diário</button>
+          <button data-v="W">Semanal</button>
+        </div>
+      </div>
+      <div class="filtro filtro-tickers" id="caixa-personalizada" hidden>
+        <span class="filtro-rotulo">Ativos</span>
+        <input id="f-tickers" type="text" spellcheck="false" placeholder="PETR4, GOOGL, VALE3, NVDA">
+      </div>
+      <p class="sub" id="f-descricao"></p>
+    </section>
+
+    <section id="grade" class="grade-graficos"></section>
+    <nav class="paginacao" id="paginacao"></nav>
+  </main>
+
+  <footer>Clique em um gráfico para abrir no Radar. <kbd>Alt</kbd>+<kbd>R</kbd> centraliza todos.</footer>
+
+  <script src="assets/js/comum.js"></script>
+  <script src="assets/js/multitela.js"></script>
+</body>
+</html>

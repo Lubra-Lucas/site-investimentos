@@ -2,9 +2,10 @@ name: Atualizar dados e publicar
 
 on:
   schedule:
-    # 21:30 UTC = 18:30 em Brasília, depois do fechamento da B3 e da NYSE.
+    # 22:30 UTC = 19:30 em Brasília. O fechamento oficial da B3 só aparece no Yahoo
+    # por volta das 18:30; com folga, o candle do dia já vem consolidado.
     # Roda também no fim de semana para pegar o candle diário das criptos.
-    - cron: "30 21 * * *"
+    - cron: "30 22 * * *"
   push:
     branches: [main]
   workflow_dispatch: {}
@@ -34,13 +35,16 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Baixar cotações e calcular sinais
+      - name: Baixar cotações, verificar e calcular sinais
+        env:
+          # Opcional: token gratuito de https://brapi.dev para conferir os fechamentos da B3
+          BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
         run: python scripts/atualizar_dados.py
 
       - name: Montar site
         run: |
           mkdir _site
-          cp -r index.html assets data _site/
+          cp -r index.html radar.html multitela.html assets data _site/
 
       - uses: actions/upload-pages-artifact@v3
         with:

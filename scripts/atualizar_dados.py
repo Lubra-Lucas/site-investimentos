@@ -1,9 +1,10 @@
-"""Baixa os candles diários de todos os ativos, calcula indicadores, gera os
-sinais de oportunidade e consolida a carteira em BRL.
+"""Atualização diária: baixa cotações, verifica a integridade, roda as
+estratégias do radar e consolida a carteira em BRL.
 
 Saída (lida pelo front-end estático):
-  data/ativos/<TICKER>.json  -> candles OHLCV diários para o gráfico
-  data/resumo.json           -> visão geral: carteira, posições, sinais
+  data/ativos/<TICKER>.json  -> candles diários verificados (só ativos aprovados)
+  data/radar.json            -> estado de cada ativo, sinais datados e dados retidos
+  data/resumo.json           -> carteira consolidada
 
 Uso:  python scripts/atualizar_dados.py
 """
@@ -11,160 +12,35 @@ Uso:  python scripts/atualizar_dados.py
 from __future__ import annotations
 
 import json
-import math
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
-import yfinance as yf
+
+import estrategias
+import fontes
+import validacao
+from estrategias import _num, _var
 
 RAIZ = Path(__file__).resolve().parent.parent
 CONFIG = RAIZ / "config" / "carteira.json"
+UNIVERSO = RAIZ / "config" / "universo.json"
 SAIDA = RAIZ / "data"
 SAIDA_ATIVOS = SAIDA / "ativos"
-
-PERIODO = "3y"          # histórico baixado para o gráfico e as médias longas
 TICKER_CAMBIO = "USDBRL=X"
-
-# Liquidez mínima (volume financeiro médio de 20 dias) para um sinal de compra
-# ser considerado. Evita sugerir papéis com pouco negócio.
-LIQUIDEZ_MINIMA = {"BR": 20e6, "US": 100e6, "CRIPTO": 100e6}
+MOEDA = {"BR": "BRL", "US": "USD", "CRIPTO": "USD"}
 
 
-# ---------------------------------------------------------------- indicadores
-
-def rsi(close: pd.Series, periodo: int = 14) -> pd.Series:
-    """IFR de Wilder."""
-    delta = close.diff()
-    ganho = delta.clip(lower=0).ewm(alpha=1 / periodo, adjust=False, min_periods=periodo).mean()
-    perda = (-delta.clip(upper=0)).ewm(alpha=1 / periodo, adjust=False, min_periods=periodo).mean()
-    rs = ganho / perda
-    return 100 - 100 / (1 + rs)
-
-
-def semanal(df: pd.DataFrame) -> pd.DataFrame:
-    return df.resample("W-FRI").agg(
-        {"Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum"}
-    ).dropna()
-
-
-def calcular_indicadores(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    df["MM20"] = df["Close"].rolling(20).mean()
-    df["MM50"] = df["Close"].rolling(50).mean()
-    df["MM200"] = df["Close"].rolling(200).mean()
-    df["IFR"] = rsi(df["Close"])
-    df["VolMedio20"] = df["Volume"].rolling(20).mean()
-    return df
-
-
-# --------------------------------------------------------------------- sinais
-
-def gerar_sinais(df: pd.DataFrame, df_sem: pd.DataFrame, mercado: str) -> dict:
-    """Pontua o ativo como possível ponto de entrada de longo prazo.
-
-    Cada regra soma pontos; quanto maior o score, mais confluência de sinais.
-    Não é recomendação de investimento - é um filtro para chamar a atenção.
-    """
-    u = df.iloc[-1]
-    ant = df.iloc[-2]
-    ifr_sem = df_sem["IFR"].iloc[-1] if len(df_sem) else float("nan")
-    sinais: list[dict] = []
-    alertas: list[dict] = []
-
-    def add(lista, pontos, texto, tipo):
-        lista.append({"pontos": pontos, "texto": texto, "tipo": tipo})
-
-    # IFR
-    if u["IFR"] < 30:
-        add(sinais, 2, f"IFR diário sobrevendido ({u['IFR']:.0f})", "ifr")
-    elif u["IFR"] < 40:
-        add(sinais, 1, f"IFR diário baixo ({u['IFR']:.0f})", "ifr")
-    if ifr_sem < 30:
-        add(sinais, 3, f"IFR semanal sobrevendido ({ifr_sem:.0f})", "ifr")
-    elif ifr_sem < 40:
-        add(sinais, 1, f"IFR semanal baixo ({ifr_sem:.0f})", "ifr")
-    if u["IFR"] > 70:
-        add(alertas, 0, f"IFR diário sobrecomprado ({u['IFR']:.0f})", "ifr")
-    if ifr_sem > 70:
-        add(alertas, 0, f"IFR semanal sobrecomprado ({ifr_sem:.0f})", "ifr")
-
-    # Tendência e médias
-    if not math.isnan(u["MM200"]):
-        if u["Close"] > u["MM200"]:
-            add(sinais, 1, "Preço acima da MM200 (tendência primária de alta)", "tendencia")
-            dist = (u["Close"] / u["MM200"] - 1) * 100
-            if dist < 3:
-                add(sinais, 2, f"Pullback na MM200 ({dist:.1f}% acima)", "media")
-        if not math.isnan(u["MM50"]):
-            cruz = (df["MM50"] > df["MM200"]).astype(int).diff().tail(10)
-            if (cruz == 1).any():
-                add(sinais, 2, "Cruzamento dourado recente (MM50 > MM200)", "media")
-            if (cruz == -1).any():
-                add(alertas, 0, "Cruzamento da morte recente (MM50 < MM200)", "media")
-    if not math.isnan(u["MM50"]) and u["Close"] > u["MM50"] and abs(u["Close"] / u["MM50"] - 1) < 0.02:
-        add(sinais, 1, "Preço testando a MM50", "media")
-
-    # Volume
-    if u["VolMedio20"] and u["Volume"] > 1.5 * u["VolMedio20"] and u["Close"] > ant["Close"]:
-        add(sinais, 1, f"Alta com volume {u['Volume'] / u['VolMedio20']:.1f}x a média", "volume")
-
-    # Distância da máxima de 52 semanas
-    max52 = df["High"].tail(252).max()
-    queda = (u["Close"] / max52 - 1) * 100
-    if queda < -30:
-        add(sinais, 1, f"{queda:.0f}% abaixo da máxima de 52 semanas", "desconto")
-
-    # No Yahoo, o volume de cripto já vem em USD; ações vêm em quantidade de papéis
-    fin = df["Volume"] if mercado == "CRIPTO" else df["Close"] * df["Volume"]
-    vol_fin = float(fin.tail(20).mean())
-    liquido = vol_fin >= LIQUIDEZ_MINIMA.get(mercado, 0)
-    score = sum(s["pontos"] for s in sinais)
-
-    return {
-        "score": score if liquido else 0,
-        "liquido": liquido,
-        "volume_financeiro_20d": vol_fin,
-        "ifr_diario": _num(u["IFR"]),
-        "ifr_semanal": _num(ifr_sem),
-        "dist_max52": _num(queda),
-        "sinais": sinais,
-        "alertas": alertas,
-    }
-
-
-# ------------------------------------------------------------------- utilidades
-
-def _num(v, casas: int = 4):
-    if v is None or (isinstance(v, float) and math.isnan(v)) or pd.isna(v):
-        return None
-    return round(float(v), casas)
-
-
-def baixar(ticker: str, tentativas: int = 4) -> pd.DataFrame:
-    for i in range(tentativas):
-        df = yf.Ticker(ticker).history(period=PERIODO, interval="1d", auto_adjust=True)
-        if not df.empty:
-            break
-        time.sleep(2 ** (i + 1))  # Yahoo às vezes responde 429; espera e tenta de novo
-    else:
-        raise RuntimeError(f"sem dados para {ticker}")
-    df.index = df.index.tz_localize(None).normalize()
-    df = df[~df.index.duplicated(keep="last")]
-    return df[["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Close"])
-
-
-def variacao(close: pd.Series, desde: pd.Timestamp) -> float | None:
-    base = close[close.index < desde]
-    if base.empty:
-        return None
-    return _num((close.iloc[-1] / base.iloc[-1] - 1) * 100, 2)
+def candles_compactos(df: pd.DataFrame) -> list[list]:
+    casas = 2 if df["Close"].min() >= 1 else 6
+    return [[d.strftime("%Y-%m-%d"), round(r.Open, casas), round(r.High, casas),
+             round(r.Low, casas), round(r.Close, casas)] for d, r in df.iterrows()]
 
 
 # ------------------------------------------------------------------- carteira
 
-def consolidar_carteira(cfg: dict, precos: dict[str, pd.DataFrame], cambio: pd.Series) -> dict:
+def consolidar_carteira(cfg: dict, precos: dict[str, pd.DataFrame], cambio: pd.Series,
+                        retidos: set[str]) -> dict:
     moedas = {a["ticker"]: a["moeda"] for a in cfg["ativos"]}
     mercados = {a["ticker"]: a["mercado"] for a in cfg["ativos"]}
 
@@ -222,8 +98,9 @@ def consolidar_carteira(cfg: dict, precos: dict[str, pd.DataFrame], cambio: pd.S
             "valor_brl": _num(valor, 2),
             "resultado_brl": _num(valor - p["custo_brl"], 2),
             "resultado_pct": _num((valor / p["custo_brl"] - 1) * 100, 2) if p["custo_brl"] else None,
-            "var_mes_pct": variacao(close, inicio_mes),
-            "var_ano_pct": variacao(close, inicio_ano),
+            "var_mes_pct": _var(close, inicio_mes),
+            "var_ano_pct": _var(close, inicio_ano),
+            "verificado": tk not in retidos,
         })
     for linha in linhas:
         linha["peso_pct"] = _num(linha["valor_brl"] / total_mercado * 100, 2) if total_mercado else 0
@@ -279,65 +156,101 @@ def historico_patrimonio(cfg, transacoes, precos, cambio, moedas) -> list[dict]:
 
 # ----------------------------------------------------------------------- main
 
+def montar_lista(cfg: dict) -> dict[str, dict]:
+    ativos: dict[str, dict] = {}
+    universo = json.loads(UNIVERSO.read_text(encoding="utf-8"))
+    for mercado, lista in universo.items():
+        for a in lista:
+            ativos[a["ticker"]] = {**a, "mercado": mercado, "moeda": MOEDA[mercado], "carteira": False}
+    for a in cfg["ativos"]:
+        ativos[a["ticker"]] = {**ativos.get(a["ticker"], {}), **a, "carteira": True}
+    for t in cfg.get("transacoes", []):
+        if t["ticker"] not in ativos:
+            raise SystemExit(f"{t['ticker']} está em transacoes mas não em ativos")
+    return ativos
+
+
 def main() -> None:
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
+    ativos = montar_lista(cfg)
     SAIDA_ATIVOS.mkdir(parents=True, exist_ok=True)
+    for antigo in SAIDA_ATIVOS.glob("*.json"):
+        antigo.unlink()  # ativo retido hoje não pode ficar com gráfico de ontem
+    hoje = pd.Timestamp.today().normalize()
 
-    tickers = {a["ticker"]: a for a in cfg["ativos"]}
-    for t in cfg.get("transacoes", []):
-        if t["ticker"] not in tickers:
-            raise SystemExit(f"{t['ticker']} está em transacoes mas não em ativos")
+    print(f"Baixando {len(ativos)} ativos do Yahoo...")
+    brutos = fontes.baixar_yahoo([*ativos, TICKER_CAMBIO])
+    print("Buscando fechamentos de referência...")
+    refs, nomes_fonte = fontes.referencias(list(ativos.values()))
+    print("Baixando candles de 60 min...")
+    intraday = {**fontes.baixar_yahoo_60min([t for t, a in ativos.items() if a["mercado"] == "BR"], "America/Sao_Paulo"),
+                **fontes.baixar_yahoo_60min([t for t, a in ativos.items() if a["mercado"] == "US"], "America/New_York")}
 
-    cambio = baixar(TICKER_CAMBIO)["Close"]
+    cambio_df, laudo_fx = validacao.avaliar(brutos[TICKER_CAMBIO], "CRIPTO", None, hoje)
+    cambio = cambio_df["Close"]
+
+    publicados, retidos, sinais = [], [], []
     precos: dict[str, pd.DataFrame] = {}
-    resumo_ativos = []
-    erros = []
-
-    for tk, meta in tickers.items():
-        try:
-            df = calcular_indicadores(baixar(tk))
-        except Exception as e:  # um ativo com problema não derruba a atualização
-            erros.append(f"{tk}: {e}")
-            print(f"[ERRO] {tk}: {e}")
+    for tk, meta in ativos.items():
+        base = {"ticker": tk, "nome": meta["nome"], "mercado": meta["mercado"]}
+        if tk not in brutos:
+            retidos.append({**base, "motivo": "sem dados no Yahoo"})
             continue
+        df, laudo = validacao.avaliar(brutos[tk], meta["mercado"], refs.get(tk), hoje)
         precos[tk] = df
-        df_sem = semanal(df)
-        df_sem["IFR"] = rsi(df_sem["Close"])
-        analise = gerar_sinais(df, df_sem, meta["mercado"])
+        if not laudo["publicar"]:
+            retidos.append({**base, "motivo": laudo["motivo"]})
+            print(f"[retido] {tk:10s} {laudo['motivo']}")
+            continue
 
+        estado, sinais_tk = estrategias.analisar(df, meta["mercado"], intraday.get(tk))
         arquivo = tk.replace("=", "_")
-        candles = [
-            {"time": d.strftime("%Y-%m-%d"), "open": _num(r.Open), "high": _num(r.High),
-             "low": _num(r.Low), "close": _num(r.Close), "volume": _num(r.Volume, 0)}
-            for d, r in df.iterrows()
-        ]
-        (SAIDA_ATIVOS / f"{arquivo}.json").write_text(json.dumps({
-            "ticker": tk, **meta,
-            "candles": candles,
-        }, separators=(",", ":")), encoding="utf-8")
+        (SAIDA_ATIVOS / f"{arquivo}.json").write_text(json.dumps(
+            {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(df)},
+            separators=(",", ":")), encoding="utf-8")
 
-        close = df["Close"]
-        hoje = df.index[-1]
-        resumo_ativos.append({
-            "ticker": tk, "arquivo": arquivo, **meta,
-            "ultimo": _num(close.iloc[-1]),
-            "data": hoje.strftime("%Y-%m-%d"),
-            "var_dia_pct": _num((close.iloc[-1] / close.iloc[-2] - 1) * 100, 2),
-            "var_mes_pct": variacao(close, hoje.replace(day=1)),
-            "var_ano_pct": variacao(close, hoje.replace(month=1, day=1)),
-            **analise,
+        conf = laudo.get("conferencia", {})
+        publicados.append({
+            **base, "moeda": meta["moeda"], "arquivo": arquivo, "carteira": meta["carteira"],
+            "verificacao": {"status": conf.get("status", "interno"), "fonte": nomes_fonte.get(tk),
+                            "dif_max_pct": conf.get("dif_max_pct"), "comparados": conf.get("comparados", 0),
+                            "candles_descartados": laudo["n_correcoes"]},
+            **estado,
         })
-        print(f"[ok] {tk:10s} {close.iloc[-1]:>12.2f}  score={analise['score']}")
+        sinais += [{"ticker": tk, **x} for x in sinais_tk]
+
+    sinais.sort(key=lambda x: (x["data"], x["ticker"]), reverse=True)
+    sem_intraday = [a["ticker"] for a in publicados if a["liquido"] and a["mercado"] != "CRIPTO" and not a["intraday_ok"]]
+    if sem_intraday:
+        print(f"Sem 60 min confiável ({len(sem_intraday)}): {', '.join(sem_intraday)}")
+    status = pd.Series([a["verificacao"]["status"] for a in publicados]).value_counts().to_dict()
+    agora = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    radar = {
+        "atualizado_em": agora,
+        "usdbrl": _num(cambio.iloc[-1], 4),
+        "parametros": {
+            "mm": [estrategias.MM_RAPIDA, estrategias.MM_LENTA, estrategias.MM_LONGA],
+            "ifr": [estrategias.IFR_SOBREVENDIDO, estrategias.IFR_SOBRECOMPRADO],
+            "bollinger": [estrategias.BB_PERIODO, estrategias.BB_DESVIOS],
+            "tolerancia_fechamento_pct": validacao.TOLERANCIA_FECHAMENTO * 100,
+        },
+        "familias": estrategias.FAMILIAS,
+        "verificacao": {"conferidos": status.get("conferido", 0), "internos": status.get("interno", 0),
+                        "retidos": len(retidos)},
+        "ativos": publicados,
+        "sinais": sinais,
+        "retidos": retidos,
+    }
+    (SAIDA / "radar.json").write_text(json.dumps(radar, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
     resumo = {
-        "atualizado_em": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "usdbrl": _num(cambio.iloc[-1]),
-        "carteira": consolidar_carteira(cfg, precos, cambio),
-        "ativos": sorted(resumo_ativos, key=lambda a: -a["score"]),
-        "erros": erros,
+        "atualizado_em": agora,
+        "usdbrl": _num(cambio.iloc[-1], 4),
+        "carteira": consolidar_carteira(cfg, precos, cambio, {r["ticker"] for r in retidos}),
     }
     (SAIDA / "resumo.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"resumo.json gravado ({len(resumo_ativos)} ativos, {len(erros)} erros)")
+    print(f"Publicados {len(publicados)} ativos ({status}), {len(retidos)} retidos, {len(sinais)} sinais.")
 
 
 if __name__ == "__main__":
