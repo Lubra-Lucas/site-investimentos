@@ -1,72 +1,89 @@
 # Carteira Terminal
 
-Painel pessoal para acompanhar uma carteira de longo prazo com **ações brasileiras, ações americanas e criptomoedas**,
-com gráficos em candle (TradingView Lightweight Charts) e um radar de possíveis pontos de entrada.
+Painel pessoal com três telas:
+
+- **Carteira** (`index.html`): patrimônio em BRL, posições, evolução da carteira e sinais nos ativos acompanhados.
+- **Radar** (`radar.html`): ~270 ações do Brasil e dos EUA, com oportunidades de compra e venda separadas por estratégia,
+  destacando os ativos com confluência (2 ou mais estratégias). Também tem filtros de estado: tendência forte,
+  IFR extremo e Bollinger comprimida.
+- **Multitela** (`multitela.html`): grade de gráficos (2×2, 3×3 ou 4×3) para bater o olho nas oportunidades do dia.
+
+Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (20, 2) e IFR 14, nos tempos
+diário, semanal e mensal. **Alt+R** centraliza o gráfico no preço.
 
 ## Como funciona
 
 ```
-GitHub Actions (todo dia 18:30 BRT)
+GitHub Actions (todo dia 19:30 BRT)
    └─ scripts/atualizar_dados.py
-        ├─ baixa candles diários (Yahoo Finance via yfinance)
-        │     B3: PETR4.SA · EUA: AAPL · Cripto: BTC-USD · Câmbio: USDBRL=X
-        ├─ calcula IFR diário/semanal, MM20/50/200, volume, distância da máxima
-        ├─ pontua cada ativo (score de oportunidade)
-        ├─ consolida a carteira em BRL a partir das suas transações
-        └─ grava data/resumo.json + data/ativos/<ticker>.json
+        ├─ fontes.py       baixa candles diários (6 anos) e de 60 min (60 pregões) do Yahoo Finance
+        ├─ validacao.py    verifica a integridade e confere os fechamentos com outra fonte
+        ├─ estrategias.py  calcula indicadores e sinais datados (diário e semanal)
+        └─ grava data/radar.json, data/resumo.json e data/ativos/<ticker>.json
    └─ publica o site estático no GitHub Pages
 ```
 
-Sem servidor e sem chave de API: o site é HTML/CSS/JS puro que lê os JSONs gerados.
+## Integridade dos dados
 
-## Configurar no GitHub (uma vez)
+Na dúvida, o dado não entra:
 
-1. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Faça merge na branch `main` (ou rode **Actions → Atualizar dados e publicar → Run workflow**).
-3. O site fica em `https://<seu-usuario>.github.io/site-investimentos/`.
+1. **Preço sem ajuste de dividendos.** É o mesmo número que a corretora e o TradingView mostram (ajustado só por desdobramento).
+2. **Candles impossíveis são descartados:** OHLC incoerente, preço zero, pregão fantasma sem negócio
+   (feriados que o Yahoo preenche), pico isolado que vai e volta no dia seguinte e pavio fora do padrão do ativo.
+3. **Quebra de série:** gap acima de 40% sem volume que o justifique (grupamento não ajustado, incorporação).
+   Nesse caso o histórico anterior é descartado, e nada é "consertado" ou inventado.
+4. **Conferência com segunda fonte:** os 5 últimos fechamentos precisam bater em até 0,6% com a referência.
+   - EUA: API pública da Nasdaq (sem chave).
+   - B3: [brapi.dev](https://brapi.dev). Precisa de um token gratuito. Crie a conta, gere o token e cadastre-o em
+     **Settings → Secrets and variables → Actions → New repository secret** com o nome `BRAPI_TOKEN`.
+     Sem o token, as ações da B3 passam só pela verificação interna (selo "interno" no site).
+5. Um ativo que falha em qualquer etapa fica **retido**: sem gráfico e sem sinais no dia. A lista de retidos aparece no fim do Radar.
+6. O 60 min só é usado se o último candle bater com o fechamento diário (diferença de até 2%).
 
-> Pages em repositório privado exige plano pago do GitHub. Se o repo for privado no plano gratuito,
-> veja a seção "Rodar local" ou publique na Cloudflare Pages/Netlify.
+## Estratégias
 
-## Registrar compras e vendas
+Todas têm o espelho para venda. Um ativo com 2 ou mais famílias do mesmo lado entra em **Prioridade**.
 
-Edite `config/carteira.json` → `transacoes` (o preço é na moeda do ativo):
+| Família | Compra | Venda |
+|---|---|---|
+| Pullback nas médias | MM20 > MM50, preço acima da MM50, semanal em alta; a mínima toca a MM20/50/200 e o fechamento a segura | Espelho em tendência de baixa: repique rejeitado na média |
+| IFR extremo | IFR 14 cruza abaixo de 20 | IFR cruza acima de 80 |
+| Multitempo 60 min | Diário **e** semanal acima da MM20 e MM50; no 60 min, estocástico lento < 20 e IFR < 30 | D+S abaixo das médias; estocástico > 80 e IFR > 70 no 60 min |
+| Multitempo diário | Semanal acima das duas médias; no diário, estocástico lento < 20 e IFR < 40 | Espelho |
+| Fora da Bollinger | Fechamento abaixo da banda inferior (reversão à média) ou acima da superior em tendência de alta (continuidade) | Espelho |
+| Boca de jacaré | Após bandas comprimidas, a superior sobe, a inferior desce e o preço fecha acima | Fecha abaixo |
+
+Filtros de estado (a foto de hoje): **tendência forte** (acima ou abaixo das duas médias no diário e no semanal),
+**IFR extremo** (< 20 ou > 80 no 60 min, diário, semanal ou mensal) e **Bollinger comprimida** (largura entre as
+10% menores dos últimos 120 pregões, um possível sinal de explosão de volatilidade).
+
+Os filtros de prazo maior usam só o que já estava fechado no dia do sinal, sem olhar o futuro.
+Ativos com pouca liquidez (volume financeiro médio de 20 dias abaixo de R$ 10 mi na B3 ou US$ 100 mi nos EUA)
+ficam fora dos sinais. Os parâmetros ficam no topo de `scripts/estrategias.py`.
+
+**São filtros técnicos para chamar atenção, não recomendação de investimento.**
+
+## Configuração
+
+- `config/universo.json`: ações do radar (BR e EUA).
+- `config/carteira.json`: capital inicial, ativos acompanhados (inclusive cripto) e `transacoes`:
 
 ```json
 "transacoes": [
   { "data": "2026-10-20", "ticker": "PETR4.SA", "tipo": "compra", "quantidade": 20, "preco": 38.50, "taxas": 0 },
-  { "data": "2026-10-20", "ticker": "AAPL",     "tipo": "compra", "quantidade": 2,  "preco": 340.00, "cambio": 5.05 },
-  { "data": "2026-10-21", "ticker": "BTC-USD",  "tipo": "compra", "quantidade": 0.004, "preco": 81000 }
+  { "data": "2026-10-20", "ticker": "AAPL",     "tipo": "compra", "quantidade": 2,  "preco": 340.00, "cambio": 5.05 }
 ]
 ```
 
-- `cambio` é opcional; sem ele, usa o USD/BRL de fechamento do dia.
-- Para acompanhar um novo ativo, adicione em `ativos` (ticker no formato do Yahoo: `XXXX3.SA`, `TICKER`, `MOEDA-USD`).
+## Publicação
 
-## Score de oportunidade
-
-| Sinal | Pontos |
-|---|---|
-| IFR semanal < 30 (sobrevendido) | 3 |
-| IFR diário < 30 | 2 |
-| Pullback até 3% acima da MM200, em tendência de alta | 2 |
-| Cruzamento dourado (MM50 > MM200) nos últimos 10 pregões | 2 |
-| IFR diário ou semanal < 40 | 1 cada |
-| Preço acima da MM200 | 1 |
-| Preço testando a MM50 | 1 |
-| Alta com volume > 1,5× a média de 20 dias | 1 |
-| Mais de 30% abaixo da máxima de 52 semanas | 1 |
-
-Ativos sem liquidez mínima (volume financeiro médio de 20 dias: R$ 20 mi na B3, US$ 100 mi nos EUA/cripto)
-ficam com score 0. Alertas de sobrecompra e cruzamento da morte aparecem em vermelho.
-As regras ficam em `gerar_sinais()` no script — fácil de ajustar.
-
-**É um filtro técnico para chamar atenção, não recomendação de investimento.**
+**Settings → Pages → Source: GitHub Actions.** A branch padrão do repositório precisa ser a `main`, porque o
+agendamento diário só roda na branch padrão.
 
 ## Rodar local
 
 ```bash
 pip install -r requirements.txt
-python scripts/atualizar_dados.py
-python -m http.server 8000   # abra http://localhost:8000
+python scripts/atualizar_dados.py      # leva alguns minutos (~270 ativos)
+python -m http.server 8000             # abra http://localhost:8000
 ```

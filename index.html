@@ -11,56 +11,26 @@
   <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
-  <header class="topo">
-    <div class="marca">
-      <span class="marca-ponto"></span>
-      <h1>Carteira<span>Terminal</span></h1>
-    </div>
-    <div class="topo-info">
-      <span>USD/BRL <b id="usdbrl">—</b></span>
-      <span>Atualizado <b id="atualizado">—</b></span>
-    </div>
-  </header>
+  <header class="topo" id="topo"></header>
 
   <main>
     <section class="kpis" id="kpis"></section>
 
     <section class="grade">
-      <div class="painel painel-grafico">
-        <div class="painel-cab">
-          <div>
-            <h2 id="grafico-titulo">Gráfico</h2>
-            <p class="sub" id="grafico-sub"></p>
-          </div>
-          <div class="controles">
-            <select id="seletor-ativo" aria-label="Ativo"></select>
-            <div class="segmento" id="seletor-tf">
-              <button data-tf="D" class="ativo">Diário</button>
-              <button data-tf="W">Semanal</button>
-            </div>
-          </div>
-        </div>
-        <div class="legenda">
-          <span class="leg mm20">MM20</span>
-          <span class="leg mm50">MM50</span>
-          <span class="leg mm200">MM200</span>
-          <span class="leg ifr">IFR 14</span>
-        </div>
-        <div id="grafico"></div>
-      </div>
+      <div class="painel painel-grafico" id="painel-grafico"></div>
 
-      <aside class="painel painel-oportunidades">
+      <aside class="painel painel-lateral">
         <div class="painel-cab">
           <div>
-            <h2>Oportunidades</h2>
-            <p class="sub">Confluência de sinais no diário e semanal</p>
+            <h2>Sinais nos meus ativos</h2>
+            <p class="sub">Últimos 5 pregões · estratégias do Radar</p>
           </div>
         </div>
-        <ol id="oportunidades" class="oportunidades"></ol>
+        <div id="sinais-carteira"></div>
       </aside>
     </section>
 
-    <section class="painel" id="painel-posicoes">
+    <section class="painel">
       <div class="painel-cab">
         <div>
           <h2>Minha carteira</h2>
@@ -75,25 +45,19 @@
     <section class="painel">
       <div class="painel-cab">
         <div>
-          <h2>Radar</h2>
-          <p class="sub">Todos os ativos acompanhados</p>
-        </div>
-        <div class="segmento" id="filtro-mercado">
-          <button data-m="" class="ativo">Todos</button>
-          <button data-m="BR">Brasil</button>
-          <button data-m="US">EUA</button>
-          <button data-m="CRIPTO">Cripto</button>
+          <h2>Ativos acompanhados</h2>
+          <p class="sub">Lista em <code>config/carteira.json</code> → <code>ativos</code></p>
         </div>
       </div>
-      <div class="tabela-wrap"><table id="tabela-radar"></table></div>
+      <div class="tabela-wrap"><table id="tabela-acompanhados"></table></div>
     </section>
   </main>
 
   <footer>
     Uso pessoal. Os sinais são filtros técnicos automáticos, não recomendação de investimento.
-    Dados: Yahoo Finance (fechamento diário).
   </footer>
 
-  <script src="assets/js/app.js"></script>
+  <script src="assets/js/comum.js"></script>
+  <script src="assets/js/carteira.js"></script>
 </body>
 </html>
