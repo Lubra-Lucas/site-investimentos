@@ -7,7 +7,7 @@ function selecionar(tk, rolar = true) {
   if (!a) return;
   guardar.gravar("carteira-ticker", tk);
   document.querySelectorAll("[data-tk]").forEach((n) => n.classList.toggle("selecionado", n.dataset.tk === tk));
-  painel.selecionar(a);
+  painel.selecionar(a, R.sinais.filter((s) => s.ticker === tk));
   if (rolar && window.innerWidth < 1000) document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth" });
 }
 

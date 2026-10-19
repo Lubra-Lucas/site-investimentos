@@ -45,7 +45,6 @@ TOQUE = 0.005        # a mínima precisa chegar a 0,5% da média para contar com
 TOLERANCIA = 0.005   # e o fechamento não pode ficar mais de 0,5% do lado errado dela
 JANELA_DIARIA = 15   # pregões de histórico de sinais
 JANELA_SEMANAL = 8   # semanas de histórico de sinais
-DIF_MAX_60_DIARIO = 0.02  # último 60 min x fechamento diário: acima disso o intraday não é usado
 
 LIQUIDEZ_MINIMA = {"BR": 10e6, "US": 100e6, "CRIPTO": 100e6}
 
@@ -219,21 +218,12 @@ def _desde(serie: pd.Series) -> str | None:
     return inicio.strftime("%Y-%m-%d")
 
 
-def preparar_60min(h: pd.DataFrame, fechamento_diario: float) -> pd.DataFrame | None:
-    """Limpa o intraday e só o aceita se o último candle bater com o fechamento diário."""
-    h = h.dropna(subset=["Open", "High", "Low", "Close"])
-    h = h[(h[["Open", "High", "Low", "Close"]] > 0).all(axis=1)]
-    corpo = h[["Open", "Close"]]
-    h = h[(h["High"] >= corpo.max(axis=1) * 0.999999) & (h["Low"] <= corpo.min(axis=1) * 1.000001)]
-    if len(h) < 60 or abs(h["Close"].iloc[-1] / fechamento_diario - 1) > DIF_MAX_60_DIARIO:
-        return None
-    return indicadores(h)
-
-
 # ------------------------------------------------------------- análise
 
 def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -> tuple[dict, list[dict]]:
-    """Retorna (estado atual do ativo, lista de sinais datados)."""
+    """Retorna (estado atual do ativo, lista de sinais datados).
+
+    df60 já vem verificado contra o diário (validacao.limpar_intraday)."""
     d = indicadores(df)
     s = indicadores(reamostrar(df, "W-FRI"))
     m = indicadores(reamostrar(df, "MS"))
@@ -253,7 +243,9 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
     liquido = bool(vol_fin >= LIQUIDEZ_MINIMA.get(mercado, 0))
     forte = "alta" if (alta_d.iloc[-1] and alta_s.iloc[-1]) else "baixa" if (baixa_d.iloc[-1] and baixa_s.iloc[-1]) else None
 
-    h = preparar_60min(df60, float(u["Close"])) if df60 is not None and not df60.empty else None
+    h = indicadores(df60) if df60 is not None and len(df60) >= 60 else None
+    # o estado "agora" do 60 min só vale se o intraday tiver o mesmo pregão do diário
+    h_atual = h is not None and h.index[-1].normalize() == d.index[-1]
     estado = {
         "ultimo": _num(u["Close"], 4),
         "data": d.index[-1].strftime("%Y-%m-%d"),
@@ -262,8 +254,8 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
         "var_ano_pct": _var(d["Close"], d.index[-1].replace(month=1, day=1)),
         "ifr_d": _num(u["IFR"], 1), "ifr_s": _num(s["IFR"].iloc[-1], 1), "ifr_m": _num(m["IFR"].iloc[-1], 1),
         "estoc_d": _num(u["EstK"], 1),
-        "ifr_60": _num(h["IFR"].iloc[-1], 1) if h is not None else None,
-        "estoc_60": _num(h["EstK"].iloc[-1], 1) if h is not None else None,
+        "ifr_60": _num(h["IFR"].iloc[-1], 1) if h_atual else None,
+        "estoc_60": _num(h["EstK"].iloc[-1], 1) if h_atual else None,
         "tend_d": "alta" if alta_d.iloc[-1] else "baixa" if baixa_d.iloc[-1] else "lateral",
         "tend_s": "alta" if alta_s.iloc[-1] else "baixa" if baixa_s.iloc[-1] else "lateral",
         "tendencia_forte": forte,
@@ -277,7 +269,7 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
         "dist_max52_pct": _num((u["Close"] / d["High"].tail(252).max() - 1) * 100),
         "volume_financeiro_20d": _num(vol_fin, 0),
         "liquido": liquido,
-        "intraday_ok": h is not None,
+        "intraday_ok": bool(h_atual),
     }
     if not liquido:
         return estado, []

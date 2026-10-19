@@ -27,8 +27,17 @@ CONFIG = RAIZ / "config" / "carteira.json"
 UNIVERSO = RAIZ / "config" / "universo.json"
 SAIDA = RAIZ / "data"
 SAIDA_ATIVOS = SAIDA / "ativos"
+SAIDA_INTRADAY = SAIDA / "intraday"
 TICKER_CAMBIO = "USDBRL=X"
 MOEDA = {"BR": "BRL", "US": "USD", "CRIPTO": "USD"}
+
+
+def intraday_compacto(h: pd.DataFrame) -> list[list]:
+    """Horário local da bolsa como se fosse UTC: o gráfico mostra a hora do pregão."""
+    casas = 2 if h["Close"].min() >= 1 else 6
+    epoch = (h.index - pd.Timestamp("1970-01-01")) // pd.Timedelta(seconds=1)
+    return [[int(t), round(r.Open, casas), round(r.High, casas), round(r.Low, casas), round(r.Close, casas)]
+            for t, r in zip(epoch, h.itertuples())]
 
 
 def candles_compactos(df: pd.DataFrame) -> list[list]:
@@ -173,15 +182,16 @@ def montar_lista(cfg: dict) -> dict[str, dict]:
 def main() -> None:
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
     ativos = montar_lista(cfg)
-    SAIDA_ATIVOS.mkdir(parents=True, exist_ok=True)
-    for antigo in SAIDA_ATIVOS.glob("*.json"):
-        antigo.unlink()  # ativo retido hoje não pode ficar com gráfico de ontem
+    for pasta in (SAIDA_ATIVOS, SAIDA_INTRADAY):
+        pasta.mkdir(parents=True, exist_ok=True)
+        for antigo in pasta.glob("*.json"):
+            antigo.unlink()  # ativo retido hoje não pode ficar com gráfico de ontem
     hoje = pd.Timestamp.today().normalize()
 
     print(f"Baixando {len(ativos)} ativos do Yahoo...")
     brutos = fontes.baixar_yahoo([*ativos, TICKER_CAMBIO])
     print("Buscando fechamentos de referência...")
-    refs, nomes_fonte = fontes.referencias(list(ativos.values()))
+    refs = fontes.referencias(list(ativos.values()))
     print("Baixando candles de 60 min...")
     intraday = {**fontes.baixar_yahoo_60min([t for t, a in ativos.items() if a["mercado"] == "BR"], "America/Sao_Paulo"),
                 **fontes.baixar_yahoo_60min([t for t, a in ativos.items() if a["mercado"] == "US"], "America/New_York")}
@@ -203,18 +213,24 @@ def main() -> None:
             print(f"[retido] {tk:10s} {laudo['motivo']}")
             continue
 
-        estado, sinais_tk = estrategias.analisar(df, meta["mercado"], intraday.get(tk))
+        h, dias_60_descartados = (validacao.limpar_intraday(intraday[tk], df) if tk in intraday else (None, 0))
+        estado, sinais_tk = estrategias.analisar(df, meta["mercado"], h)
         arquivo = tk.replace("=", "_")
         (SAIDA_ATIVOS / f"{arquivo}.json").write_text(json.dumps(
             {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(df)},
             separators=(",", ":")), encoding="utf-8")
+        if h is not None:
+            (SAIDA_INTRADAY / f"{arquivo}.json").write_text(json.dumps(
+                {"ticker": tk, "h": intraday_compacto(h)}, separators=(",", ":")), encoding="utf-8")
 
         conf = laudo.get("conferencia", {})
         publicados.append({
             **base, "moeda": meta["moeda"], "arquivo": arquivo, "carteira": meta["carteira"],
-            "verificacao": {"status": conf.get("status", "interno"), "fonte": nomes_fonte.get(tk),
-                            "dif_max_pct": conf.get("dif_max_pct"), "comparados": conf.get("comparados", 0),
-                            "candles_descartados": laudo["n_correcoes"]},
+            "verificacao": {"status": conf.get("status", "interno"), "fonte": conf.get("fonte"),
+                            "ate": conf.get("ate"), "dif_max_pct": conf.get("dif_max_pct"),
+                            "comparados": conf.get("comparados", 0), "candles_descartados": laudo["n_correcoes"],
+                            "dias_60min_descartados": dias_60_descartados},
+            "tem_intraday": h is not None,
             **estado,
         })
         sinais += [{"ticker": tk, **x} for x in sinais_tk]

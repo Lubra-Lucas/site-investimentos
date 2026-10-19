@@ -54,8 +54,10 @@ function celula(item) {
     corpo);
   corpo.abrir = () => {
     const g = new Grafico(corpo, { mini: true });
+    g.sinais = R.sinais.filter((s) => s.ticker === a.ticker);
     abertos.push(g);
-    g.mostrar(a.arquivo, estado.tf);
+    // ativo sem intraday verificado cai para o diário
+    g.mostrar(a.arquivo, INTRADAY.has(estado.tf) && !a.tem_intraday ? "D" : estado.tf);
   };
   return cel;
 }
