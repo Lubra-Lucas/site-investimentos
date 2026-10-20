@@ -1,32 +1,55 @@
-/* Multitela: grade de gráficos para bater o olho nas oportunidades. */
+/* Multitela: grade de gráficos interativos para bater o olho em várias ações de uma vez. */
 
-const estado = guardar.ler("multitela", { fonte: "prioridade-compra", mercado: "", grade: "3", tf: "D", tickers: "PETR4, GOOGL, VALE3, NVDA", pagina: 0 });
+const FONTES = [
+  { grupo: "Oportunidades", itens: [
+    ["compra", "▲ Oportunidades de compra", "Ações com sinal de compra (qualquer estratégia)"],
+    ["venda", "▼ Oportunidades de venda", "Ações com sinal de venda (qualquer estratégia)"],
+  ] },
+  { grupo: "Panorama", itens: [
+    ["forte-alta", "Tendência forte de alta", "Acima da MM20 e da MM50 no diário e no semanal"],
+    ["forte-baixa", "Tendência forte de baixa", "Abaixo da MM20 e da MM50 no diário e no semanal"],
+    ["bb", "Bollinger comprimida", "Bandas estreitas no tempo gráfico escolhido"],
+  ] },
+  { grupo: "Meus ativos", itens: [
+    ["carteira", "Minha carteira", "As posições registradas na Carteira"],
+    ["personalizada", "Minha lista", "Os ativos que você digitar"],
+  ] },
+];
+const ANTIGAS = { "prioridade-compra": ["compra", true], "prioridade-venda": ["venda", true] };
+
+const estado = guardar.ler("multitela", { fonte: "compra", confluencia: true, pregoes: "5", mercado: "", grade: "3", tf: "D",
+  tickers: "PETR4, GOOGL, VALE3, NVDA", pagina: 0 });
+if (ANTIGAS[estado.fonte]) [estado.fonte, estado.confluencia] = ANTIGAS[estado.fonte];  // opção da versão anterior
+estado.pregoes ??= "5";
 let R, porTicker, carteira = [];
 const abertos = [];
+
+const ehOportunidade = () => estado.fonte === "compra" || estado.fonte === "venda";
 
 function listar() {
   const doMercado = (tk) => {
     const a = porTicker.get(tk);
     return a && (!estado.mercado || a.mercado === estado.mercado);
   };
-  // sinais só existem nas camadas diária e semanal; 60m/4h usam os do diário
+  const ativos = (filtro) => R.ativos.filter((a) => a.liquido && doMercado(a.ticker) && filtro(a));
+  // sinais só existem no diário e no semanal; 60m/4h usam os do diário
   const tfSinal = estado.tf === "W" ? "S" : "D";
-  const deGrupo = (lado, pregoes, minimo) => agruparSinais(sinaisDoPeriodo(R, tfSinal, pregoes).sinais, { tf: tfSinal })[lado]
-    .filter((i) => i.familias.size >= minimo && doMercado(i.ticker))
-    .map((i) => ({ ticker: i.ticker, familias: i.familias, lado, motivo: i.sinais.map((s) => `${fmtData(s.data)} ${s.texto}`).join("\n") }));
 
   switch (estado.fonte) {
-    case "prioridade-compra": return deGrupo("compra", 5, 2);
-    case "prioridade-venda": return deGrupo("venda", 5, 2);
-    case "compra": return deGrupo("compra", 1, 1);
-    case "venda": return deGrupo("venda", 1, 1);
-    case "forte-alta": return R.ativos.filter((a) => a.liquido && a.tendencia_forte === "alta" && doMercado(a.ticker))
-      .sort((a, b) => (b.tendencia_desde ?? "").localeCompare(a.tendencia_desde ?? "")).map((a) => ({ ticker: a.ticker }));
+    case "compra":
+    case "venda":
+      return agruparSinais(sinaisDoPeriodo(R, tfSinal, +estado.pregoes).sinais, { tf: tfSinal })[estado.fonte]
+        .filter((i) => doMercado(i.ticker) && (!estado.confluencia || i.familias.size >= 2))
+        .map((i) => ({ ticker: i.ticker, familias: i.familias, lado: estado.fonte, sinais: i.sinais }));
+    case "forte-alta":
+    case "forte-baixa": {
+      const lado = estado.fonte === "forte-alta" ? "alta" : "baixa";
+      return ativos((a) => a.tendencia_forte === lado)
+        .sort((a, b) => (b.tendencia_desde ?? "").localeCompare(a.tendencia_desde ?? "")).map((a) => ({ ticker: a.ticker }));
+    }
     case "bb": {
-      // compressão no tempo gráfico escolhido (60m, 4h, diário ou semanal)
       const bb = (a) => a.bb_tf?.[estado.tf];
-      return R.ativos.filter((a) => a.liquido && bb(a)?.comprimida && doMercado(a.ticker))
-        .sort((a, b) => bb(a).largura_pct - bb(b).largura_pct).map((a) => ({ ticker: a.ticker }));
+      return ativos((a) => bb(a)?.comprimida).sort((a, b) => bb(a).largura_pct - bb(b).largura_pct).map((a) => ({ ticker: a.ticker }));
     }
     case "carteira": return carteira.filter(doMercado).map((ticker) => ({ ticker }));
     case "personalizada": {
@@ -42,19 +65,22 @@ function listar() {
 function celula(item) {
   const a = porTicker.get(item.ticker);
   const corpo = el("div", { class: "mini-grafico" });
-  const cel = el("article", { class: `celula ${item.familias?.size >= 2 ? "confluencia" : ""}`, title: item.motivo ?? "",
-    onclick: () => { location.href = `radar.html#${encodeURIComponent(item.ticker)}`; } },
+  const cel = el("article", { class: `celula ${item.familias?.size >= 2 ? "confluencia" : ""}` },
     el("header", {},
       el("div", {},
         el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
-      el("div", {},
+      el("div", { class: "celula-acoes" },
         el("span", { class: "mono" }, fmtMoeda(a.ultimo, a.moeda)), " ",
-        el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)))),
+        el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)),
+        botaoTelaCheia(() => cel),
+        el("a", { class: "abrir-radar", href: `radar.html#${encodeURIComponent(item.ticker)}`, title: "Abrir no Radar" }, "↗"))),
     el("div", { class: "chips" },
       item.familias?.size >= 2 ? el("span", { class: "chip destaque" }, `★ ${item.familias.size}`) : null,
       item.familias ? chipsFamilias(item.familias, item.lado) : null,
       el("span", { class: "chip ctx" }, `IFR D ${fmtNum(a.ifr_d, 0)}`),
       a.tendencia_forte ? el("span", { class: `chip ctx ${a.tendencia_forte}` }, `forte ${a.tendencia_forte}`) : null),
+    item.sinais ? el("ul", { class: "motivos celula-motivos" }, item.sinais.slice(0, 3).map((s) =>
+      el("li", {}, el("span", { class: "data" }, fmtData(s.data)), s.texto))) : null,
     corpo);
   corpo.abrir = () => {
     const g = new Grafico(corpo, { mini: true });
@@ -75,10 +101,31 @@ const observador = new IntersectionObserver((entradas) => {
   }
 }, { rootMargin: "200px" });
 
+function renderFontes() {
+  document.getElementById("f-fonte").replaceChildren(...FONTES.map((g) =>
+    el("div", { class: "grupo-fonte" }, el("span", { class: "grupo-fonte-nome" }, g.grupo),
+      el("div", { class: "grupo-fonte-itens" }, g.itens.map(([k, rot, dica]) =>
+        el("button", { class: `fonte ${k === estado.fonte ? "ativo" : ""} fonte-${k}`, title: dica,
+          onclick: () => { estado.fonte = k; estado.pagina = 0; salvar(); renderFontes(); render(); } }, rot))))));
+  document.getElementById("opcoes-oportunidades").hidden = !ehOportunidade();
+  document.getElementById("caixa-personalizada").hidden = estado.fonte !== "personalizada";
+}
+
+function descricao(n) {
+  const tfNome = ROTULO_TF_FRASE[estado.tf] ?? estado.tf;
+  const fonte = FONTES.flatMap((g) => g.itens).find(([k]) => k === estado.fonte);
+  let txt = `${n} ativo(s) · ${fonte?.[1].replace(/^[▲▼] /, "") ?? ""}`;
+  if (ehOportunidade()) {
+    txt += ` no sinal ${estado.tf === "W" ? "semanal" : "diário"}` +
+      `, ${estado.pregoes === "1" ? "último pregão" : "últimos 5 pregões"}${estado.confluencia ? ", só com 2+ estratégias" : ""}`;
+    if (INTRADAY.has(estado.tf)) txt += " (no 60m/4h, valem os sinais do diário)";
+  } else if (estado.fonte === "bb") txt += ` no ${tfNome}`;
+  return txt;
+}
+
 function render() {
   observador.disconnect();
   abertos.splice(0).forEach((g) => g.remover());
-  document.getElementById("caixa-personalizada").hidden = estado.fonte !== "personalizada";
   const lista = listar().filter((i) => porTicker.has(i.ticker));
   const porPagina = { 2: 4, 3: 9, 4: 12 }[estado.grade];
   const paginas = Math.max(1, Math.ceil(lista.length / porPagina));
@@ -87,15 +134,11 @@ function render() {
 
   const grade = document.getElementById("grade");
   grade.dataset.grade = estado.grade;
-  const tfNome = ROTULO_TF_FRASE[estado.tf] ?? estado.tf;
-  const explica = {
-    bb: `Bollinger comprimida no ${tfNome}`,
-    "forte-alta": "Tendência forte de alta (diário + semanal)",
-  }[estado.fonte] ?? (estado.fonte.includes("compra") || estado.fonte.includes("venda")
-    ? `Sinais da camada ${estado.tf === "W" ? "semanal" : "diária"}` : "");
-  document.getElementById("f-descricao").textContent = `${lista.length} ativo(s)${explica ? " · " + explica : ""}`;
+  document.getElementById("f-descricao").textContent = descricao(lista.length);
   grade.replaceChildren(...(pagina.length ? pagina.map(celula)
-    : [el("p", { class: "vazio painel" }, "Nenhum ativo nesta lista hoje.")]));
+    : [el("p", { class: "vazio painel" }, ehOportunidade() && estado.confluencia
+      ? "Nenhuma ação com 2+ estratégias no período. Desmarque \"Só com confluência\" ou aumente o período."
+      : "Nenhum ativo nesta lista hoje.")]));
   grade.querySelectorAll(".mini-grafico").forEach((c) => observador.observe(c));
 
   document.getElementById("paginacao").replaceChildren(...(paginas > 1
@@ -113,16 +156,22 @@ async function iniciar() {
   montarTopo("multitela", R);
   document.getElementById("f-indicadores").replaceChildren(atalhosIndicadores({ comSinais: true, comIFR: false }));
 
-  const fonte = document.getElementById("f-fonte");
-  fonte.value = estado.fonte;
-  fonte.addEventListener("change", () => { estado.fonte = fonte.value; estado.pagina = 0; salvar(); render(); });
+  renderFontes();
   const tickers = document.getElementById("f-tickers");
   tickers.value = estado.tickers;
   tickers.addEventListener("change", () => { estado.tickers = tickers.value; salvar(); render(); });
-  for (const [id, chave] of [["f-mercado", "mercado"], ["f-grade", "grade"], ["f-tf", "tf"]]) {
+  const confluencia = document.getElementById("f-confluencia");
+  confluencia.checked = estado.confluencia;
+  confluencia.addEventListener("change", () => { estado.confluencia = confluencia.checked; estado.pagina = 0; salvar(); render(); });
+  for (const [id, chave] of [["f-mercado", "mercado"], ["f-grade", "grade"], ["f-tf", "tf"], ["f-pregoes", "pregoes"]]) {
     segmento(id, ({ v }) => { estado[chave] = v; estado.pagina = 0; salvar(); render(); }).marcar("v", estado[chave]);
   }
   render();
 }
+
+// em tela cheia a roda do mouse dá zoom no gráfico da célula
+document.addEventListener("fullscreenchange", () => {
+  for (const g of abertos) g.rodaDoMouse(!!document.fullscreenElement?.contains(g.alvo));
+});
 
 iniciar();

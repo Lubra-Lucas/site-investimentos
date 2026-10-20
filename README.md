@@ -10,8 +10,11 @@ Painel pessoal com três telas:
   - **Filtros de estado:** tendência forte de alta e de baixa, IFR extremo e Bollinger comprimida. A Bollinger
     escolhe o tempo (60m, 4h, diário, semanal), e o gráfico acompanha.
 
-  Clicou, o gráfico abre ao lado, com setas nos candles em que cada sinal apareceu; <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista.
-- **Multitela** (`multitela.html`): grade de gráficos (2×2, 3×3 ou 4×3) para bater o olho nas oportunidades do dia.
+  Clicou, o gráfico abre ao lado, com setas nos candles em que cada sinal apareceu (passe o mouse sobre o candle
+  para ver o balão com o motivo); <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista. O botão ⛶ coloca o gráfico em tela cheia.
+- **Multitela** (`multitela.html`): grade de gráficos interativos (2×2, 3×3 ou 4×3). Escolha o que mostrar:
+  oportunidades de compra ou venda (com período e opção "só com confluência"), panorama (tendência forte,
+  Bollinger comprimida) ou seus ativos (carteira, lista própria). Cada gráfico pode ser arrastado e aberto em tela cheia.
 
 Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (20, 2) e IFR 14, nos tempos
 **60 min, 4 horas**, diário, semanal e mensal. **Alt+R** centraliza o gráfico no preço.
@@ -38,6 +41,15 @@ O botão **⚙ Personalizar** (no Radar, na Carteira e na Multitela) ajusta todo
 - **Indicadores:** MM20, MM50, MM200, Bollinger, IFR (o painel some quando desligado) e as setas dos sinais.
 
 Os indicadores também têm atalhos de liga/desliga na barra acima de cada gráfico. A escolha fica salva no navegador.
+
+## Ferramentas de desenho
+
+Na barra do canto esquerdo do gráfico (Radar e Carteira):
+
+- **Linha horizontal**, **segmento de reta**, **retângulo** (com preenchimento e opacidade ajustável) e **pincel**.
+- Com o cursor, clique num desenho para selecionar, arraste para mover ou arraste as alças das pontas.
+  <kbd>Delete</kbd> apaga o selecionado e <kbd>Esc</kbd> volta ao cursor. A lixeira sem seleção apaga todos os desenhos do ativo.
+- Os desenhos ficam presos a data e preço: continuam no lugar ao trocar de tempo gráfico. Ficam salvos por ativo no navegador.
 
 ## Simulador de posição
 

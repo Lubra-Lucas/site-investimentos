@@ -9,7 +9,7 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 const fmtUSD = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
 const fmtNum = (v, casas = 2) =>
   v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
-const casasPreco = (v) => (Math.abs(v) >= 1 ? 2 : 6);
+const casasPreco = (v) => (v === 0 || Math.abs(v) >= 1 ? 2 : Math.abs(v) >= 0.01 ? 4 : 6);
 const fmtMoeda = (v, moeda) =>
   v == null ? "—" : moeda === "USD" && Math.abs(v) < 1
     ? `US$ ${fmtNum(v, 6)}` : (moeda === "USD" ? fmtUSD : fmtBRL).format(v);
@@ -279,7 +279,7 @@ class Grafico {
       },
       timeScale: { rightOffset: 3 },
       crosshair: { mode: LWC.CrosshairMode.Normal },
-      handleScroll: !this.mini, handleScale: !this.mini,
+
       localization: { locale: "pt-BR", priceFormatter: (p) => fmtNum(p, casasPreco(p)) },
     });
     this.candles = this.chart.addSeries(LWC.CandlestickSeries, { borderVisible: false });
@@ -294,7 +294,12 @@ class Grafico {
     this.bbInf = linha(css("--bb"), 0, bb);
     this.marcadores = LWC.createSeriesMarkers(this.candles, []);
     this.sinais = [];
+    // no mini (multitela) a roda do mouse rola a página; arrastar navega; em tela cheia volta o zoom pela roda
+    if (this.mini) this.rodaDoMouse(false);
     graficos.add(this);
+    this.balao = el("div", { class: "balao-sinal", hidden: true });
+    alvo.append(this.balao);
+    this.chart.subscribeCrosshairMove((param) => this.mostrarBalao(param));
     this.aplicarPreferencias();
   }
 
@@ -377,10 +382,13 @@ class Grafico {
     const tfSinal = p.sinais ? { D: "D", W: "S" }[this.tf] : null;
     const existe = new Set(candles.map((c) => c.time));
     const porDia = new Map();
+    this.sinaisDoCandle = new Map();  // candle -> sinais, para o balão ao passar o mouse
     for (const s of this.sinais) {
       if (s.tf !== tfSinal || !existe.has(s.data)) continue;
       const chave = `${s.data}:${s.lado}`;
       if (!porDia.has(chave)) porDia.set(chave, s);
+      if (!this.sinaisDoCandle.has(s.data)) this.sinaisDoCandle.set(s.data, []);
+      this.sinaisDoCandle.get(s.data).push(s);
     }
     const m = [...porDia.values()].sort((a, b) => a.data.localeCompare(b.data)).map((s) => ({
       time: s.data,
@@ -389,6 +397,30 @@ class Grafico {
       color: s.lado === "compra" ? p.corAlta : p.corBaixa,
     }));
     this.marcadores.setMarkers(m);
+  }
+
+  /** Balão com o motivo de cada sinal quando o mouse passa sobre o candle da seta. */
+  mostrarBalao(param) {
+    const sinais = param.time != null && param.point ? this.sinaisDoCandle?.get(param.time) : null;
+    if (!sinais?.length) { this.balao.hidden = true; return; }
+    const tfNome = this.tf === "W" ? "semanal" : "diário";
+    const semana = this.tf === "W" ? "semana de " : "";
+    this.balao.replaceChildren(...["compra", "venda"].flatMap((lado) => {
+      const doLado = sinais.filter((s) => s.lado === lado);
+      if (!doLado.length) return [];
+      return [el("div", { class: `balao-bloco ${lado}` },
+        el("b", {}, `${lado === "compra" ? "▲ Sinal de compra" : "▼ Sinal de venda"} · ${semana}${fmtData(doLado[0].data)} · ${tfNome}`),
+        el("ul", {}, doLado.map((s) => el("li", {}, el("span", { class: `chip fam-${s.familia}` }, nomeFamilia(s.familia, lado)), " ", s.texto))))];
+    }));
+    this.balao.hidden = false;
+    const larg = this.alvo.clientWidth, w = this.balao.offsetWidth, h = this.balao.offsetHeight;
+    const x = param.point.x + 16 + w > larg ? param.point.x - w - 16 : param.point.x + 16;
+    this.balao.style.left = `${Math.max(4, x)}px`;
+    this.balao.style.top = `${Math.max(4, Math.min(param.point.y - h / 2, this.alvo.clientHeight - h - 4))}px`;
+  }
+
+  rodaDoMouse(ligada) {
+    this.chart.applyOptions({ handleScroll: { mouseWheel: ligada }, handleScale: { mouseWheel: ligada } });
   }
 
   /** Desmonta o gráfico; respostas que ainda estiverem a caminho são descartadas. */
@@ -456,6 +488,19 @@ function segmento(id, aoMudar) {
   };
 }
 
+// ------------------------------------------------------------- tela cheia
+
+/** Botão que põe o elemento (painel do gráfico ou célula da multitela) em tela cheia. */
+function botaoTelaCheia(elemento) {
+  return el("button", { class: "botao-tela-cheia", title: "Tela cheia (Esc para sair)", "aria-label": "Tela cheia",
+    onclick: (e) => {
+      e.stopPropagation();
+      const alvo = elemento();
+      if (document.fullscreenElement) document.exitFullscreen();
+      else alvo.requestFullscreen?.().catch(() => {});
+    } }, "⛶");
+}
+
 // ------------------------------------------------------------- painel de gráfico
 
 /** Painel completo: cabeçalho do ativo, tempo gráfico, camadas e o gráfico. */
@@ -476,7 +521,7 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
     }));
   const camadas = atalhosIndicadores({ comSinais: true });
   alvo.replaceChildren(
-    el("div", { class: "painel-cab" }, el("div", {}, titulo, sub), el("div", { class: "controles" }, botaoSimular, tfs)),
+    el("div", { class: "painel-cab" }, el("div", {}, titulo, sub), el("div", { class: "controles" }, botaoSimular, tfs, botaoTelaCheia(() => alvo))),
     el("div", { class: "barra-grafico" }, camadas, contexto),
     nota,
     corpo,
@@ -484,6 +529,8 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
   const atualizarNota = () => { nota.hidden = !INTRADAY.has(g.tf); };
 
   const g = new Grafico(corpo);
+  // desenhos antes do simulador: com uma ferramenta ativa, o clique é do desenho
+  const des = typeof Desenhos !== "undefined" ? new Desenhos(g, corpo) : null;
   const sim = simular && typeof Simulador !== "undefined" ? new Simulador(g, corpo, boleta, botaoSimular) : null;
   let atual = null;
   tfs.addEventListener("click", (e) => {
@@ -498,6 +545,7 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
   return {
     grafico: g,
     simulador: sim,
+    desenhos: des,
     /** Troca o tempo gráfico de fora (ex.: filtro de Bollinger no 4h). */
     mudarTf(tf) {
       const b = tfs.querySelector(`button[data-tf="${tf}"]`);
@@ -521,6 +569,7 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
       if (INTRADAY.has(g.tf) && !a.tem_intraday) g.tf = "D";
       tfs.querySelectorAll("button").forEach((b) => b.classList.toggle("ativo", b.dataset.tf === g.tf));
       atualizarNota();
+      des?.definirAtivo(a.ticker);
       sim?.definirAtivo(a);
       await g.mostrar(a.arquivo);
       aoSelecionar?.(a);

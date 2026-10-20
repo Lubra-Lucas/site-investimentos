@@ -14,59 +14,71 @@
   <header class="topo" id="topo"></header>
 
   <main class="larga">
-    <section class="filtros painel">
-      <div class="filtro">
-        <span class="filtro-rotulo">Lista</span>
-        <select id="f-fonte" aria-label="Lista de ativos">
-          <option value="prioridade-compra">Compra: 2+ estratégias (5 pregões)</option>
-          <option value="compra">Compra: último pregão</option>
-          <option value="venda">Venda: último pregão</option>
-          <option value="prioridade-venda">Venda: 2+ estratégias (5 pregões)</option>
-          <option value="forte-alta">Tendência forte de alta</option>
-          <option value="bb">Bollinger comprimida</option>
-          <option value="carteira">Minha carteira</option>
-          <option value="personalizada">Personalizada</option>
-        </select>
-      </div>
-      <div class="filtro">
-        <span class="filtro-rotulo">Mercado</span>
-        <div class="segmento" id="f-mercado">
-          <button data-v="" class="ativo">Todos</button>
-          <button data-v="BR">Brasil</button>
-          <button data-v="US">EUA</button>
-          <button data-v="CRIPTO">Cripto</button>
+    <section class="filtros painel menu-multitela">
+      <div class="linha-menu">
+        <div class="filtro">
+          <span class="filtro-rotulo"><i class="passo">1</i> Mercado</span>
+          <div class="segmento" id="f-mercado">
+            <button data-v="" class="ativo">Todos</button>
+            <button data-v="BR">Brasil</button>
+            <button data-v="US">EUA</button>
+            <button data-v="CRIPTO">Cripto</button>
+          </div>
+        </div>
+        <div class="filtro">
+          <span class="filtro-rotulo">Grade</span>
+          <div class="segmento" id="f-grade">
+            <button data-v="2">2×2</button>
+            <button data-v="3" class="ativo">3×3</button>
+            <button data-v="4">4×3</button>
+          </div>
+        </div>
+        <div class="filtro">
+          <span class="filtro-rotulo">Tempo gráfico</span>
+          <div class="segmento" id="f-tf">
+            <button data-v="60">60m</button>
+            <button data-v="240">4h</button>
+            <button data-v="D" class="ativo">Diário</button>
+            <button data-v="W">Semanal</button>
+          </div>
         </div>
       </div>
-      <div class="filtro">
-        <span class="filtro-rotulo">Grade</span>
-        <div class="segmento" id="f-grade">
-          <button data-v="2">2×2</button>
-          <button data-v="3" class="ativo">3×3</button>
-          <button data-v="4">4×3</button>
+
+      <div class="linha-menu">
+        <span class="filtro-rotulo"><i class="passo">2</i> O que mostrar</span>
+        <div class="fontes" id="f-fonte"></div>
+      </div>
+
+      <div class="linha-menu" id="opcoes-oportunidades">
+        <div class="filtro">
+          <span class="filtro-rotulo">Período</span>
+          <div class="segmento" id="f-pregoes">
+            <button data-v="1" class="ativo">Último pregão</button>
+            <button data-v="5">Últimos 5 pregões</button>
+          </div>
+        </div>
+        <label class="opcao"><input type="checkbox" id="f-confluencia"> Só com confluência (2+ estratégias)</label>
+      </div>
+
+      <div class="linha-menu" id="caixa-personalizada" hidden>
+        <div class="filtro filtro-tickers">
+          <span class="filtro-rotulo">Minha lista</span>
+          <input id="f-tickers" type="text" spellcheck="false" placeholder="PETR4, GOOGL, VALE3, NVDA, BTC">
         </div>
       </div>
-      <div class="filtro">
-        <span class="filtro-rotulo">Tempo</span>
-        <div class="segmento" id="f-tf">
-          <button data-v="60">60m</button>
-          <button data-v="240">4h</button>
-          <button data-v="D" class="ativo">Diário</button>
-          <button data-v="W">Semanal</button>
-        </div>
+
+      <div class="linha-menu">
+        <div class="filtro" id="f-indicadores"></div>
+        <p class="sub" id="f-descricao"></p>
       </div>
-      <div class="filtro filtro-tickers" id="caixa-personalizada" hidden>
-        <span class="filtro-rotulo">Ativos</span>
-        <input id="f-tickers" type="text" spellcheck="false" placeholder="PETR4, GOOGL, VALE3, NVDA, BTC">
-      </div>
-      <div class="filtro" id="f-indicadores"></div>
-      <p class="sub" id="f-descricao"></p>
     </section>
 
     <section id="grade" class="grade-graficos"></section>
     <nav class="paginacao" id="paginacao"></nav>
   </main>
 
-  <footer>Clique em um gráfico para abrir no Radar. <kbd>Alt</kbd>+<kbd>R</kbd> centraliza todos.</footer>
+  <footer>Arraste para navegar em cada gráfico; arraste o eixo de preço ou de tempo para ajustar a escala.
+    ⛶ abre em tela cheia (com zoom pela roda do mouse). <kbd>Alt</kbd>+<kbd>R</kbd> centraliza todos.</footer>
 
   <script src="assets/js/comum.js"></script>
   <script src="assets/js/multitela.js"></script>
