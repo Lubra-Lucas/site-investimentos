@@ -20,6 +20,30 @@ MAX_CORRECOES_RECENTES = 3      # mais que isso nos últimos 60 pregões => dado
 DIAS_SEM_PREGAO = 5             # último candle mais velho que isso => desatualizado
 
 
+def completar_com_oficial(df: pd.DataFrame, oficiais: dict | None) -> tuple[pd.DataFrame, list[str]]:
+    """Troca candles quebrados ou ausentes no Yahoo pelo candle da fonte oficial (B3 ou Nasdaq).
+
+    Só entra o que a fonte oficial publicou para aquele pregão; nada é estimado. Um candle é
+    considerado quebrado quando falta fechamento ou quando abertura/máxima/mínima vêm zeradas.
+    """
+    if not oficiais:
+        return df, []
+    df = df.copy()
+    trocados = []
+    colunas = ["Open", "High", "Low", "Close"]
+    for data, c in sorted(oficiais.items()):
+        d = pd.Timestamp(data)
+        if d < df.index[0]:
+            continue
+        if d in df.index:
+            linha = df.loc[d, colunas]
+            if not (linha.isna().any() or (linha <= 0).any()):
+                continue
+        df.loc[d, colunas + ["Volume"]] = [c["open"], c["high"], c["low"], c["close"], c["volume"]]
+        trocados.append(data)
+    return df.sort_index(), trocados
+
+
 def limpar(df: pd.DataFrame, mercado: str) -> tuple[pd.DataFrame, list[tuple[pd.Timestamp, str]]]:
     """Remove candles impossíveis ou com cara de erro de cotação."""
     problemas: list[tuple[pd.Timestamp, str]] = []

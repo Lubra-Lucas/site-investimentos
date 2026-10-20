@@ -215,6 +215,8 @@ def main() -> None:
             bruto = bruto[bruto.index < hoje_utc]
             if tk in intraday:
                 intraday[tk] = intraday[tk][intraday[tk].index < hoje_utc]
+        # candle quebrado/ausente no Yahoo é trocado pelo oficial da B3 ou da Nasdaq, quando existir
+        bruto, completados = validacao.completar_com_oficial(bruto, (refs.get(tk) or {}).get("candles"))
         df, laudo = validacao.avaliar(bruto, meta["mercado"], refs.get(tk), hoje)
         precos[tk] = df
         if not laudo["publicar"]:
@@ -239,6 +241,7 @@ def main() -> None:
                             "ate": conf.get("ate"), "dif_max_pct": conf.get("dif_max_pct"),
                             "comparados": conf.get("comparados", 0), "candles_descartados": laudo["n_correcoes"],
                             "dias_60min_descartados": dias_60_descartados,
+                            "completados_oficial": completados,
                             # candle mais recente que veio incompleto da fonte e ficou de fora
                             "pendente": (bruto.index[-1].strftime("%Y-%m-%d")
                                          if bruto.index[-1] > df.index[-1] else None)},

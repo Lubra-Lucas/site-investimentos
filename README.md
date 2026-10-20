@@ -73,8 +73,12 @@ Na dúvida, o dado não entra:
      oficial único. Só entram as moedas que existem na Coinbase e cujo preço no Yahoo bate com ela. Ficaram de fora,
      por exemplo, TON (o Yahoo devolve outro token com o mesmo símbolo), TRX (sem par na Coinbase), SHIB e PEPE
      (o Yahoo arredonda o preço e distorce os candles).
-5. Um ativo que falha em qualquer etapa fica **retido**: sem gráfico e sem sinais no dia. A lista de retidos aparece no fim do Radar.
-6. **60 min e 4h:** cada dia de intraday é comparado com o candle diário já verificado. A máxima e a mínima
+5. **Candle quebrado no Yahoo** (sem fechamento ou com abertura/máxima/mínima zeradas, o que acontece à noite)
+   é trocado pelo candle oficial da B3 (COTAHIST) ou da Nasdaq, quando a fonte já publicou aquele pregão.
+   Se ainda não publicou, o dia fica de fora com o aviso "incompleto na fonte". Uma segunda rodada às 07:17
+   completa o que faltar.
+6. Um ativo que falha em qualquer etapa fica **retido**: sem gráfico e sem sinais no dia. A lista de retidos aparece no fim do Radar.
+7. **60 min e 4h:** cada dia de intraday é comparado com o candle diário já verificado. A máxima e a mínima
    precisam caber na do dia (folga de 0,5%), e o último fechamento precisa estar a até 2% do oficial (a diferença normal
    vem do leilão de fechamento). Os dias que não batem são descartados.
 
