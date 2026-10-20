@@ -111,6 +111,7 @@ async function iniciar() {
   try { carteira = (await carregarResumo()).carteira.posicoes.map((p) => p.ticker); } catch {}
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
   montarTopo("multitela", R);
+  document.getElementById("f-indicadores").replaceChildren(atalhosIndicadores({ comSinais: true, comIFR: false }));
 
   const fonte = document.getElementById("f-fonte");
   fonte.value = estado.fonte;

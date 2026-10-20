@@ -77,6 +77,7 @@ class Simulador {
     corpo.append(this.camada);
     botao.addEventListener("click", () => this.novo());
     grafico.aoMostrar = () => this.desenhar();
+    document.addEventListener("preferencias", () => this.desenhar());
     this.ligarArraste();
     const loop = () => { this.posicionarZonas(); requestAnimationFrame(loop); };
     requestAnimationFrame(loop);
@@ -147,7 +148,8 @@ class Simulador {
         this.linhas.push({ linha, pos: p, campo });
       };
       nivel("alvo", `rgba(38,194,129,${opac})`, `Alvo ${fmtPct((p.lado === "compra" ? 1 : -1) * c.retorno_pct)}`);
-      nivel("entrada", `rgba(215,221,230,${opac})`, `${p.lado === "compra" ? "Compra" : "Venda"} ${fmtNum(p.entrada, casas)}`);
+      const corEntrada = Preferencias.derivadas().claro ? `rgba(55,65,81,${opac})` : `rgba(215,221,230,${opac})`;
+      nivel("entrada", corEntrada, `${p.lado === "compra" ? "Compra" : "Venda"} ${fmtNum(p.entrada, casas)}`);
       nivel("stop", `rgba(240,80,110,${opac})`, `Stop ${fmtPct((p.lado === "compra" ? -1 : 1) * c.risco_pct)}`);
     }
     this.zonas = this.visiveis().map((p) => ({
