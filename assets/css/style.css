@@ -278,6 +278,34 @@ b.aviso { color: var(--aviso); font-weight: 500; }
 .motivos li.foco { color: var(--texto); }
 .dica { margin: 0; padding: 8px 14px; border-top: 1px solid var(--borda); font-size: 11px; color: var(--texto-fraco); }
 .grafico-cab-sub { display: flex; gap: 8px; }
+/* ---------- ferramentas de desenho ---------- */
+.desenhos-camada { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+.grafico.desenhando { cursor: crosshair; }
+.ferramentas {
+  position: absolute; left: 6px; top: 6px; z-index: 4; display: flex; flex-direction: column; gap: 2px;
+  background: rgba(15, 20, 28, 0.92); border: 1px solid var(--borda-forte); border-radius: 8px; padding: 3px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.ferr {
+  width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 6px;
+  background: transparent; color: var(--texto-fraco); cursor: pointer; padding: 0;
+}
+.ferr svg { width: 18px; height: 18px; fill: currentColor; stroke: currentColor; }
+.ferr:hover { background: var(--bg-elev); color: var(--texto); }
+.ferr.ativo { background: rgba(59, 232, 176, 0.15); color: var(--acento); }
+.ferr-sep { height: 1px; background: var(--borda-forte); margin: 2px 4px; }
+.ferr-cor .bolinha { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--texto); }
+.ferramentas .paleta {
+  position: absolute; left: 38px; top: 150px; width: 180px; background: var(--bg-painel);
+  border: 1px solid var(--borda-forte); border-radius: 8px; padding: 10px; display: grid; gap: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.ferramentas .paleta[hidden] { display: none; }
+.paleta .cores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.paleta .cor { height: 24px; border-radius: 5px; border: 1px solid var(--borda-forte); cursor: pointer; }
+.paleta .opacidade { display: grid; gap: 4px; font-size: 11px; color: var(--texto-fraco); }
+.paleta input[type="range"] { accent-color: var(--acento); width: 100%; }
+
 /* ---------- simulador de posição ---------- */
 .grafico { position: relative; }
 .sim-camada { position: absolute; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }

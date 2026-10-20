@@ -484,6 +484,8 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
   const atualizarNota = () => { nota.hidden = !INTRADAY.has(g.tf); };
 
   const g = new Grafico(corpo);
+  // desenhos antes do simulador: com uma ferramenta ativa, o clique é do desenho
+  const des = typeof Desenhos !== "undefined" ? new Desenhos(g, corpo) : null;
   const sim = simular && typeof Simulador !== "undefined" ? new Simulador(g, corpo, boleta, botaoSimular) : null;
   let atual = null;
   tfs.addEventListener("click", (e) => {
@@ -498,6 +500,7 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
   return {
     grafico: g,
     simulador: sim,
+    desenhos: des,
     /** Troca o tempo gráfico de fora (ex.: filtro de Bollinger no 4h). */
     mudarTf(tf) {
       const b = tfs.querySelector(`button[data-tf="${tf}"]`);
@@ -521,6 +524,7 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
       if (INTRADAY.has(g.tf) && !a.tem_intraday) g.tf = "D";
       tfs.querySelectorAll("button").forEach((b) => b.classList.toggle("ativo", b.dataset.tf === g.tf));
       atualizarNota();
+      des?.definirAtivo(a.ticker);
       sim?.definirAtivo(a);
       await g.mostrar(a.arquivo);
       aoSelecionar?.(a);

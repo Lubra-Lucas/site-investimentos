@@ -39,6 +39,15 @@ O botão **⚙ Personalizar** (no Radar, na Carteira e na Multitela) ajusta todo
 
 Os indicadores também têm atalhos de liga/desliga na barra acima de cada gráfico. A escolha fica salva no navegador.
 
+## Ferramentas de desenho
+
+Na barra do canto esquerdo do gráfico (Radar e Carteira):
+
+- **Linha horizontal**, **segmento de reta**, **retângulo** (com preenchimento e opacidade ajustável) e **pincel**.
+- Com o cursor, clique num desenho para selecionar, arraste para mover ou arraste as alças das pontas.
+  <kbd>Delete</kbd> apaga o selecionado e <kbd>Esc</kbd> volta ao cursor. A lixeira sem seleção apaga todos os desenhos do ativo.
+- Os desenhos ficam presos a data e preço: continuam no lugar ao trocar de tempo gráfico. Ficam salvos por ativo no navegador.
+
 ## Simulador de posição
 
 No Radar e na Carteira, o botão **⊕ Simular** abre uma ferramenta de risco/retorno no gráfico, como a do TradingView:
