@@ -473,7 +473,7 @@ class Grafico {
     this.destaque.hidden = false;
   }
 
-  /** Volta a escala automática de preço e o enquadramento padrão (Alt+R). */
+  /** Volta a escala automática de preço e o enquadramento padrão (Alt+C). */
   centralizar() {
     for (const s of [this.candles, this.ifr]) s?.priceScale().applyOptions({ autoScale: true });
     const n = this.n ?? 0;
@@ -483,7 +483,7 @@ class Grafico {
 }
 
 document.addEventListener("keydown", (e) => {
-  if (e.altKey && e.code === "KeyR") {
+  if (e.altKey && e.code === "KeyC") {
     e.preventDefault();
     graficos.forEach((g) => g.centralizar());
   }

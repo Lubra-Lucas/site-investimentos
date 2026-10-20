@@ -17,7 +17,7 @@ Painel pessoal com três telas:
   Bollinger comprimida) ou seus ativos (carteira, lista própria). Cada gráfico pode ser arrastado, ter zoom pela roda do mouse e ser aberto em tela cheia.
 
 Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (20, 2) e IFR 14, nos tempos
-**60 min, 4 horas**, diário, semanal e mensal. **Alt+R** centraliza o gráfico no preço.
+**60 min, 4 horas**, diário, semanal e mensal. **Alt+C** centraliza o gráfico no preço.
 
 ## Como funciona
 
