@@ -374,12 +374,49 @@ function atende(s, regras, tf, F) {
 const textoRegra = (x, tf, F) => CONDICOES[x.t].texto(x, tf, F);
 const valorRegra = (s, x, tf, F) => (s && CONDICOES[x.t].valor ? CONDICOES[x.t].valor(s, x, tf, F) : null);
 
-/** Médias citadas nas regras, para desenhar no gráfico além das padrão. */
+/**
+ * O que desenhar no gráfico para o usuário ver a condição: as médias citadas nas regras
+ * (MMS 20/50/200 com as cores de sempre), a Bollinger, o IFR/estocástico no painel de baixo
+ * e os níveis de rompimento ou de 52 semanas. null = a regra não tem nada para desenhar.
+ */
 const CORES_EXTRAS = ["#e879f9", "#22d3ee", "#fb923c", "#a3e635", "#f472b6"];
-function mediasDasRegras(regras) {
-  const padrao = new Set(["sma20", "sma50", "sma200"]);
-  const ms = [...new Set(regras.flatMap((x) => [x.media, x.a, x.b]).filter((m) => m && !padrao.has(m)))];
-  return ms.slice(0, CORES_EXTRAS.length).map((m, i) => ({ ...lerMedia(m), id: m, cor: CORES_EXTRAS[i] }));
+function sobreposicaoDasRegras(regras, s, tf, F) {
+  const cores = { sma20: css("--mm20"), sma50: css("--mm50"), sma200: css("--mm200") };
+  const ids = [...new Set(regras.flatMap((x) => [x.media, x.a, x.b]).filter(Boolean))];
+  let extra = 0;
+  const medias = ids.map((m) => ({ ...lerMedia(m), id: m, cor: cores[m] ?? CORES_EXTRAS[extra++ % CORES_EXTRAS.length] }));
+  const tipos = new Set(regras.map((x) => x.t));
+  const bb = tipos.has("bollinger") || tipos.has("comprimida");
+  const ifrRegra = regras.find((x) => x.t === "ifr");
+  const estoc = tipos.has("estocastico") || tipos.has("estoc_cruz");
+  const osc = ifrRegra || estoc ? { ifr: ifrRegra?.n ?? null, estoc } : null;
+  const niveis = [];
+  const unidade = UNID[tf][1];
+  for (const x of regras) {
+    if (x.t === "rompimento" && s) {
+      const n = janelaProxima(F.janelas[tf].ext, x.janela);
+      const preco = x.tipo === "max" ? s.max?.[n] : s.min?.[n];
+      if (preco != null) niveis.push({ preco, rotulo: `${x.tipo === "max" ? "Máx." : "Mín."} ${n} ${unidade}` });
+    }
+    if (x.t === "perto_extremo" && s) {
+      const n = Math.max(...F.janelas[tf].ext);
+      const preco = x.tipo === "max" ? s.max?.[n] : s.min?.[n];
+      if (preco != null) niveis.push({ preco, rotulo: `${x.tipo === "max" ? "Máx." : "Mín."} 52 semanas` });
+    }
+  }
+  if (!medias.length && !bb && !osc && !niveis.length) return null;
+  return { medias, bb, osc, niveis };
+}
+
+/** Legenda curta do que a sobreposição desenha. */
+function legendaSobreposicao(sob) {
+  return [
+    ...sob.medias.map((m) => ({ cor: m.cor, txt: nomeMedia(m.id) })),
+    sob.bb ? { cor: css("--bb"), txt: "Bollinger (20, 2)", pontilhado: true } : null,
+    sob.osc?.ifr ? { cor: Preferencias.derivadas().ifr, txt: `IFR ${sob.osc.ifr}` } : null,
+    sob.osc?.estoc ? { cor: "#4aa3ff", txt: "Estocástico %K/%D" } : null,
+    ...sob.niveis.map((n) => ({ cor: css("--aviso"), txt: n.rotulo, pontilhado: true })),
+  ].filter(Boolean);
 }
 
 // ------------------------------------------------------------- contexto do card
