@@ -49,6 +49,42 @@
         <div class="fontes" id="f-fonte"></div>
       </div>
 
+      <div class="caixa-rastreador" id="caixa-rastreador" hidden>
+        <div class="linha-menu">
+          <div class="filtro">
+            <span class="filtro-rotulo"><i class="passo">3</i> Regras no</span>
+            <div class="segmento" id="f-rtf">
+              <button data-v="D" class="ativo">Diário</button>
+              <button data-v="W">Semanal</button>
+            </div>
+          </div>
+          <label class="filtro filtro-modelo">
+            <span class="filtro-rotulo">Modelo</span>
+            <select id="f-modelo"></select>
+          </label>
+          <label class="filtro">
+            <span class="filtro-rotulo" title="Define o que conta a favor e o que pede cuidado nos cards">Operação</span>
+            <select id="f-vies">
+              <option value="compra">▲ Compra</option>
+              <option value="venda">▼ Venda</option>
+              <option value="neutro">Só observar</option>
+            </select>
+          </label>
+          <label class="filtro">
+            <span class="filtro-rotulo">Ordenar por</span>
+            <select id="f-ordem"></select>
+          </label>
+        </div>
+        <p class="sub" id="r-desc"></p>
+        <ol class="regras" id="r-regras"></ol>
+        <div class="regras-acoes">
+          <select id="r-adicionar" aria-label="Adicionar condição"></select>
+          <button class="botao" id="r-salvar" title="Guarda estas regras neste navegador, em Minhas regras">Salvar regras</button>
+          <button class="botao" id="r-restaurar" hidden>Desfazer edição</button>
+          <button class="botao perigo" id="r-excluir" hidden>Excluir</button>
+        </div>
+      </div>
+
       <div class="linha-menu" id="opcoes-oportunidades">
         <div class="filtro">
           <span class="filtro-rotulo">Período</span>
@@ -84,6 +120,7 @@
 
   <script src="assets/js/comum.js"></script>
   <script src="assets/js/simulador.js"></script>
+  <script src="assets/js/rastreador.js"></script>
   <script src="assets/js/multitela.js"></script>
 </body>
 </html>

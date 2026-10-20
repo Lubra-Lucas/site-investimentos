@@ -12,9 +12,22 @@ Painel pessoal com três telas:
 
   Clicou, o gráfico abre ao lado, com setas nos candles em que cada sinal apareceu (passe o mouse sobre o candle
   para ver o balão com o motivo); <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista. O botão ⛶ coloca o gráfico em tela cheia.
-- **Multitela** (`multitela.html`): grade de gráficos interativos (2×2, 3×3 ou 4×3). Escolha o que mostrar:
-  oportunidades de compra ou venda (com período e opção "só com confluência"), panorama (tendência forte,
-  Bollinger comprimida) ou seus ativos (carteira, lista própria). Cada gráfico pode ser arrastado, ter zoom pela roda do mouse e ser aberto em tela cheia.
+- **Multitela** (`multitela.html`): rastreador de ativos em grade de gráficos interativos (2×2, 3×3 ou 4×3).
+  - **⌕ Rastrear condição:** escolha um modelo pronto (tendência de alta/baixa, alta forte com médias alinhadas,
+    pullback na MME 9/MMS 20/MMS 50, fora da Bollinger, IFR e estocástico extremos, IFR 2, longe da média,
+    compressão, rompimento de máxima/mínima, perto da máxima de 52 semanas, cruzamentos de médias...) ou monte
+    as suas regras (todas precisam ser atendidas): fechamento x média, média x média, inclinação, pullback,
+    cruzamentos, distância da média (em % ou × o normal do ativo), IFR 2/9/14, estocástico, Bollinger,
+    compressão, ATR, variação no período, rompimento, máxima/mínima de 52 semanas, candle e volume. Médias
+    simples (MMS) ou exponenciais (MME) de 5 a 200 períodos. As regras valem no **diário ou no semanal**, com
+    os indicadores daquele tempo gráfico. Regras editadas podem ser salvas em "Minhas regras" (neste navegador).
+  - Cada card mostra os valores que fizeram o ativo passar e um **contexto para decidir**: ✓ o que está a favor
+    (tendência no outro tempo gráfico e há quanto tempo, perto da máxima de 52 semanas, volume, sinais das
+    estratégias), ⚠ o que pede cuidado (IFR/estocástico esticados no diário, semanal ou mensal, longe da média,
+    fora da Bollinger, contra o tempo maior, gap, volume fraco) e · informações (variação no mês/ano/12 meses,
+    onde ficaria um stop técnico nas médias, ATR). As médias usadas nas regras aparecem no gráfico.
+  - Também mostra as oportunidades de compra ou venda das estratégias e os seus ativos (carteira, simulações,
+    lista própria). Cada gráfico pode ser arrastado, ter zoom pela roda do mouse e ser aberto em tela cheia.
 
 Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (20, 2) e IFR 14, nos tempos
 **60 min, 4 horas**, diário, semanal e mensal. **Alt+C** centraliza o gráfico no preço.
@@ -26,6 +39,7 @@ GitHub Actions (todo dia 19:30 BRT)
    └─ scripts/atualizar_dados.py
         ├─ fontes.py       baixa candles diários (6 anos) e de 60 min (6 meses) do Yahoo Finance
         ├─ validacao.py    verifica a integridade e confere os fechamentos com outra fonte
+        ├─ rastreador.py   indicadores do diário e do semanal para o rastreador da Multitela
         ├─ estrategias.py  calcula indicadores e sinais datados (diário e semanal)
         └─ grava data/radar.json, data/resumo.json, data/ativos/<ticker>.json e data/intraday/<ticker>.json
    └─ publica o site estático no GitHub Pages

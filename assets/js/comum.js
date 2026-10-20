@@ -219,6 +219,18 @@ function sma(candles, n) {
   return out;
 }
 
+/** Média exponencial (mesma conta do pandas ewm(span=n, adjust=False) usada no servidor). */
+function ema(candles, n) {
+  const out = [];
+  const k = 2 / (n + 1);
+  let e = null;
+  candles.forEach((c, i) => {
+    e = e == null ? c.close : c.close * k + e * (1 - k);
+    if (i >= n - 1) out.push({ time: c.time, value: e });
+  });
+  return out;
+}
+
 function ifr(candles, n = 14) {
   const out = [];
   let ganho = 0, perda = 0;
@@ -439,6 +451,7 @@ class Grafico {
     this.bbInf.setData(inf);
     this.ifr?.setData(ifr(c));
     this.c = c;
+    this.desenharExtras();
     this.dataDestaque = null;
     this.destaque.hidden = true;
     this.marcar(c);
@@ -446,6 +459,22 @@ class Grafico {
     this.centralizar();
     this.aoMostrar?.();
     return true;
+  }
+
+  /** Médias extras (ex.: as das regras do rastreador), além das MM20/50/200 padrão. */
+  definirMediasExtras(lista) {
+    this.mediasExtras = lista;
+    if (this.c) this.desenharExtras();
+  }
+
+  desenharExtras() {
+    for (const s of this.seriesExtras ?? []) this.chart.removeSeries(s);
+    this.seriesExtras = (this.mediasExtras ?? []).map(({ tipo, n, cor }) => {
+      const s = this.chart.addSeries(LWC.LineSeries, {
+        color: cor, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+      s.setData(tipo === "ema" ? ema(this.c, n) : sma(this.c, n));
+      return s;
+    });
   }
 
   /** Candles na série; o do pregão em andamento fica translúcido. */
