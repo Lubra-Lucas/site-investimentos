@@ -479,7 +479,7 @@ class Grafico {
     }));
     if (this.parcial) {
       m.push({ time: this.parcial, position: "aboveBar", shape: "circle", size: 0.5, color: css("--texto-fraco"),
-        text: this.tf === "D" ? "em formação" : "inclui pregão em formação" });
+        text: "hoje" });
       m.sort((a, b) => String(a.time).localeCompare(String(b.time)));
     }
     this.marcadores.setMarkers(m);
@@ -571,7 +571,7 @@ function montarTopo(pagina, dados) {
       dados ? el("span", {}, "USD/BRL ", el("b", {}, fmtNum(dados.usdbrl, 4))) : null,
       dados ? el("span", {}, "Atualizado ", el("b", {},
         new Date(dados.atualizado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }))) : null,
-      el("span", { class: "atalho", title: "Centraliza o gráfico no preço" }, el("kbd", {}, "Alt"), "+", el("kbd", {}, "R"))),
+      el("span", { class: "atalho", title: "Centraliza o gráfico no preço" }, el("kbd", {}, "Alt"), "+", el("kbd", {}, "C"))),
   );
 }
 
