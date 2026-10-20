@@ -163,6 +163,41 @@ def historico_patrimonio(cfg, transacoes, precos, cambio, moedas) -> list[dict]:
     return [{"time": d.strftime("%Y-%m-%d"), "value": _num(v, 2)} for d, v in total.items()]
 
 
+# -------------------------------------------------------------- maiores quedas
+
+NOME_MERCADO = {"BR": "do Brasil", "US": "dos EUA", "CRIPTO": "de cripto"}
+FATIA_EXTREMOS = 0.08                       # 8% piores (e melhores) de cada mercado
+MOVIMENTO_MINIMO = {"D": 8.0, "S": 12.0}    # e só se o movimento for relevante (%)
+
+
+def maiores_movimentos(publicados: list[dict]) -> list[dict]:
+    """Maiores quedas (compra, contra a tendência) e maiores altas (venda) de cada mercado.
+
+    Sinal diário: variação em 21 pregões. Sinal semanal: variação em 13 semanas.
+    """
+    sinais = []
+    for tf, campo, periodo in (("D", "var_21_pct", "21 pregões"), ("S", "var_13s_pct", "13 semanas")):
+        for mercado in {a["mercado"] for a in publicados}:
+            grupo = [a for a in publicados if a["mercado"] == mercado and a["liquido"] and a.get(campo) is not None]
+            n = min(25, max(3, round(len(grupo) * FATIA_EXTREMOS)))
+            ordem = sorted(grupo, key=lambda a: a[campo])
+            for lado, lista in (("compra", ordem[:n]), ("venda", ordem[::-1][:n])):
+                for a in lista:
+                    v = a[campo]
+                    if (lado == "compra" and v > -MOVIMENTO_MINIMO[tf]) or (lado == "venda" and v < MOVIMENTO_MINIMO[tf]):
+                        continue
+                    data = pd.Timestamp(a["data"])
+                    if tf == "S":
+                        data -= pd.Timedelta(days=data.weekday())  # semana identificada pela segunda-feira
+                    verbo, extremo = ("Caiu", "quedas") if lado == "compra" else ("Subiu", "altas")
+                    sinais.append({
+                        "ticker": a["ticker"], "data": data.strftime("%Y-%m-%d"), "tf": tf, "lado": lado,
+                        "familia": "quedas", "modalidade": "contra", "preco": a["ultimo"],
+                        "texto": f"{verbo} {abs(v):.1f}% em {periodo}: entre as maiores {extremo} {NOME_MERCADO[mercado]}".replace(".", ","),
+                    })
+    return sinais
+
+
 # ----------------------------------------------------------------------- main
 
 def montar_lista(cfg: dict) -> dict[str, dict]:
@@ -250,6 +285,7 @@ def main() -> None:
         })
         sinais += [{"ticker": tk, **x} for x in sinais_tk]
 
+    sinais += maiores_movimentos(publicados)
     sinais.sort(key=lambda x: (x["data"], x["ticker"]), reverse=True)
     sem_intraday = [a["ticker"] for a in publicados if a["liquido"] and a["mercado"] != "CRIPTO" and not a["intraday_ok"]]
     if sem_intraday:

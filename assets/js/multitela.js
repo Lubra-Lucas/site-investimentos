@@ -13,7 +13,7 @@ function listar() {
   const tfSinal = estado.tf === "W" ? "S" : "D";
   const deGrupo = (lado, pregoes, minimo) => agruparSinais(sinaisDoPeriodo(R, tfSinal, pregoes).sinais, { tf: tfSinal })[lado]
     .filter((i) => i.familias.size >= minimo && doMercado(i.ticker))
-    .map((i) => ({ ticker: i.ticker, familias: i.familias, motivo: i.sinais.map((s) => `${fmtData(s.data)} ${s.texto}`).join("\n") }));
+    .map((i) => ({ ticker: i.ticker, familias: i.familias, lado, motivo: i.sinais.map((s) => `${fmtData(s.data)} ${s.texto}`).join("\n") }));
 
   switch (estado.fonte) {
     case "prioridade-compra": return deGrupo("compra", 5, 2);
@@ -52,7 +52,7 @@ function celula(item) {
         el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)))),
     el("div", { class: "chips" },
       item.familias?.size >= 2 ? el("span", { class: "chip destaque" }, `★ ${item.familias.size}`) : null,
-      item.familias ? chipsFamilias(item.familias) : null,
+      item.familias ? chipsFamilias(item.familias, item.lado) : null,
       el("span", { class: "chip ctx" }, `IFR D ${fmtNum(a.ifr_d, 0)}`),
       a.tendencia_forte ? el("span", { class: `chip ctx ${a.tendencia_forte}` }, `forte ${a.tendencia_forte}`) : null),
     corpo);

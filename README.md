@@ -88,26 +88,37 @@ Na dúvida, o dado não entra:
 - A semana de cripto vai de segunda a domingo.
 - "Último pregão" é contado por mercado: o último pregão da B3 pode ser sexta, enquanto o de cripto é domingo.
 
-## Estratégias
+## Estratégias (Oportunidades)
 
-Todas têm o espelho para venda. Um ativo com 2 ou mais famílias do mesmo lado entra em **Prioridade**.
+No Radar: **1. Mercado** → **2. O que ver** (Oportunidades ou Filtros de estado) → **3. Sinal** (diário ou semanal).
+As oportunidades vêm em **Compra** e **Venda**, separadas em duas modalidades. Toda estratégia de venda é o espelho
+da de compra, com o mesmo nome. O grupo **★ Confluência** reúne os ativos com 2 ou mais estratégias do mesmo lado.
 
-| Família | Compra | Venda |
+### A favor da tendência (comprar alta que continua / vender baixa que continua)
+
+| Estratégia | Compra | Venda |
 |---|---|---|
-| Pullback nas médias | MM20 > MM50, preço acima da MM50, semanal em alta; a mínima toca a MM20/50/200 e o fechamento a segura | Espelho em tendência de baixa: repique rejeitado na média |
-| IFR extremo | IFR 14 cruza abaixo de 20 | IFR cruza acima de 80 |
-| Multitempo 60 min | Diário **e** semanal acima da MM20 e MM50; no 60 min, estocástico lento < 20 e IFR < 30 | D+S abaixo das médias; estocástico > 80 e IFR > 70 no 60 min |
-| Multitempo diário | Semanal acima das duas médias; no diário, estocástico lento < 20 e IFR < 40 | Espelho |
-| Fora da Bollinger | Fechamento abaixo da banda inferior (reversão à média) ou acima da superior em tendência de alta (continuidade) | Espelho |
-| Boca de jacaré | Após bandas comprimidas, a superior sobe, a inferior desce e o preço fecha acima | Fecha abaixo |
+| Pullback nas médias | Médias alinhadas para cima. **Rejeição**: a mínima fura a MM20, MM50 ou MM200 e o candle fecha acima. **Violação e retomada**: fecha abaixo da média por 1 ou 2 candles e volta a fechar acima | Espelho, com as médias alinhadas para baixo |
+| Boca de jacaré | Bollinger comprimida abre (superior sobe, inferior desce) e o preço fecha acima da banda superior | Fecha abaixo da inferior |
+| Multitempo | **Sinal diário:** diário acima da MM20 e da MM50 + exaustão de queda no 60 min (estocástico lento < 20 e/ou IFR < 30). **Sinal semanal:** semanal em alta + a mesma exaustão no diário ou no 4 horas | Espelho (estocástico > 80 e/ou IFR > 70) |
 
-Filtros de estado (a foto de hoje): **tendência forte** (acima ou abaixo das duas médias no diário e no semanal),
-**IFR extremo** (< 20 ou > 80 no 60 min, diário, semanal ou mensal) e **Bollinger comprimida** (largura entre as
-10% menores dos últimos 120 pregões, um possível sinal de explosão de volatilidade).
+### Contra a tendência (comprar a faca caindo / vender o que esticou demais)
 
-Os filtros de prazo maior usam só o que já estava fechado no dia do sinal, sem olhar o futuro.
-Ativos com pouca liquidez (volume financeiro médio de 20 dias abaixo de R$ 10 mi na B3 ou US$ 100 mi nos EUA)
-ficam fora dos sinais. Os parâmetros ficam no topo de `scripts/estrategias.py`.
+| Estratégia | Compra | Venda |
+|---|---|---|
+| IFR extremo | IFR 14 abaixo de 20 | Acima de 80 |
+| Fora da Bollinger | Fecha abaixo da banda inferior (fora de uma boca de jacaré) | Acima da superior |
+| Distância da MM20 | Preço abaixo da MM20 a pelo menos 2,5x a distância média do próprio ativo (último ano no diário, 2 anos no semanal) | Acima |
+| Maiores quedas / altas | Entre as 8% maiores quedas do mercado em 21 pregões (diário) ou 13 semanas (semanal), com pelo menos 8% / 12% | Maiores altas |
+
+## Filtros de estado (panorama)
+
+A foto de hoje, independente de evento: **tendência forte de alta** e **de baixa** (preço acima ou abaixo da MM20 e
+da MM50 no diário e no semanal) e **Bollinger comprimida** (largura entre as 10% menores dos últimos 120 candles),
+no tempo gráfico escolhido (60m, 4h, diário ou semanal).
+
+Ativos com pouca liquidez (volume financeiro médio de 20 dias abaixo de R$ 10 mi na B3, US$ 100 mi nos EUA ou
+US$ 30 mi em cripto) ficam fora dos sinais. Os parâmetros ficam no topo de `scripts/estrategias.py`.
 
 **São filtros técnicos para chamar atenção, não recomendação de investimento.**
 

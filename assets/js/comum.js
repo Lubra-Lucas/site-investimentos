@@ -71,9 +71,11 @@ async function carregarCandles(arquivo) {
 }
 
 const FAMILIA_CURTA = {
-  pullback: "Pullback", ifr: "IFR extremo", mtf60: "Multitempo 60m", mtfd: "Multitempo D",
-  bb_fora: "Fora da BB", bb_abertura: "Boca de jacaré",
+  pullback: "Pullback", boca: "Boca de jacaré", mtf: "Multitempo",
+  ifr: "IFR extremo", bb_fora: "Fora da BB", distancia: "Distância MM20", quedas: "Maior queda",
 };
+/** Nome curto pelo lado: na venda, "Maior queda" vira "Maior alta". */
+const nomeFamilia = (f, lado) => (f === "quedas" && lado === "venda" ? "Maior alta" : FAMILIA_CURTA[f] ?? f);
 
 /** Agrupa sinais por ativo e lado dentro do período. Confluência = nº de famílias distintas. */
 function agruparSinais(sinais, { tf = "D", desde = null } = {}) {
@@ -119,8 +121,8 @@ function sinaisDoPeriodo(R, tf, n) {
 /** Datas de pregão presentes nos sinais (mais recente primeiro). */
 const datasSinais = (sinais, tf) => [...new Set(sinais.filter((s) => s.tf === tf).map((s) => s.data))].sort().reverse();
 
-function chipsFamilias(familias) {
-  return [...familias].map((f) => el("span", { class: `chip fam-${f}` }, FAMILIA_CURTA[f] ?? f));
+function chipsFamilias(familias, lado = "compra") {
+  return [...familias].map((f) => el("span", { class: `chip fam-${f}` }, nomeFamilia(f, lado)));
 }
 
 function seloVerificacao(a) {
