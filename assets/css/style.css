@@ -418,6 +418,7 @@ main > * { min-width: 0; }
 .ferr svg { width: 18px; height: 18px; fill: currentColor; stroke: currentColor; }
 .ferr:hover { background: var(--bg-elev); color: var(--texto); }
 .ferr.ativo { background: rgba(59, 232, 176, 0.15); color: var(--acento); }
+.ferr:disabled { opacity: 0.35; cursor: default; background: transparent; }
 .ferr-sep { height: 1px; background: var(--borda-forte); margin: 2px 4px; }
 .ferr-cor .bolinha { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--texto); }
 .ferramentas .paleta {

@@ -5,6 +5,8 @@
 const DESENHOS_CHAVE = "desenhos-v1";
 const CORES_DESENHO = ["#f5b942", "#3be8b0", "#4aa3ff", "#f0506e", "#c77dff", "#8a94a6", "#1f2937", "#ffffff"];
 const PERTO = 6;  // px de tolerância para acertar um desenho com o mouse
+// Alt + letra escolhe a ferramenta (e.code, porque no Mac o Alt troca a letra digitada)
+const ATALHOS_DESENHO = { KeyH: "horizontal", KeyT: "segmento", KeyR: "retangulo", KeyB: "pincel" };
 
 const ICONES = {
   cursor: '<path d="M5 3l12 9-5 1 3 6-2 1-3-6-4 4z"/>',
@@ -12,6 +14,7 @@ const ICONES = {
   segmento: '<path d="M5 19L19 5" stroke-width="2"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="5" r="2.5"/>',
   retangulo: '<rect x="4" y="6" width="16" height="12" rx="1" stroke-width="2" fill-opacity=".25"/>',
   pincel: '<path d="M3 17c3-1 4-6 7-6s2 5 5 5 4-4 6-6" stroke-width="2" fill="none"/>',
+  desfazer: '<path d="M9 14L4 9l5-5" stroke-width="2" fill="none"/><path d="M4 9h10a6 6 0 010 12h-3" stroke-width="2" fill="none"/>',
   lixeira: '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" stroke-width="2" fill="none"/>',
 };
 const icone = (nome) => {
@@ -37,12 +40,20 @@ class Desenhos {
     this.ferramenta = "cursor";
     this.selecionado = null;
     this.estilo = { cor: CORES_DESENHO[0], opacidade: 0.2 };
+    this.historico = [];  // estados anteriores da lista, para o Ctrl+Z
     this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     this.svg.classList.add("desenhos-camada");
     corpo.append(this.svg, this.montarBarra());
     this.ligarMouse();
     document.addEventListener("keydown", (e) => {
       if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
+      if (e.altKey && !e.ctrlKey && !e.metaKey && ATALHOS_DESENHO[e.code]) {
+        e.preventDefault();
+        const f = ATALHOS_DESENHO[e.code];
+        this.escolher(this.ferramenta === f ? "cursor" : f);  // repetir o atalho volta ao cursor
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.code === "KeyZ") { e.preventDefault(); this.desfazer(); return; }
       if (e.key === "Escape") { this.escolher("cursor"); this.selecionar(null); }
       if ((e.key === "Delete" || e.key === "Backspace") && this.selecionado) { e.preventDefault(); this.apagarSelecionado(); }
     });
@@ -55,7 +66,23 @@ class Desenhos {
   definirAtivo(ticker) {
     this.ticker = ticker;
     this.lista = guardar.ler(DESENHOS_CHAVE, {})[ticker] ?? [];
+    this.historico = [];
     this.selecionar(null);
+  }
+
+  /** Guarda o estado atual antes de uma alteração, para o Ctrl+Z voltar a ele. */
+  registrar() {
+    const atual = JSON.stringify(this.lista);
+    if (this.historico[this.historico.length - 1] !== atual) this.historico.push(atual);
+    if (this.historico.length > 100) this.historico.shift();
+    this.atualizarBarra();
+  }
+
+  desfazer() {
+    if (!this.historico.length) return;
+    this.lista = JSON.parse(this.historico.pop());
+    this.selecionar(null);
+    this.salvar();
   }
 
   salvar() {
@@ -82,12 +109,13 @@ class Desenhos {
       el("label", { class: "opacidade" }, "Preenchimento do retângulo", this.opacidade));
     this.barra = el("div", { class: "ferramentas", role: "toolbar", "aria-label": "Ferramentas de desenho" },
       botao("cursor", "Cursor: selecionar e mover (Esc)", () => this.escolher("cursor")),
-      botao("horizontal", "Linha horizontal", () => this.escolher("horizontal")),
-      botao("segmento", "Segmento de reta", () => this.escolher("segmento")),
-      botao("retangulo", "Retângulo", () => this.escolher("retangulo")),
-      botao("pincel", "Pincel", () => this.escolher("pincel")),
+      botao("horizontal", "Linha horizontal (Alt+H)", () => this.escolher("horizontal")),
+      botao("segmento", "Segmento de reta (Alt+T)", () => this.escolher("segmento")),
+      botao("retangulo", "Retângulo (Alt+R)", () => this.escolher("retangulo")),
+      botao("pincel", "Pincel (Alt+B): continua ligado até apertar Esc ou escolher outra ferramenta", () => this.escolher("pincel")),
       el("span", { class: "ferr-sep" }),
       this.botaoCor,
+      this.botaoDesfazer = botao("desfazer", "Desfazer (Ctrl+Z)", () => this.desfazer()),
       botao("lixeira", "Apagar o selecionado (Delete) ou, sem seleção, todos deste ativo", () => this.apagarSelecionado(true)),
       this.paleta);
     this.atualizarBarra();
@@ -106,11 +134,18 @@ class Desenhos {
     this.botaoCor.querySelector(".bolinha").style.background = cor;
     this.opacidade.value = Math.round((this.selecionado?.opacidade ?? this.estilo.opacidade) * 100);
     this.corpo.classList.toggle("desenhando", this.ferramenta !== "cursor");
+    if (this.botaoDesfazer) this.botaoDesfazer.disabled = !this.historico.length;
   }
 
   mudarEstilo(m) {
     Object.assign(this.estilo, m);
-    if (this.selecionado) { Object.assign(this.selecionado, m); this.salvar(); }
+    if (this.selecionado) {
+      // arrastar a opacidade gera vários eventos seguidos: um só passo no Ctrl+Z
+      if (Date.now() - (this.ultimoEstilo ?? 0) > 800) this.registrar();
+      this.ultimoEstilo = Date.now();
+      Object.assign(this.selecionado, m);
+      this.salvar();
+    }
     this.atualizarBarra();
   }
 
@@ -120,13 +155,16 @@ class Desenhos {
   }
 
   apagarSelecionado(lixeira = false) {
+    const antes = JSON.stringify(this.lista);
     if (this.selecionado) {
       this.lista = this.lista.filter((d) => d !== this.selecionado);
       this.selecionar(null);
     } else if (lixeira && this.lista.length && confirm(`Apagar todos os ${this.lista.length} desenhos de ${semSufixo(this.ticker)}?`)) {
       this.lista = [];
     } else return;
+    this.historico.push(antes);
     this.salvar();
+    this.atualizarBarra();
   }
 
   // ---------------------------------------------------------- coordenadas
@@ -218,18 +256,19 @@ class Desenhos {
       const { x, y, ponto } = this.doMouse(e);
       if (!ponto || !this.dentroDoGrafico(x, y)) return;
       let novo = null;
+      const antes = JSON.stringify(this.lista);
       if (this.ferramenta === "cursor") {
         const alvo = this.acertar(x, y);
         if (!alvo) { this.selecionar(null); return; }  // deixa o gráfico (e o simulador) tratar o clique
         this.selecionar(alvo.d);
-        acao = { tipo: "mover", d: alvo.d, parte: alvo.parte, inicio: ponto, original: JSON.parse(JSON.stringify(alvo.d)) };
+        acao = { tipo: "mover", d: alvo.d, parte: alvo.parte, inicio: ponto, original: JSON.parse(JSON.stringify(alvo.d)), antes };
       } else {
         const base = { id: `${Date.now()}`, cor: this.estilo.cor, tipo: this.ferramenta };
         if (this.ferramenta === "horizontal") novo = { ...base, p: ponto.p };
         else if (this.ferramenta === "pincel") novo = { ...base, pontos: [ponto] };
         else novo = { ...base, a: ponto, b: { ...ponto }, ...(this.ferramenta === "retangulo" ? { opacidade: this.estilo.opacidade } : {}) };
         this.lista.push(novo);
-        acao = { tipo: "criar", d: novo };
+        acao = { tipo: "criar", d: novo, antes };
       }
       e.preventDefault();
       e.stopImmediatePropagation();  // o gráfico não arrasta e o simulador não vê este clique
@@ -272,7 +311,10 @@ class Desenhos {
       const vazio = acao.tipo === "criar" && d.tipo !== "horizontal" &&
         (d.tipo === "pincel" ? d.pontos.length < 2 : d.a.t === d.b.t && d.a.p === d.b.p);
       if (vazio) this.lista = this.lista.filter((x) => x !== d);
-      else if (acao.tipo === "criar") { this.escolher("cursor"); this.selecionar(d); }
+      // o pincel continua ligado para o próximo traço; as outras ferramentas voltam ao cursor
+      else if (acao.tipo === "criar" && d.tipo !== "pincel") { this.escolher("cursor"); this.selecionar(d); }
+      // só entra no Ctrl+Z o que de fato mudou (um clique sem arrastar não conta)
+      if (JSON.stringify(this.lista) !== acao.antes) { this.historico.push(acao.antes); this.atualizarBarra(); }
       acao = null;
       bloquear(false);
       this.corpo.releasePointerCapture?.(e.pointerId);
