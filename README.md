@@ -26,8 +26,14 @@ Painel pessoal com três telas:
     estratégias), ⚠ o que pede cuidado (IFR/estocástico esticados no diário, semanal ou mensal, longe da média,
     fora da Bollinger, contra o tempo maior, gap, volume fraco) e · informações (variação no mês/ano/12 meses,
     onde ficaria um stop técnico nas médias, ATR). As médias usadas nas regras aparecem no gráfico.
-  - Também mostra as oportunidades de compra ou venda das estratégias e os seus ativos (carteira, simulações,
-    lista própria). Cada gráfico pode ser arrastado, ter zoom pela roda do mouse e ser aberto em tela cheia.
+  - **Condições no gráfico:** cada gráfico já vem com o que o modelo usa (as médias da regra, a Bollinger, o
+    IFR/estocástico no painel de baixo, a máxima de 20 candles ou de 52 semanas). "Meus indicadores" volta aos
+    indicadores de sempre.
+  - **✎ Ferramentas de desenho** em cada gráfico (as mesmas do Radar, salvas por ativo), incluindo o
+    **risco/retorno** de compra e de venda: clique para criar (alvo 4%, stop 2%) ou arraste até o alvo; depois,
+    arraste o alvo, o stop e a ponta direita.
+  - Também mostra os seus ativos (carteira, simulações, lista própria). Cada gráfico pode ser arrastado, ter zoom
+    pela roda do mouse e ser aberto em tela cheia. As oportunidades das estratégias ficam no Radar.
 
 Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (20, 2) e IFR 14, nos tempos
 **60 min, 4 horas**, diário, semanal e mensal. **Alt+C** centraliza o gráfico no preço.

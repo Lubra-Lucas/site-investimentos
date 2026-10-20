@@ -244,6 +244,19 @@ function ifr(candles, n = 14) {
   return out;
 }
 
+/** Estocástico lento (14, 3, 3): %K e %D. */
+function estocastico(candles, n = 14, suave = 3, d = 3) {
+  const rapido = [];
+  for (let i = n - 1; i < candles.length; i++) {
+    let max = -Infinity, min = Infinity;
+    for (let j = i - n + 1; j <= i; j++) { max = Math.max(max, candles[j].high); min = Math.min(min, candles[j].low); }
+    rapido.push({ time: candles[i].time, value: max > min ? (100 * (candles[i].close - min)) / (max - min) : 50 });
+  }
+  const media = (serie, m) => serie.slice(m - 1).map((x, i) => ({ time: x.time, value: serie.slice(i, i + m).reduce((t, y) => t + y.value, 0) / m }));
+  const k = media(rapido, suave);
+  return { k, d: media(k, d) };
+}
+
 function bollinger(candles, n = 20, k = 2) {
   const sup = [], inf = [];
   for (let i = n - 1; i < candles.length; i++) {
@@ -384,8 +397,10 @@ class Grafico {
   }
 
   /** O painel do IFR só existe quando o indicador está ligado (sem ele, o gráfico fica limpo). */
-  painelIFR(ligado) {
-    if (this.mini) return;
+  painelIFR(ligado, n = 14) {
+    if (this.mini && !this.sob?.osc) ligado = false;
+    if (ligado && this.ifr && this.ifrN !== n) { this.chart.removeSeries(this.ifr); this.ifr = null; }
+    this.ifrN = n;
     if (ligado && !this.ifr) {
       const d = Preferencias.derivadas();
       this.ifr = this.chart.addSeries(LWC.LineSeries, {
@@ -394,8 +409,8 @@ class Grafico {
       }, 1);
       this.niveisIFR = [[80, "baixa"], [70, "nivel"], [30, "nivel"], [20, "alta"]].map(([price, c]) =>
         this.ifr.createPriceLine({ price, color: c, lineStyle: LWC.LineStyle.Dashed, lineWidth: 1, axisLabelVisible: false }));
-      this.chart.panes()[1]?.setHeight(110);
-      if (this.c) this.ifr.setData(ifr(this.c));
+      this.chart.panes()[1]?.setHeight(this.mini ? 60 : 110);
+      if (this.c) this.ifr.setData(ifr(this.c, this.ifrN));
     } else if (!ligado && this.ifr) {
       this.chart.removeSeries(this.ifr);  // painel vazio é removido junto
       this.ifr = null;
@@ -418,11 +433,15 @@ class Grafico {
     this.candles.applyOptions({
       upColor: p.corAlta, downColor: p.corBaixa, wickUpColor: p.corAlta, wickDownColor: p.corBaixa,
     });
-    this.mm20.applyOptions({ visible: p.mm20 });
-    this.mm50.applyOptions({ visible: p.mm50 });
-    this.mm200.applyOptions({ visible: p.mm200 });
-    for (const s of [this.bbSup, this.bbInf]) s.applyOptions({ visible: p.bb, color: d.bb });
-    this.painelIFR(p.ifr);
+    // com sobreposição (rastreador), o gráfico mostra só o que a condição usa
+    const sob = this.sob;
+    const usa = (id) => sob.medias.some((m) => m.id === id);
+    this.mm20.applyOptions({ visible: sob ? usa("sma20") : p.mm20 });
+    this.mm50.applyOptions({ visible: sob ? usa("sma50") : p.mm50 });
+    this.mm200.applyOptions({ visible: sob ? usa("sma200") : p.mm200 });
+    for (const s of [this.bbSup, this.bbInf]) s.applyOptions({ visible: sob ? !!sob.bb : p.bb, color: d.bb });
+    this.painelIFR(sob ? !!sob.osc?.ifr : p.ifr, sob?.osc?.ifr ?? 14);
+    this.painelEstocastico(!!sob?.osc?.estoc);
     if (this.ifr) {
       this.ifr.applyOptions({ color: d.ifr });
       const cores = { baixa: p.corBaixa, nivel: d.nivel, alta: p.corAlta };
@@ -449,9 +468,11 @@ class Grafico {
     const { sup, inf } = bollinger(c);
     this.bbSup.setData(sup);
     this.bbInf.setData(inf);
-    this.ifr?.setData(ifr(c));
+    this.ifr?.setData(ifr(c, this.ifrN ?? 14));
     this.c = c;
     this.desenharExtras();
+    this.desenharNiveis();
+    this.preencherEstocastico();
     this.dataDestaque = null;
     this.destaque.hidden = true;
     this.marcar(c);
@@ -461,10 +482,48 @@ class Grafico {
     return true;
   }
 
-  /** Médias extras (ex.: as das regras do rastreador), além das MM20/50/200 padrão. */
-  definirMediasExtras(lista) {
-    this.mediasExtras = lista;
-    if (this.c) this.desenharExtras();
+  /**
+   * Sobreposição de um modelo do rastreador: { medias: [{id, tipo, n, cor}], bb, osc: {ifr, estoc},
+   * niveis: [{preco, rotulo, cor}] }. Enquanto ativa, substitui os indicadores das preferências;
+   * null volta ao normal.
+   */
+  definirSobreposicao(sob) {
+    this.sob = sob;
+    const padrao = new Set(["sma20", "sma50", "sma200"]);
+    this.mediasExtras = (sob?.medias ?? []).filter((m) => !padrao.has(m.id));
+    this.aplicarPreferencias();
+    if (this.c) { this.desenharExtras(); this.desenharNiveis(); }
+  }
+
+  desenharNiveis() {
+    for (const l of this.linhasNivel ?? []) this.candles.removePriceLine(l);
+    this.linhasNivel = (this.sob?.niveis ?? []).map((n) => this.candles.createPriceLine({
+      price: n.preco, color: n.cor ?? css("--aviso"), lineWidth: 1, lineStyle: LWC.LineStyle.Dashed,
+      axisLabelVisible: true, title: n.rotulo }));
+  }
+
+  /** Estocástico lento no painel de baixo (junto do IFR, mesma escala 0-100). */
+  painelEstocastico(ligado) {
+    if (ligado && !this.estK) {
+      const op = { lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false };
+      this.estK = this.chart.addSeries(LWC.LineSeries, { ...op, color: "#4aa3ff" }, 1);
+      this.estD = this.chart.addSeries(LWC.LineSeries, { ...op, color: "#f5b942", lineStyle: LWC.LineStyle.Dotted }, 1);
+      this.niveisEst = [80, 20].map((price) => this.estK.createPriceLine({
+        price, color: css("--borda-forte"), lineStyle: LWC.LineStyle.Dashed, lineWidth: 1, axisLabelVisible: false }));
+      this.chart.panes()[1]?.setHeight(this.mini ? 60 : 110);
+      if (this.c) this.preencherEstocastico();
+    } else if (!ligado && this.estK) {
+      this.chart.removeSeries(this.estK);
+      this.chart.removeSeries(this.estD);
+      this.estK = this.estD = null;
+    }
+  }
+
+  preencherEstocastico() {
+    if (!this.estK) return;
+    const { k, d } = estocastico(this.c);
+    this.estK.setData(k);
+    this.estD.setData(d);
   }
 
   desenharExtras() {

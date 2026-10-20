@@ -14,111 +14,90 @@
   <header class="topo" id="topo"></header>
 
   <main class="larga">
-    <section class="filtros painel menu-multitela">
-      <div class="linha-menu">
-        <div class="filtro">
-          <span class="filtro-rotulo"><i class="passo">1</i> Mercado</span>
-          <div class="segmento" id="f-mercado">
+    <section class="painel menu-multi">
+      <div class="multi-topo">
+        <nav class="abas-multi" id="f-fonte" aria-label="O que mostrar"></nav>
+        <div class="multi-ajustes">
+          <div class="segmento" id="f-mercado" aria-label="Mercado">
             <button data-v="" class="ativo">Todos</button>
             <button data-v="BR">Brasil</button>
             <button data-v="US">EUA</button>
             <button data-v="CRIPTO">Cripto</button>
           </div>
-        </div>
-        <div class="filtro">
-          <span class="filtro-rotulo">Grade</span>
-          <div class="segmento" id="f-grade">
-            <button data-v="2">2×2</button>
-            <button data-v="3" class="ativo">3×3</button>
-            <button data-v="4">4×3</button>
+          <div class="segmento" id="f-grade" aria-label="Grade">
+            <button data-v="2" title="2×2">2×2</button>
+            <button data-v="3" class="ativo" title="3×3">3×3</button>
+            <button data-v="4" title="4×3">4×3</button>
           </div>
         </div>
-        <div class="filtro">
-          <span class="filtro-rotulo">Tempo gráfico</span>
-          <div class="segmento" id="f-tf">
-            <button data-v="60">60m</button>
-            <button data-v="240">4h</button>
-            <button data-v="D" class="ativo">Diário</button>
-            <button data-v="W">Semanal</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="linha-menu">
-        <span class="filtro-rotulo"><i class="passo">2</i> O que mostrar</span>
-        <div class="fontes" id="f-fonte"></div>
       </div>
 
       <div class="caixa-rastreador" id="caixa-rastreador" hidden>
-        <div class="linha-menu">
-          <div class="filtro">
-            <span class="filtro-rotulo"><i class="passo">3</i> Regras no</span>
-            <div class="segmento" id="f-rtf">
-              <button data-v="D" class="ativo">Diário</button>
-              <button data-v="W">Semanal</button>
-            </div>
+        <div class="categorias-modelo" id="r-categorias" role="tablist" aria-label="Tipo de condição"></div>
+        <div class="lista-modelos" id="r-modelos"></div>
+        <div class="linha-regras">
+          <div class="segmento" id="f-rtf" aria-label="Regras no">
+            <button data-v="D" class="ativo">Diário</button>
+            <button data-v="W">Semanal</button>
           </div>
-          <label class="filtro filtro-modelo">
-            <span class="filtro-rotulo">Modelo</span>
-            <select id="f-modelo"></select>
-          </label>
-          <label class="filtro">
-            <span class="filtro-rotulo" title="Define o que conta a favor e o que pede cuidado nos cards">Operação</span>
-            <select id="f-vies">
-              <option value="compra">▲ Compra</option>
-              <option value="venda">▼ Venda</option>
-              <option value="neutro">Só observar</option>
-            </select>
-          </label>
-          <label class="filtro">
-            <span class="filtro-rotulo">Ordenar por</span>
-            <select id="f-ordem"></select>
-          </label>
+          <p class="resumo-regras" id="r-resumo"></p>
+          <button class="botao botao-editar" id="r-editar" aria-expanded="false">✎ Editar regras</button>
         </div>
-        <p class="sub" id="r-desc"></p>
-        <ol class="regras" id="r-regras"></ol>
-        <div class="regras-acoes">
-          <select id="r-adicionar" aria-label="Adicionar condição"></select>
-          <button class="botao" id="r-salvar" title="Guarda estas regras neste navegador, em Minhas regras">Salvar regras</button>
-          <button class="botao" id="r-restaurar" hidden>Desfazer edição</button>
-          <button class="botao perigo" id="r-excluir" hidden>Excluir</button>
+        <div class="editor-regras" id="r-editor" hidden>
+          <ol class="regras" id="r-regras"></ol>
+          <div class="regras-acoes">
+            <select id="r-adicionar" aria-label="Adicionar condição"></select>
+            <button class="botao" id="r-salvar" title="Guarda estas regras neste navegador, em Minhas regras">Salvar regras</button>
+            <button class="botao" id="r-restaurar" hidden>Desfazer edição</button>
+            <button class="botao perigo" id="r-excluir" hidden>Excluir</button>
+          </div>
         </div>
       </div>
 
-      <div class="linha-menu" id="opcoes-oportunidades">
-        <div class="filtro">
-          <span class="filtro-rotulo">Período</span>
-          <div class="segmento" id="f-pregoes">
-            <button data-v="1" class="ativo">Último pregão</button>
-            <button data-v="5">Últimos 5 pregões</button>
-          </div>
+      <!-- oportunidades das estratégias: ocultas por enquanto (o código continua em multitela.js) -->
+      <div class="linha-menu" id="opcoes-oportunidades" hidden>
+        <div class="segmento" id="f-pregoes">
+          <button data-v="1">Último pregão</button>
+          <button data-v="5" class="ativo">Últimos 5 pregões</button>
         </div>
         <label class="opcao"><input type="checkbox" id="f-confluencia"> Só com confluência (2+ estratégias)</label>
       </div>
 
       <div class="linha-menu" id="caixa-personalizada" hidden>
-        <div class="filtro filtro-tickers">
-          <span class="filtro-rotulo">Minha lista</span>
-          <input id="f-tickers" type="text" spellcheck="false" placeholder="PETR4, GOOGL, VALE3, NVDA, BTC">
-        </div>
+        <input id="f-tickers" type="text" spellcheck="false" placeholder="Seus ativos: PETR4, GOOGL, VALE3, NVDA, BTC">
       </div>
 
-      <div class="linha-menu">
-        <div class="filtro" id="f-indicadores"></div>
-        <p class="sub" id="f-descricao"></p>
+      <div class="multi-rodape">
+        <p class="contagem-multi" id="f-descricao"></p>
+        <label class="ordem-multi" id="caixa-ordem">Ordenar <select id="f-ordem"></select></label>
+        <div class="multi-grafico">
+          <span class="rotulo-mini">Gráfico</span>
+          <div class="segmento" id="f-tf" aria-label="Tempo do gráfico">
+            <button data-v="60">60m</button>
+            <button data-v="240">4h</button>
+            <button data-v="D" class="ativo">D</button>
+            <button data-v="W">S</button>
+          </div>
+          <div class="segmento" id="f-camadas" aria-label="O que aparece no gráfico">
+            <button data-v="condicoes" class="ativo" title="Desenha nos gráficos as médias, bandas e níveis que o modelo usa">Condições</button>
+            <button data-v="meus" title="Usa os seus indicadores (MM20/50/200, Bollinger...)">Meus indicadores</button>
+          </div>
+        </div>
         <nav class="paginacao-topo" id="paginacao-topo" aria-label="Páginas"></nav>
       </div>
+      <div class="linha-indicadores" id="f-indicadores" hidden></div>
     </section>
 
     <section id="grade" class="grade-graficos"></section>
     <nav class="paginacao" id="paginacao"></nav>
   </main>
 
-  <footer>Em cada gráfico: arraste para navegar e use a roda do mouse para dar zoom. ⛶ abre em tela cheia.
+  <footer>Em cada gráfico: arraste para navegar, roda do mouse dá zoom, ✎ abre as ferramentas de desenho (inclui risco/retorno) e ⛶ a tela cheia.
     <kbd>←</kbd> <kbd>→</kbd> trocam de página.
     <kbd>Alt</kbd>+<kbd>C</kbd> centraliza todos.</footer>
 
   <script src="assets/js/comum.js"></script>
+  <script src="assets/js/desenhos.js"></script>
   <script src="assets/js/simulador.js"></script>
   <script src="assets/js/rastreador.js"></script>
   <script src="assets/js/multitela.js"></script>

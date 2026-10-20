@@ -3,19 +3,16 @@
  * de cada um para decidir qual está melhor. Também lista oportunidades das estratégias e os
  * ativos do usuário. */
 
+// abas do topo; as oportunidades das estratégias estão ocultas por enquanto (o código segue abaixo)
 const FONTES = [
-  { grupo: "Rastreador", itens: [
-    ["rastreador", "⌕ Rastrear condição", "Ativos que atendem às regras escolhidas (modelo pronto ou suas regras)"],
-  ] },
-  { grupo: "Oportunidades das estratégias", itens: [
-    ["compra", "▲ Oportunidades de compra", "Ações com sinal de compra (qualquer estratégia)"],
-    ["venda", "▼ Oportunidades de venda", "Ações com sinal de venda (qualquer estratégia)"],
-  ] },
-  { grupo: "Meus ativos", itens: [
-    ["carteira", "Minha carteira", "As posições registradas na Carteira"],
-    ["simulacoes", "Minhas simulações", "Os ativos com simulações salvas no gráfico do Radar"],
-    ["personalizada", "Minha lista", "Os ativos que você digitar"],
-  ] },
+  ["rastreador", "⌕ Rastreador", "Ativos que atendem às regras escolhidas"],
+  ["carteira", "Minha carteira", "As posições registradas na Carteira"],
+  ["simulacoes", "Minhas simulações", "Os ativos com simulações salvas no gráfico do Radar"],
+  ["personalizada", "Minha lista", "Os ativos que você digitar"],
+];
+const FONTES_OCULTAS = [
+  ["compra", "▲ Oportunidades de compra", "Ações com sinal de compra (qualquer estratégia)"],
+  ["venda", "▼ Oportunidades de venda", "Ações com sinal de venda (qualquer estratégia)"],
 ];
 // opções de versões anteriores
 const ANTIGAS = { "prioridade-compra": ["compra", true], "prioridade-venda": ["venda", true] };
@@ -26,6 +23,8 @@ const estado = guardar.ler("multitela", { fonte: "rastreador", confluencia: true
 if (ANTIGAS[estado.fonte]) [estado.fonte, estado.confluencia] = ANTIGAS[estado.fonte];
 if (PANORAMA_ANTIGO[estado.fonte]) { estado.rast = { modelo: `m:${PANORAMA_ANTIGO[estado.fonte]}` }; estado.fonte = "rastreador"; }
 estado.pregoes ??= "5";
+if (FONTES_OCULTAS.some(([k]) => k === estado.fonte)) estado.fonte = "rastreador";
+estado.camadas ??= "condicoes";
 estado.ordem ??= "var_mes";
 let R, F, porTicker, carteira = [];
 const abertos = [];
@@ -142,6 +141,13 @@ function blocoContexto(a) {
     lista(favor, "favor", "✓", 4), lista(cuidado, "cuidado", "⚠", 4), lista(info, "info", "·", 4));
 }
 
+/** O que a condição desenha no gráfico deste ativo (null = usar os indicadores do usuário). */
+function sobreposicao(a) {
+  if (estado.fonte !== "rastreador" || estado.camadas !== "condicoes" || !F) return null;
+  const { tf, regras } = regrasAtuais();
+  return sobreposicaoDasRegras(regras, F.ativos[a.ticker]?.[tf], tf, F);
+}
+
 /** Os valores que fizeram o ativo passar nas regras (ex.: "+3,2% da MMS 20 · IFR 14 27"). */
 function blocoRegras(a) {
   if (estado.fonte !== "rastreador" || !F) return null;
@@ -151,15 +157,15 @@ function blocoRegras(a) {
   return valores.length ? el("p", { class: "valores-regra mono" }, `${TF_FRASE[tf]}: ${valores.join(" · ")}`) : null;
 }
 
-function legendaExtras(extras) {
-  return extras.length ? el("div", { class: "legenda-extras" }, extras.map((m) =>
-    el("span", {}, el("i", { style: `background:${m.cor}` }), nomeMedia(m.id)))) : null;
+function legenda(sob) {
+  return sob ? el("div", { class: "legenda-extras" }, legendaSobreposicao(sob).map((x) =>
+    el("span", {}, el("i", { class: x.pontilhado ? "pontilhado" : null, style: `--cor:${x.cor}` }), x.txt))) : null;
 }
 
 function celula(item) {
   const a = porTicker.get(item.ticker);
   const corpo = el("div", { class: "mini-grafico" });
-  const extras = estado.fonte === "rastreador" ? mediasDasRegras(regrasAtuais().regras) : [];
+  const sob = sobreposicao(a);
   const cel = el("article", { class: `celula ${item.familias?.size >= 2 ? "confluencia" : ""}` },
     el("header", {},
       el("div", {},
@@ -176,13 +182,15 @@ function celula(item) {
     blocoRegras(a),
     blocoContexto(a),
     chipsSimulacoes(a),
-    legendaExtras(extras),
+    legenda(sob),
     corpo);
   corpo.abrir = () => {
     const g = new Grafico(corpo, { mini: true });
     g.sinais = R.sinais.filter((s) => s.ticker === a.ticker);
-    g.definirMediasExtras(extras);
+    g.definirSobreposicao(sob);
     abertos.push(g);
+    // ferramentas de desenho recolhidas no ✎ (os desenhos são os mesmos do Radar, por ativo)
+    new Desenhos(g, corpo, { compacta: true }).definirAtivo(a.ticker);
     if (Simulacoes.doAtivo(a.ticker).length) new Simulador(g, corpo).definirAtivo(a);
     // ativo sem intraday verificado cai para o diário
     g.mostrar(a.arquivo, INTRADAY.has(estado.tf) && !a.tem_intraday ? "D" : estado.tf);
@@ -202,15 +210,17 @@ const observador = new IntersectionObserver((entradas) => {
 // ------------------------------------------------------------- menu
 
 function renderFontes() {
-  document.getElementById("f-fonte").replaceChildren(...FONTES.map((g) =>
-    el("div", { class: "grupo-fonte" }, el("span", { class: "grupo-fonte-nome" }, g.grupo),
-      el("div", { class: "grupo-fonte-itens" }, g.itens.map(([k, rot, dica]) =>
-        el("button", { class: `fonte ${k === estado.fonte ? "ativo" : ""} fonte-${k}`, title: dica,
-          onclick: () => { estado.fonte = k; estado.pagina = 0; salvar(); renderFontes(); render(); } }, rot))))));
+  document.getElementById("f-fonte").replaceChildren(...FONTES.map(([k, rot, dica]) =>
+    el("button", { class: `aba-multi ${k === estado.fonte ? "ativo" : ""}`, title: dica, "aria-pressed": k === estado.fonte,
+      onclick: () => { estado.fonte = k; estado.pagina = 0; salvar(); renderFontes(); render(); } }, rot)));
+  const rast = estado.fonte === "rastreador";
   document.getElementById("opcoes-oportunidades").hidden = !ehOportunidade();
   document.getElementById("caixa-personalizada").hidden = estado.fonte !== "personalizada";
-  document.getElementById("caixa-rastreador").hidden = estado.fonte !== "rastreador";
-  if (estado.fonte === "rastreador") renderRastreador();
+  document.getElementById("caixa-rastreador").hidden = !rast;
+  document.getElementById("caixa-ordem").hidden = !rast;
+  document.getElementById("f-camadas").hidden = !rast;
+  document.getElementById("f-indicadores").hidden = rast && estado.camadas === "condicoes";
+  if (rast) renderRastreador();
 }
 
 /** Um campo do editor de regras (select, número ou média = tipo + período). */
@@ -238,26 +248,48 @@ function campoRegra(x, c, aoMudar) {
     select(opcoes, x[c.k], (v) => { x[c.k] = Number.isNaN(+v) ? v : +v; aoMudar(); }, c.rot));
 }
 
+/** Categoria do modelo atual (para abrir a lista certa). */
+function categoriaAtual() {
+  const r = regrasAtuais();
+  if (r.modelo.startsWith("u:")) return "minhas";
+  return MODELOS.find((g) => g.itens.some((x) => `m:${x.id}` === r.modelo))?.grupo ?? MODELOS[0].grupo;
+}
+
 function renderRastreador() {
   if (!F) return;
   const r = regrasAtuais();
   const m = modeloEscolhido();
   const mudou = () => { r.editado = true; estado.pagina = 0; salvar(); renderRastreador(); render(); };
+  estado.rcat ??= categoriaAtual();
+  const meus = salvos();
+  if (estado.rcat === "minhas" && !meus.length) estado.rcat = categoriaAtual();
 
-  // modelos prontos + regras salvas
-  const sel = document.getElementById("f-modelo");
-  sel.replaceChildren(
-    ...MODELOS.map((g) => el("optgroup", { label: g.grupo }, g.itens.map((x) =>
-      el("option", { value: `m:${x.id}`, selected: r.modelo === `m:${x.id}` ? true : null }, x.nome)))),
-    salvos().length ? el("optgroup", { label: "Minhas regras" }, salvos().map((x) =>
-      el("option", { value: `u:${x.id}`, selected: r.modelo === `u:${x.id}` ? true : null }, x.nome))) : null);
-  document.getElementById("r-desc").textContent = r.editado
-    ? `Regras editadas a partir de "${m?.nome ?? "modelo"}". Salve para usar de novo depois.`
-    : m?.desc ?? "Suas regras salvas.";
-  document.getElementById("f-vies").value = r.vies;
+  // categorias (abas) e os modelos da categoria (chips)
+  const categorias = [...MODELOS.map((g) => [g.grupo, g.grupo]), ...(meus.length ? [["minhas", "★ Minhas regras"]] : [])];
+  document.getElementById("r-categorias").replaceChildren(...categorias.map(([k, rot]) =>
+    el("button", { class: `cat-modelo ${k === estado.rcat ? "ativo" : ""} ${k === categoriaAtual() ? "tem-escolhido" : ""}`,
+      role: "tab", "aria-selected": k === estado.rcat, onclick: () => { estado.rcat = k; salvar(); renderRastreador(); } }, rot)));
+  const itens = estado.rcat === "minhas" ? meus.map((x) => ({ ...x, valor: `u:${x.id}` }))
+    : (MODELOS.find((g) => g.grupo === estado.rcat)?.itens ?? []).map((x) => ({ ...x, valor: `m:${x.id}` }));
+  document.getElementById("r-modelos").replaceChildren(...itens.map((x) =>
+    el("button", { class: `chip-modelo vies-${x.vies} ${x.valor === r.modelo ? "ativo" : ""}`, title: x.desc ?? "",
+      onclick: () => { escolherModelo(x.valor); salvar(); renderRastreador(); render(); } },
+    x.vies === "compra" ? "▲ " : x.vies === "venda" ? "▼ " : "", x.nome)));
+
+  // resumo das regras em uso (o detalhe fica no editor)
+  const resumo = document.getElementById("r-resumo");
+  resumo.replaceChildren(
+    el("b", {}, r.editado ? `${m?.nome ?? "Regras"} (editado)` : m?.nome ?? "Regras"), ": ",
+    r.regras.length ? r.regras.map((x) => textoRegra(x, r.tf, F)).join(" · ") : "nenhuma condição");
+  resumo.title = m?.desc ?? "";
+  const editor = document.getElementById("r-editor");
+  editor.hidden = !estado.editando;
+  document.getElementById("r-editar").setAttribute("aria-expanded", String(!!estado.editando));
+  document.getElementById("r-editar").textContent = estado.editando ? "✓ Fechar editor" : "✎ Editar regras";
+
   document.getElementById("f-ordem").replaceChildren(...Object.entries(ORDENS).map(([k, [rot]]) =>
     el("option", { value: k, selected: k === estado.ordem ? true : null }, rot)));
-
+  if (!estado.editando) return;
   document.getElementById("r-regras").replaceChildren(...r.regras.map((x, i) => {
     const def = CONDICOES[x.t];
     return el("li", { class: "regra" },
@@ -283,8 +315,8 @@ function ligarRastreador() {
     document.querySelectorAll("#f-tf button").forEach((b) => b.classList.toggle("ativo", b.dataset.v === v));
     estado.pagina = 0; salvar(); renderRastreador(); render();
   }).marcar("v", regrasAtuais().tf);
-  document.getElementById("f-modelo").addEventListener("change", (e) => { escolherModelo(e.target.value); salvar(); renderRastreador(); render(); });
-  document.getElementById("f-vies").addEventListener("change", (e) => { regrasAtuais().vies = e.target.value; salvar(); render(); });
+  document.getElementById("r-editar").addEventListener("click", () => { estado.editando = !estado.editando; salvar(); renderRastreador(); });
+  segmento("f-camadas", ({ v }) => { estado.camadas = v; salvar(); renderFontes(); render(); }).marcar("v", estado.camadas);
   document.getElementById("f-ordem").addEventListener("change", (e) => { estado.ordem = e.target.value; estado.pagina = 0; salvar(); render(); });
   document.getElementById("r-adicionar").addEventListener("change", (e) => {
     const t = e.target.value;
@@ -303,7 +335,7 @@ function ligarRastreador() {
     const id = existente ? existente.id : `${Date.now()}`;
     const novo = { id, nome, vies: r.vies, regras: structuredClone(r.regras) };
     guardar.gravar(SALVOS, [...lista.filter((x) => x.id !== id), novo]);
-    r.modelo = `u:${id}`; r.editado = false; salvar(); renderRastreador();
+    r.modelo = `u:${id}`; r.editado = false; estado.rcat = "minhas"; salvar(); renderRastreador();
   });
   document.getElementById("r-excluir").addEventListener("click", () => {
     const m = modeloEscolhido();
@@ -315,18 +347,13 @@ function ligarRastreador() {
 }
 
 function descricao(n) {
-  const fonte = FONTES.flatMap((g) => g.itens).find(([k]) => k === estado.fonte);
-  if (estado.fonte === "rastreador") {
-    const { tf, regras } = regrasAtuais();
-    return `${n} ativo(s) atendem no ${TF_FRASE[tf]}: ${regras.map((x) => textoRegra(x, tf, F)).join(" E ") || "sem regras"}`;
-  }
-  let txt = `${n} ativo(s) · ${fonte?.[1].replace(/^[▲▼] /, "") ?? ""}`;
+  if (estado.fonte === "rastreador") return `${n} ${n === 1 ? "ativo atende" : "ativos atendem"} no ${TF_FRASE[regrasAtuais().tf]}`;
   if (ehOportunidade()) {
-    txt += ` no sinal ${estado.tf === "W" ? "semanal" : "diário"}` +
-      `, ${estado.pregoes === "1" ? "último pregão" : "últimos 5 pregões"}${estado.confluencia ? ", só com 2+ estratégias" : ""}`;
-    if (INTRADAY.has(estado.tf)) txt += " (no 60m/4h, valem os sinais do diário)";
+    const fonte = FONTES_OCULTAS.find(([k]) => k === estado.fonte);
+    return `${n} ativo(s) · ${fonte[1]} no sinal ${estado.tf === "W" ? "semanal" : "diário"}, ` +
+      `${estado.pregoes === "1" ? "último pregão" : "últimos 5 pregões"}${estado.confluencia ? ", só com 2+ estratégias" : ""}`;
   }
-  return txt;
+  return `${n} ${n === 1 ? "ativo" : "ativos"}`;
 }
 
 // ------------------------------------------------------------- grade
