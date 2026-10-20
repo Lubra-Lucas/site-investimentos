@@ -149,11 +149,35 @@ function render() {
       : "Nenhum ativo nesta lista hoje.")]));
   grade.querySelectorAll(".mini-grafico").forEach((c) => observador.observe(c));
 
+  totalPaginas = paginas;
   document.getElementById("paginacao").replaceChildren(...(paginas > 1
     ? Array.from({ length: paginas }, (_, i) => el("button", { class: i === estado.pagina ? "ativo" : null,
-        onclick: () => { estado.pagina = i; salvar(); render(); window.scrollTo({ top: 0 }); } }, String(i + 1)))
+        onclick: () => irParaPagina(i, true) }, String(i + 1)))
     : []));
+  // atalho no topo: ‹ 1/3 › (e as setas do teclado) para não precisar rolar até o fim
+  document.getElementById("paginacao-topo").replaceChildren(...(paginas > 1 ? [
+    el("button", { disabled: estado.pagina === 0, title: "Página anterior (←)", onclick: () => irParaPagina(estado.pagina - 1) }, "‹"),
+    el("span", { class: "mono" }, `${estado.pagina + 1}/${paginas}`),
+    el("button", { disabled: estado.pagina === paginas - 1, title: "Próxima página (→)", onclick: () => irParaPagina(estado.pagina + 1) }, "›"),
+  ] : []));
 }
+
+let totalPaginas = 1;
+function irParaPagina(i, topo = false) {
+  if (i < 0 || i >= totalPaginas || i === estado.pagina) return;
+  estado.pagina = i;
+  salvar();
+  render();
+  if (topo) window.scrollTo({ top: 0 });
+}
+
+// ← e → trocam de página (fora de campos de texto e da tela cheia de um gráfico)
+document.addEventListener("keydown", (e) => {
+  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || document.fullscreenElement) return;
+  if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
+  if (e.key === "ArrowRight") { e.preventDefault(); irParaPagina(estado.pagina + 1); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); irParaPagina(estado.pagina - 1); }
+});
 
 const salvar = () => guardar.gravar("multitela", estado);
 

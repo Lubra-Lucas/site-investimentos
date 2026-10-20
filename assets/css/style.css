@@ -381,8 +381,18 @@ main > * { min-width: 0; }
 }
 .ficha-titulo span { text-transform: none; letter-spacing: 0; font-family: var(--mono); }
 .ficha-sinais { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.ficha-sinal { padding: 7px 9px; border-radius: 8px; background: var(--bg-elev); border-left: 3px solid var(--alta); font-size: 12px; }
+.ficha-sinal {
+  padding: 7px 9px; border-radius: 8px; background: var(--bg-elev); font-size: 12px; cursor: pointer;
+  border: 1px solid transparent; border-left: 3px solid var(--alta);
+}
 .ficha-sinal.venda { border-left-color: var(--baixa); }
+.ficha-sinal:hover, .ficha-sinal:focus-visible { border-top-color: var(--borda-forte); border-right-color: var(--borda-forte); border-bottom-color: var(--borda-forte); outline: none; }
+.ficha-sinal.ativo { border-top-color: var(--acento); border-right-color: var(--acento); border-bottom-color: var(--acento); }
+.ficha-sinal-desde { margin-top: 4px; font-size: 11px; color: var(--texto-fraco); }
+.destaque-sinal {
+  position: absolute; top: 0; z-index: 1; pointer-events: none;
+  background: rgba(59, 232, 176, 0.12); border-left: 1px dashed rgba(59, 232, 176, 0.6); border-right: 1px dashed rgba(59, 232, 176, 0.6);
+}
 .ficha-sinal-topo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .ficha-sinal-topo .data { font: 11px var(--mono); color: var(--texto); }
 .ficha-sinal-topo b { font-size: 12px; }
@@ -562,6 +572,13 @@ main.larga { max-width: 1800px; }
 .chip.sim b.alta { color: var(--alta); } .chip.sim b.baixa { color: var(--baixa); } .chip.sim b.aviso { color: var(--aviso); }
 .mini-grafico { height: 260px; margin-top: 8px; position: relative; }
 .grade-graficos[data-grade="2"] .mini-grafico { height: 360px; }
+.paginacao-topo { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12px; }
+.paginacao-topo button {
+  background: var(--bg-elev); color: var(--texto); border: 1px solid var(--borda); border-radius: 6px;
+  font: 600 16px/1 Inter, sans-serif; padding: 4px 12px; cursor: pointer;
+}
+.paginacao-topo button:hover:not(:disabled) { border-color: var(--acento); color: var(--acento); }
+.paginacao-topo button:disabled { opacity: 0.35; cursor: default; }
 .paginacao { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .paginacao button {
   background: var(--bg-elev); color: var(--texto); border: 1px solid var(--borda); border-radius: 6px;

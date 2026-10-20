@@ -262,20 +262,38 @@ function renderEstado() {
 
 const tituloBloco = (txt, extra) => el("p", { class: "ficha-titulo" }, txt, extra ? el("span", {}, extra) : null);
 
+/** Quanto o preço andou do fechamento do sinal até hoje, a favor ou contra o lado do sinal. */
+function desdeOSinal(s, a) {
+  if (!s.preco || !a.ultimo) return null;
+  const v = ((s.lado === "compra" ? 1 : -1) * (a.ultimo / s.preco - 1)) * 100;
+  return el("div", { class: "ficha-sinal-desde" }, `Desde o sinal (${fmtMoeda(s.preco, a.moeda)}): `,
+    el("b", { class: cor(v) }, `${fmtPct(v)} ${v >= 0 ? "a favor" : "contra"}`));
+}
+
+function irParaSinal(s, item) {
+  document.querySelectorAll(".ficha-sinal.ativo").forEach((n) => n.classList.remove("ativo"));
+  item.classList.add("ativo");
+  painel.irPara(s.data, s.tf === "S" ? "W" : "D");
+  if (window.innerWidth < 1100) document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function blocoSinais(a) {
   const sinais = R.sinais.filter((s) => s.ticker === a.ticker)
     .sort((x, y) => y.data.localeCompare(x.data) || x.tf.localeCompare(y.tf) || x.lado.localeCompare(y.lado));
   const desde = R.sinais.reduce((m, s) => (s.data < m ? s.data : m), "9999");
   return el("li", { class: "ficha-bloco" },
     tituloBloco("Sinais recentes", `${sinais.length} desde ${fmtData(desde)}`),
+    sinais.length ? el("p", { class: "sub" }, "Clique num sinal para ver no gráfico o que o preço fez depois.") : null,
     sinais.length ? el("ul", { class: "ficha-sinais" }, sinais.map((s) =>
-      el("li", { class: `ficha-sinal ${s.lado}` },
+      el("li", { class: `ficha-sinal ${s.lado}`, tabindex: "0", title: "Ver este sinal no gráfico",
+        onclick: (e) => irParaSinal(s, e.currentTarget), onkeydown: (e) => e.key === "Enter" && irParaSinal(s, e.currentTarget) },
         el("div", { class: "ficha-sinal-topo" },
           el("span", { class: "data" }, fmtData(s.data)),
           el("span", { class: "chip ctx", title: s.tf === "S" ? "Sinal no semanal" : "Sinal no diário" }, s.tf === "S" ? "Semanal" : "Diário"),
           el("b", { class: s.lado === "compra" ? "alta" : "baixa" }, s.lado === "compra" ? "▲ Compra" : "▼ Venda"),
           el("span", { class: `chip fam-${s.familia}` }, nomeFamilia(s.familia, s.lado))),
-        el("div", { class: "ficha-sinal-texto" }, s.texto, " ", seloHistorico(s.bt, s.tf)))))
+        el("div", { class: "ficha-sinal-texto" }, s.texto, " ", seloHistorico(s.bt, s.tf)),
+        desdeOSinal(s, a))))
       : el("p", { class: "sub" }, "Nenhum sinal de compra ou venda neste ativo no período publicado."));
 }
 
