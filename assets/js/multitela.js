@@ -169,9 +169,4 @@ async function iniciar() {
   render();
 }
 
-// em tela cheia a roda do mouse dá zoom no gráfico da célula
-document.addEventListener("fullscreenchange", () => {
-  for (const g of abertos) g.rodaDoMouse(!!document.fullscreenElement?.contains(g.alvo));
-});
-
 iniciar();
