@@ -24,6 +24,18 @@ const ESTADO_SIM = {
  * que espera o preço chegar. Se stop e alvo cabem no mesmo candle, conta o stop (conservador).
  */
 function avaliarSimulacao(pos, diarios) {
+  const av = avaliarPreco(pos, diarios);
+  // em R: o resultado medido em unidades do risco (distância entre entrada e stop); stop = -1R
+  const risco = Math.abs(pos.stop / pos.entrada - 1) * 100;
+  if (av.resultado_pct != null && risco) av.resultado_r = av.resultado_pct / risco;
+  return av;
+}
+
+const fmtR = (v) => (v == null ? "—" : `${v > 0 ? "+" : ""}${fmtNum(v, 2)}R`);
+/** "+2,00R (+8,40%)": o resultado em R com a variação ao lado. */
+const fmtResultado = (av) => (av.resultado_pct == null ? "" : `${fmtR(av.resultado_r)} (${fmtPct(av.resultado_pct)})`);
+
+function avaliarPreco(pos, diarios) {
   const compra = pos.lado === "compra";
   const sinal = compra ? 1 : -1;
   const ref = pos.preco_criacao ?? pos.entrada;
@@ -286,7 +298,7 @@ class Simulador {
       return el("button", { class: `sim-chip ${s.id === this.editando && !this.rascunho ? "ativo" : ""}`,
         onclick: () => { this.rascunho = null; this.editando = s.id; this.desenhar(); this.renderBoleta(); } },
         `${s.lado === "compra" ? "▲" : "▼"} ${fmtData(s.criada)}`,
-        el("b", { class: st.cls }, ` ${st.rot ?? ""}${av?.resultado_pct != null ? " " + fmtPct(av.resultado_pct) : ""}`));
+        el("b", { class: st.cls }, ` ${st.rot ?? ""}${av?.resultado_pct != null ? " " + fmtResultado(av) : ""}`));
     });
 
     const av = p && p !== this.rascunho && this.diarios ? avaliarSimulacao(p, this.diarios) : null;
@@ -320,7 +332,7 @@ class Simulador {
         el("b", { class: ESTADO_SIM[av.estado].cls }, ESTADO_SIM[av.estado].rot),
         av.entrou ? ` · entrada em ${fmtData(av.entrou)}` : "",
         av.saiu ? ` · saída em ${fmtData(av.saiu)}` : "",
-        av.resultado_pct != null ? el("b", { class: cor(av.resultado_pct) }, ` ${fmtPct(av.resultado_pct)}`) : "") : null,
+        av.resultado_pct != null ? el("b", { class: cor(av.resultado_pct) }, ` ${fmtResultado(av)}`) : "") : null,
       p ? el("p", { class: "sub boleta-dica" }, "Arraste as linhas de entrada, stop e alvo no gráfico.") : null,
     ].filter(Boolean));
   }
@@ -337,7 +349,7 @@ function chipsSimulacoes(a) {
     return el("span", { class: `chip sim ${p.lado}`, title: `Entrada ${fmtMoeda(p.entrada, a.moeda)} · ` +
       `stop ${fmtMoeda(p.stop, a.moeda)} · alvo ${fmtMoeda(p.alvo, a.moeda)}${av.saiu ? ` · saída em ${fmtData(av.saiu)}` : ""}` },
       `${p.lado === "compra" ? "▲" : "▼"} Simulação ${fmtData(p.criada)} · `,
-      el("b", { class: st.cls }, st.rot), av.resultado_pct != null ? el("b", { class: cor(av.resultado_pct) }, ` ${fmtPct(av.resultado_pct)}`) : "");
+      el("b", { class: st.cls }, st.rot), av.resultado_pct != null ? el("b", { class: cor(av.resultado_pct) }, ` ${fmtResultado(av)}`) : "");
   }))).catch(() => {});
   return caixa;
 }
@@ -358,11 +370,29 @@ async function renderListaSimulacoes(alvo, porTicker, aoAbrir) {
   }));
   const st = (av) => ESTADO_SIM[av.estado];
   const n = (e) => linhas.filter((l) => l.av.estado === e).length;
+  // placar: só conta o que já entrou (encerradas + em aberto); aguardando entrada fica de fora
+  const soma = (ls, k) => ls.reduce((t, l) => t + (l.av[k] ?? 0), 0);
+  const encerradas = linhas.filter((l) => l.av.estado === "alvo" || l.av.estado === "stop");
+  const abertas = linhas.filter((l) => l.av.estado === "aberta");
+  const contadas = [...encerradas, ...abertas];
+  const totalR = soma(contadas, "resultado_r"), totalPct = soma(contadas, "resultado_pct");
+  const kpi = (rot, valor, cls, extra) => el("div", { class: "kpi" }, el("div", { class: "kpi-rotulo" }, rot),
+    el("div", { class: `kpi-valor ${cls}` }, valor), extra ? el("div", { class: "kpi-extra" }, extra) : null);
+  const placar = contadas.length ? el("div", { class: "kpis placar-sim" },
+    kpi("Resultado até agora", fmtR(totalR), cor(totalR), `${fmtPct(totalPct)} somando as variações`),
+    kpi("Encerradas", fmtR(soma(encerradas, "resultado_r")), cor(soma(encerradas, "resultado_r")),
+      `${n("alvo")} no alvo · ${n("stop")} no stop · ${fmtPct(soma(encerradas, "resultado_pct"))}`),
+    kpi("Em aberto (parcial)", abertas.length ? fmtR(soma(abertas, "resultado_r")) : "—", abertas.length ? cor(soma(abertas, "resultado_r")) : "",
+      `${abertas.length} operação(ões) · ${fmtPct(soma(abertas, "resultado_pct"))}`),
+    kpi("Média por operação", fmtR(totalR / contadas.length), cor(totalR),
+      `${fmtPct(totalPct / contadas.length)} · acerto ${encerradas.length ? fmtNum(n("alvo") / encerradas.length * 100, 0) + "%" : "—"}`)) : null;
   alvo.replaceChildren(
+    placar,
     el("p", { class: "sub" }, `${lista.length} simulação(ões) · ${n("alvo")} no alvo · ${n("stop")} no stop · `,
-      `${n("aberta")} em aberto · ${n("aguardando")} aguardando entrada`),
+      `${n("aberta")} em aberto · ${n("aguardando")} aguardando entrada. `,
+      "Em R, o resultado é medido em unidades do risco: o stop vale -1R e um alvo com o dobro da distância vale +2R."),
     el("div", { class: "tabela-wrap" }, el("table", {},
-      el("thead", {}, el("tr", {}, ["Ativo", "Lado", "Criada", "Entrada", "Stop", "Alvo", "R:R", "Situação", "Resultado"]
+      el("thead", {}, el("tr", {}, ["Ativo", "Lado", "Criada", "Entrada", "Stop", "Alvo", "R:R", "Situação", "Resultado (R)", "Variação"]
         .map((h, i) => el("th", { class: i >= 3 && i !== 7 ? "num" : "" }, h)))),
       el("tbody", {}, linhas.map(({ p, a, av, c }) => el("tr", { "data-tk": p.ticker, onclick: () => aoAbrir(p.ticker) },
         el("td", { class: "ticker-cel" }, el("b", {}, semSufixo(p.ticker)), el("span", {}, a.nome)),
@@ -373,6 +403,7 @@ async function renderListaSimulacoes(alvo, porTicker, aoAbrir) {
         el("td", { class: "num alta" }, fmtMoeda(p.alvo, a.moeda)),
         el("td", { class: "num" }, c.rr ? `1 : ${fmtNum(c.rr, 1)}` : "—"),
         el("td", { class: st(av).cls }, st(av).rot, av.saiu ? ` em ${fmtData(av.saiu)}` : ""),
+        el("td", { class: `num ${cor(av.resultado_r)}` }, av.resultado_r != null ? el("b", {}, fmtR(av.resultado_r)) : "—"),
         el("td", { class: `num ${cor(av.resultado_pct)}` }, av.resultado_pct != null ? fmtPct(av.resultado_pct) : "—")))))));
 }
 
