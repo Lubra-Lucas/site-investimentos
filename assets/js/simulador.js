@@ -326,6 +326,22 @@ class Simulador {
   }
 }
 
+/** Chips com a situação de cada simulação salva do ativo (alvo, stop, em aberto...). */
+function chipsSimulacoes(a) {
+  const sims = Simulacoes.doAtivo(a.ticker).sort((x, y) => x.criada.localeCompare(y.criada) || x.id.localeCompare(y.id));
+  if (!sims.length) return null;
+  const caixa = el("div", { class: "chips sim-celula" });
+  carregarCandles(a.arquivo).then(({ candles }) => caixa.replaceChildren(...sims.map((p) => {
+    const av = avaliarSimulacao(p, candles);
+    const st = ESTADO_SIM[av.estado];
+    return el("span", { class: `chip sim ${p.lado}`, title: `Entrada ${fmtMoeda(p.entrada, a.moeda)} · ` +
+      `stop ${fmtMoeda(p.stop, a.moeda)} · alvo ${fmtMoeda(p.alvo, a.moeda)}${av.saiu ? ` · saída em ${fmtData(av.saiu)}` : ""}` },
+      `${p.lado === "compra" ? "▲" : "▼"} Simulação ${fmtData(p.criada)} · `,
+      el("b", { class: st.cls }, st.rot), av.resultado_pct != null ? el("b", { class: cor(av.resultado_pct) }, ` ${fmtPct(av.resultado_pct)}`) : "");
+  }))).catch(() => {});
+  return caixa;
+}
+
 /** Tabela com todas as simulações salvas e o resultado de cada uma. */
 async function renderListaSimulacoes(alvo, porTicker, aoAbrir) {
   const lista = Simulacoes.todas().filter((p) => porTicker.has(p.ticker))
