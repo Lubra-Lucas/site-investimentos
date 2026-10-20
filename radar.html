@@ -30,6 +30,7 @@
           <div class="segmento segmento-forte" id="f-visao">
             <button data-v="oportunidades" class="ativo" title="Sinais de compra e venda por estratégia, datados">◎ Oportunidades</button>
             <button data-v="estado" title="Panorama: quem está em tendência forte ou com a Bollinger comprimida">▤ Filtros de estado</button>
+            <button data-v="ativo" title="Sinais, simulações e histórico só do ativo aberto no gráfico">◉ Este ativo</button>
           </div>
         </div>
       </div>
@@ -52,6 +53,15 @@
           </div>
         </div>
         <p class="sub" id="f-descricao"></p>
+      </div>
+
+      <div class="linha-menu" id="menu-ativo" hidden>
+        <div class="filtro filtro-tickers">
+          <span class="filtro-rotulo"><i class="passo">3</i> Ativo</span>
+          <input id="f-ativo" type="text" list="lista-tickers" spellcheck="false" placeholder="Digite um ticker: PETR4, NVDA, BTC">
+          <datalist id="lista-tickers"></datalist>
+        </div>
+        <p class="sub">À direita, tudo o que o radar sabe deste ativo: sinais recentes, simulações e como cada estratégia se saiu nele.</p>
       </div>
 
       <div class="linha-menu" id="menu-estado" hidden>

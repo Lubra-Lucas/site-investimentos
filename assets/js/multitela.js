@@ -68,22 +68,6 @@ function listar() {
   return [];
 }
 
-/** Chips com a situação de cada simulação salva do ativo (alvo, stop, em aberto...). */
-function chipsSimulacoes(a) {
-  const sims = Simulacoes.doAtivo(a.ticker).sort((x, y) => x.criada.localeCompare(y.criada) || x.id.localeCompare(y.id));
-  if (!sims.length) return null;
-  const caixa = el("div", { class: "chips sim-celula" });
-  carregarCandles(a.arquivo).then(({ candles }) => caixa.replaceChildren(...sims.map((p) => {
-    const av = avaliarSimulacao(p, candles);
-    const st = ESTADO_SIM[av.estado];
-    return el("span", { class: `chip sim ${p.lado}`, title: `Entrada ${fmtMoeda(p.entrada, a.moeda)} · ` +
-      `stop ${fmtMoeda(p.stop, a.moeda)} · alvo ${fmtMoeda(p.alvo, a.moeda)}${av.saiu ? ` · saída em ${fmtData(av.saiu)}` : ""}` },
-      `${p.lado === "compra" ? "▲" : "▼"} Simulação ${fmtData(p.criada)} · `,
-      el("b", { class: st.cls }, st.rot), av.resultado_pct != null ? el("b", { class: cor(av.resultado_pct) }, ` ${fmtPct(av.resultado_pct)}`) : "");
-  }))).catch(() => {});
-  return caixa;
-}
-
 function celula(item) {
   const a = porTicker.get(item.ticker);
   const corpo = el("div", { class: "mini-grafico" });
@@ -95,7 +79,7 @@ function celula(item) {
         el("span", { class: "mono" }, fmtMoeda(a.ultimo, a.moeda)), " ",
         el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)),
         botaoTelaCheia(() => cel),
-        el("a", { class: "abrir-radar", href: `radar.html#${encodeURIComponent(item.ticker)}`, title: "Abrir no Radar" }, "↗"))),
+        el("a", { class: "abrir-radar", href: `radar.html?ativo#${encodeURIComponent(item.ticker)}`, title: "Abrir no Radar com os dados deste ativo" }, "↗"))),
     el("div", { class: "chips" },
       item.familias?.size >= 2 ? el("span", { class: "chip destaque" }, `★ ${item.familias.size}`) : null,
       item.familias ? chipsFamilias(item.familias, item.lado) : null,

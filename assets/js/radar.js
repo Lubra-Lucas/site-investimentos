@@ -1,5 +1,5 @@
 /* Radar: gráfico à esquerda e, à direita, a lista do que está selecionado no menu superior:
- * oportunidades (compra/venda por estratégia) ou um filtro de estado. */
+ * oportunidades (compra/venda por estratégia), um filtro de estado ou os dados só do ativo aberto. */
 
 const estado = {
   mercado: "", visao: "oportunidades", tf: "D", periodo: 1, lado: "compra", categoria: "prioridade",
@@ -17,8 +17,9 @@ function selecionar(tk, rolar = true) {
   const a = porTicker.get(tk);
   if (!a) return;
   estado.ticker = tk;
-  history.replaceState(null, "", `#${tk}`);
+  history.replaceState(null, "", `${estado.visao === "ativo" ? "?ativo" : location.pathname}#${tk}`);
   marcarSelecionado();
+  if (estado.visao === "ativo") renderFicha();
   painel.selecionar(a, R.sinais.filter((s) => s.ticker === tk));
   // no desktop a lista fica ao lado do gráfico; só no celular é preciso rolar até ele
   if (rolar && window.innerWidth < 1100)
@@ -213,7 +214,7 @@ function renderMenuEstado() {
 }
 
 /** Cartão do filtro de estado: cada número com o seu rótulo, agrupado por assunto. */
-function itemEstado(a) {
+function itemEstado(a, clicavel = true) {
   const v = (x) => (x == null ? "—" : fmtNum(x, 0));
   const ifrCls = (x) => (x == null ? "" : x < 30 ? "alta" : x > 70 ? "baixa" : "");
   const tend = (rot, t) => el("span", { class: `tend-pilula ${t}` }, rot, " ",
@@ -222,7 +223,7 @@ function itemEstado(a) {
   const bloco = (titulo, ...metricas) => el("div", { class: "bloco-metricas" }, el("p", {}, titulo), el("div", { class: "metricas-linha" }, metricas));
   const bbTf = estado.filtro === "bb" ? estado.bbTf : "D";
   const bb = a.bb_tf?.[bbTf];
-  return el("li", { class: "item cartao-estado", "data-tk": a.ticker, onclick: () => selecionar(a.ticker) },
+  return el("li", { class: "item cartao-estado", "data-tk": clicavel ? a.ticker : null, onclick: clicavel ? () => selecionar(a.ticker) : null },
     el("div", { class: "ce-topo" },
       el("div", {}, el("b", { class: "ce-ticker" }, semSufixo(a.ticker)), el("span", { class: "ce-nome" }, a.nome)),
       el("div", { class: "ce-preco" }, el("b", {}, fmtMoeda(a.ultimo, a.moeda)), el("span", { class: cor(a.var_dia_pct) }, fmtPct(a.var_dia_pct)))),
@@ -257,17 +258,96 @@ function renderEstado() {
   preencherLista(itens, itemEstado, "Nenhum ativo neste filtro hoje.");
 }
 
+// ------------------------------------------------------------- este ativo
+
+const tituloBloco = (txt, extra) => el("p", { class: "ficha-titulo" }, txt, extra ? el("span", {}, extra) : null);
+
+function blocoSinais(a) {
+  const sinais = R.sinais.filter((s) => s.ticker === a.ticker)
+    .sort((x, y) => y.data.localeCompare(x.data) || x.tf.localeCompare(y.tf) || x.lado.localeCompare(y.lado));
+  const desde = R.sinais.reduce((m, s) => (s.data < m ? s.data : m), "9999");
+  return el("li", { class: "ficha-bloco" },
+    tituloBloco("Sinais recentes", `${sinais.length} desde ${fmtData(desde)}`),
+    sinais.length ? el("ul", { class: "ficha-sinais" }, sinais.map((s) =>
+      el("li", { class: `ficha-sinal ${s.lado}` },
+        el("div", { class: "ficha-sinal-topo" },
+          el("span", { class: "data" }, fmtData(s.data)),
+          el("span", { class: "chip ctx", title: s.tf === "S" ? "Sinal no semanal" : "Sinal no diário" }, s.tf === "S" ? "Semanal" : "Diário"),
+          el("b", { class: s.lado === "compra" ? "alta" : "baixa" }, s.lado === "compra" ? "▲ Compra" : "▼ Venda"),
+          el("span", { class: `chip fam-${s.familia}` }, nomeFamilia(s.familia, s.lado))),
+        el("div", { class: "ficha-sinal-texto" }, s.texto, " ", seloHistorico(s.bt, s.tf)))))
+      : el("p", { class: "sub" }, "Nenhum sinal de compra ou venda neste ativo no período publicado."));
+}
+
+function blocoSimulacoes(a) {
+  return el("li", { class: "ficha-bloco" }, tituloBloco("Minhas simulações"),
+    chipsSimulacoes(a) ?? el("p", { class: "sub" }, "Nenhuma simulação neste ativo. Use ", el("b", {}, "⊕ Simular"), " no gráfico."));
+}
+
+/** Como cada estratégia se saiu neste ativo nos últimos 6 anos (backtest), da melhor para a pior. */
+async function blocoHistorico(a) {
+  const caixa = el("li", { class: "ficha-bloco" }, tituloBloco("Histórico das estratégias neste ativo"), el("p", { class: "sub" }, "Carregando…"));
+  carregarBacktest().then((B) => {
+    const linhas = [];
+    for (const [tf, fams] of Object.entries(B.ativos[a.ticker] ?? {}))
+      for (const [fam, lados] of Object.entries(fams))
+        for (const [lado, e] of Object.entries(lados)) if (e.n >= B.min_casos) linhas.push({ tf, fam, lado, e });
+    linhas.sort((x, y) => (y.e.vantagem ?? -1e9) - (x.e.vantagem ?? -1e9));
+    const prazo = (tf) => (tf === "D" ? `${B.principal.D} pregões` : `${B.principal.S} semanas`);
+    caixa.replaceChildren(
+      tituloBloco("Histórico das estratégias neste ativo", "6 anos"),
+      linhas.length ? el("p", { class: "sub" }, `Entrando na abertura seguinte ao sinal e saindo ${prazo("D")} depois (diário) ou ${prazo("S")} (semanal). ` +
+        `Vantagem: quanto rendeu a mais que entrar num dia qualquer.`) : null,
+      linhas.length ? el("div", { class: "tabela-wrap" }, el("table", { class: "ficha-tabela" },
+        el("thead", {}, el("tr", {}, ["Estratégia", "Casos", "Acerto", "Médio", "Vantagem"].map((h, i) => el("th", { class: i ? "num" : "" }, h)))),
+        el("tbody", {}, linhas.map(({ tf, fam, lado, e }) => el("tr", {},
+          el("td", {}, el("b", { class: lado === "compra" ? "alta" : "baixa" }, lado === "compra" ? "▲ " : "▼ "),
+            nomeFamilia(fam, lado), el("span", { class: "sub" }, ` · ${tf === "S" ? "semanal" : "diário"}`)),
+          el("td", { class: "num" }, String(e.n)),
+          el("td", { class: "num" }, `${fmtNum(e.acerto, 0)}%`),
+          el("td", { class: `num ${cor(e.medio)}` }, fmtPct(e.medio)),
+          el("td", { class: `num ${cor(e.vantagem)}` }, fmtPct(e.vantagem)))))))
+        : el("p", { class: "sub" }, `Nenhuma estratégia com ${B.min_casos} ou mais casos neste ativo.`));
+  }).catch(() => caixa.replaceChildren(tituloBloco("Histórico das estratégias neste ativo"), el("p", { class: "sub" }, "Backtest indisponível.")));
+  return caixa;
+}
+
+async function renderFicha() {
+  listaAtual = [];  // as setas não navegam nesta visão
+  const a = porTicker.get(estado.ticker);
+  const alvo = document.getElementById("lista-ativos");
+  if (!a) { alvo.replaceChildren(el("li", { class: "vazio" }, "Nenhum ativo aberto.")); return; }
+  document.getElementById("f-ativo").value = "";
+  // as últimas operações primeiro; o panorama do ativo fecha o painel
+  alvo.replaceChildren(el("li", { class: "ficha-cab" }, el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
+    blocoSinais(a), blocoSimulacoes(a), await blocoHistorico(a),
+    el("li", { class: "ficha-bloco" }, tituloBloco("Panorama"), itemEstado(a, false)));
+}
+
+/** Acha o ativo pelo que foi digitado: PETR4, PETR4.SA, BTC, BRK.B... */
+function acharTicker(txt) {
+  const t = txt.trim().toUpperCase();
+  if (!t) return null;
+  const porRotulo = new Map(R.ativos.map((a) => [(a.rotulo ?? semSufixo(a.ticker)).toUpperCase(), a.ticker]));
+  return [t, `${t}.SA`, t.replace(".", "-"), `${t}-USD`, porRotulo.get(t)].find((x) => x && porTicker.has(x)) ?? null;
+}
+
 // ------------------------------------------------------------- visão
 
 function aplicarVisao() {
-  const op = estado.visao === "oportunidades";
-  document.getElementById("menu-oportunidades").hidden = !op;
-  document.getElementById("menu-estado").hidden = op;
-  document.getElementById("cab-oportunidades").hidden = !op;
-  document.getElementById("cab-estado").hidden = op;
-  document.querySelector(".area-radar").classList.toggle("modo-estado", !op);
-  if (op) { calcularOportunidades(); renderOportunidades(); }
-  else { renderMenuEstado(); renderEstado(); }
+  const v = estado.visao;
+  document.getElementById("menu-oportunidades").hidden = v !== "oportunidades";
+  document.getElementById("menu-estado").hidden = v !== "estado";
+  document.getElementById("menu-ativo").hidden = v !== "ativo";
+  document.getElementById("cab-oportunidades").hidden = v !== "oportunidades";
+  document.getElementById("cab-estado").hidden = v !== "estado";
+  document.getElementById("cat-descricao").hidden = v === "ativo";
+  document.querySelector(".lista-sinais .dica").hidden = v === "ativo";
+  document.querySelector(".area-radar").classList.toggle("modo-estado", v !== "oportunidades");
+  if (estado.ticker) history.replaceState(null, "", `${v === "ativo" ? "?ativo" : location.pathname}#${estado.ticker}`);
+  if (v === "oportunidades") { calcularOportunidades(); renderOportunidades(); }
+  else if (v === "estado") { renderMenuEstado(); renderEstado(); }
+  else renderFicha();
 }
 
 function renderRetidos() {
@@ -277,8 +357,9 @@ function renderRetidos() {
     : [el("li", { class: "sub" }, "Nenhum. Todos os ativos passaram na verificação.")]));
 }
 
+// "Este ativo" não fica salvo: o Radar volta a abrir na última lista usada
 const salvar = () => guardar.gravar("radar-v2", {
-  mercado: estado.mercado, visao: estado.visao, tf: estado.tf, periodo: estado.periodo,
+  mercado: estado.mercado, visao: estado.visao === "ativo" ? guardar.ler("radar-v2", {}).visao : estado.visao, tf: estado.tf, periodo: estado.periodo,
   lado: estado.lado, categoria: estado.categoria, filtro: estado.filtro, bbTf: estado.bbTf, ordemOp: estado.ordemOp,
 });
 
@@ -297,6 +378,19 @@ async function iniciar() {
   painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
   Object.assign(estado, guardar.ler("radar-v2", {}));
   if (!FILTROS[estado.filtro]) estado.filtro = "forte-alta";  // filtro salvo que deixou de existir
+  // vindo da Multitela ou do Backtest (radar.html?ativo#PETR4.SA): abre direto nos dados do ativo
+  if (new URLSearchParams(location.search).has("ativo")) estado.visao = "ativo";
+  const doHash = decodeURIComponent(location.hash.slice(1));
+  if (porTicker.has(doHash)) estado.ticker = doHash;
+
+  document.getElementById("lista-tickers").replaceChildren(...R.ativos.map((a) =>
+    el("option", { value: a.rotulo ?? semSufixo(a.ticker) }, a.nome)));
+  const campoAtivo = document.getElementById("f-ativo");
+  campoAtivo.addEventListener("change", () => {
+    const tk = acharTicker(campoAtivo.value);
+    if (tk) selecionar(tk, false);
+    else campoAtivo.setCustomValidity("Ativo não encontrado"), campoAtivo.reportValidity(), campoAtivo.setCustomValidity("");
+  });
 
   const ligar = (id, chave, conv, depois) =>
     segmento(id, ({ v }) => { estado[chave] = conv(v); salvar(); depois(); abrirPrimeiro(); }).marcar("v", String(estado[chave]));
@@ -324,15 +418,14 @@ async function iniciar() {
   // simulações: lista, exportar/importar e atualização quando salvar/excluir no gráfico
   const abrirSimulacao = (tk) => { selecionar(tk, false); document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth" }); };
   const listarSimulacoes = () => renderListaSimulacoes(document.getElementById("lista-simulacoes"), porTicker, abrirSimulacao);
-  document.addEventListener("simulacoes", listarSimulacoes);
+  document.addEventListener("simulacoes", () => { listarSimulacoes(); if (estado.visao === "ativo") renderFicha(); });
   document.getElementById("sim-exportar").addEventListener("click", exportarSimulacoes);
   document.getElementById("sim-importar").addEventListener("change", (e) => {
     if (e.target.files[0]) importarSimulacoes(e.target.files[0], () => { listarSimulacoes(); selecionar(estado.ticker ?? R.ativos[0].ticker, false); });
   });
   listarSimulacoes();
 
-  const doHash = decodeURIComponent(location.hash.slice(1));
-  selecionar(porTicker.has(doHash) ? doHash : listaAtual[0]?.ticker ?? R.ativos[0].ticker, false);
+  selecionar(estado.ticker ?? listaAtual[0]?.ticker ?? R.ativos[0].ticker, false);
 }
 
 iniciar();

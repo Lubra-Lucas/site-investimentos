@@ -82,7 +82,7 @@ function renderAtivos() {
     .sort((a, b) => (b.e.vantagem ?? -1e9) - (a.e.vantagem ?? -1e9));
   if (!lista.length) { alvo.replaceChildren(el("p", { class: "vazio" }, "Nenhum ativo com casos suficientes.")); return; }
   const linha = ({ tk, e }) => el("li", { class: "bt-ativo" },
-    el("a", { href: `radar.html#${encodeURIComponent(tk)}`, title: "Abrir no Radar" },
+    el("a", { href: `radar.html?ativo#${encodeURIComponent(tk)}`, title: "Abrir no Radar" },
       el("b", { class: "mono" }, semSufixo(tk)), " ", el("span", { class: "cartao-nome" }, porTicker.get(tk)?.nome ?? "")),
     el("span", { class: "bt-numeros" },
       el("span", {}, `${e.n} casos`),
