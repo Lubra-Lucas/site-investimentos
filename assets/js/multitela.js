@@ -12,6 +12,7 @@ const FONTES = [
   ] },
   { grupo: "Meus ativos", itens: [
     ["carteira", "Minha carteira", "As posições registradas na Carteira"],
+    ["simulacoes", "Minhas simulações", "Os ativos com simulações salvas no gráfico do Radar"],
     ["personalizada", "Minha lista", "Os ativos que você digitar"],
   ] },
 ];
@@ -52,6 +53,11 @@ function listar() {
       return ativos((a) => bb(a)?.comprimida).sort((a, b) => bb(a).largura_pct - bb(b).largura_pct).map((a) => ({ ticker: a.ticker }));
     }
     case "carteira": return carteira.filter(doMercado).map((ticker) => ({ ticker }));
+    case "simulacoes": {
+      // a simulação mais recente primeiro
+      const recentes = Simulacoes.todas().sort((a, b) => b.criada.localeCompare(a.criada) || b.id.localeCompare(a.id));
+      return [...new Set(recentes.map((p) => p.ticker))].filter(doMercado).map((ticker) => ({ ticker }));
+    }
     case "personalizada": {
       const pedidos = estado.tickers.split(/[\s,;]+/).map((t) => t.trim().toUpperCase()).filter(Boolean);
       const porRotulo = new Map(R.ativos.map((a) => [(a.rotulo ?? a.ticker).toUpperCase(), a.ticker]));
@@ -60,6 +66,22 @@ function listar() {
     }
   }
   return [];
+}
+
+/** Chips com a situação de cada simulação salva do ativo (alvo, stop, em aberto...). */
+function chipsSimulacoes(a) {
+  const sims = Simulacoes.doAtivo(a.ticker).sort((x, y) => x.criada.localeCompare(y.criada) || x.id.localeCompare(y.id));
+  if (!sims.length) return null;
+  const caixa = el("div", { class: "chips sim-celula" });
+  carregarCandles(a.arquivo).then(({ candles }) => caixa.replaceChildren(...sims.map((p) => {
+    const av = avaliarSimulacao(p, candles);
+    const st = ESTADO_SIM[av.estado];
+    return el("span", { class: `chip sim ${p.lado}`, title: `Entrada ${fmtMoeda(p.entrada, a.moeda)} · ` +
+      `stop ${fmtMoeda(p.stop, a.moeda)} · alvo ${fmtMoeda(p.alvo, a.moeda)}${av.saiu ? ` · saída em ${fmtData(av.saiu)}` : ""}` },
+      `${p.lado === "compra" ? "▲" : "▼"} Simulação ${fmtData(p.criada)} · `,
+      el("b", { class: st.cls }, st.rot), av.resultado_pct != null ? el("b", { class: cor(av.resultado_pct) }, ` ${fmtPct(av.resultado_pct)}`) : "");
+  }))).catch(() => {});
+  return caixa;
 }
 
 function celula(item) {
@@ -81,11 +103,13 @@ function celula(item) {
       a.tendencia_forte ? el("span", { class: `chip ctx ${a.tendencia_forte}` }, `forte ${a.tendencia_forte}`) : null),
     item.sinais ? el("ul", { class: "motivos celula-motivos" }, item.sinais.slice(0, 3).map((s) =>
       el("li", {}, el("span", { class: "data" }, fmtData(s.data)), s.texto))) : null,
+    chipsSimulacoes(a),
     corpo);
   corpo.abrir = () => {
     const g = new Grafico(corpo, { mini: true });
     g.sinais = R.sinais.filter((s) => s.ticker === a.ticker);
     abertos.push(g);
+    if (Simulacoes.doAtivo(a.ticker).length) new Simulador(g, corpo).definirAtivo(a);
     // ativo sem intraday verificado cai para o diário
     g.mostrar(a.arquivo, INTRADAY.has(estado.tf) && !a.tem_intraday ? "D" : estado.tf);
   };
