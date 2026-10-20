@@ -308,16 +308,23 @@ const MODELOS = [
       desc: "Fechamento acima da MME 9, da MMS 25 e da MMS 50.",
       regras: [r("preco_media", { media: "ema9" }), r("preco_media", { media: "sma25" }), r("preco_media", { media: "sma50" })] },
   ] },
-  { grupo: "Pullback", itens: [
-    { id: "pb-mme9", nome: "Pullback na MME 9", vies: "compra", desc: "Em alta (MMS 20 > MMS 50, fechamento acima da MMS 50), a mínima testa a MME 9 e fecha acima.",
+  { grupo: "Pullback de compra", itens: [
+    { id: "pb-mme9", nome: "Pullback de compra na MME 9", vies: "compra", desc: "Em alta (MMS 20 > MMS 50, fechamento acima da MMS 50), a mínima testa a MME 9 e fecha acima.",
       regras: [r("pullback", { media: "ema9" }), r("media_media", { a: "sma20", b: "sma50" }), r("preco_media", { media: "sma50" })] },
-    { id: "pb-mm20", nome: "Pullback na MMS 20", vies: "compra", desc: "MMS 20 acima da MMS 50 e subindo; a mínima testa a MMS 20 e fecha acima.",
+    { id: "pb-mm20", nome: "Pullback de compra na MMS 20", vies: "compra", desc: "MMS 20 acima da MMS 50 e subindo; a mínima testa a MMS 20 e fecha acima.",
       regras: [r("pullback", { media: "sma20" }), r("media_media", { a: "sma20", b: "sma50" }), r("inclinacao", { media: "sma20" })] },
-    { id: "pb-mm50", nome: "Pullback na MMS 50", vies: "compra", desc: "MMS 50 acima da MMS 200; a mínima testa a MMS 50 e fecha acima.",
+    { id: "pb-mm50", nome: "Pullback de compra na MMS 50", vies: "compra", desc: "MMS 50 acima da MMS 200; a mínima testa a MMS 50 e fecha acima.",
       regras: [r("pullback", { media: "sma50" }), r("media_media", { a: "sma50", b: "sma200" })] },
+  ] },
+  { grupo: "Pullback de venda", itens: [
+    { id: "pb-mme9-venda", nome: "Pullback de venda na MME 9", vies: "venda", desc: "Em baixa (MMS 20 < MMS 50, fechamento abaixo da MMS 50), a máxima testa a MME 9 e fecha abaixo.",
+      regras: [r("pullback", { lado: "venda", media: "ema9" }), r("media_media", { a: "sma20", lado: "abaixo", b: "sma50" }),
+        r("preco_media", { lado: "abaixo", media: "sma50" })] },
     { id: "pb-mm20-venda", nome: "Pullback de venda na MMS 20", vies: "venda", desc: "MMS 20 abaixo da MMS 50 e caindo; a máxima testa a MMS 20 e fecha abaixo.",
       regras: [r("pullback", { lado: "venda", media: "sma20" }), r("media_media", { a: "sma20", lado: "abaixo", b: "sma50" }),
         r("inclinacao", { media: "sma20", dir: "cai" })] },
+    { id: "pb-mm50-venda", nome: "Pullback de venda na MMS 50", vies: "venda", desc: "MMS 50 abaixo da MMS 200; a máxima testa a MMS 50 e fecha abaixo.",
+      regras: [r("pullback", { lado: "venda", media: "sma50" }), r("media_media", { a: "sma50", lado: "abaixo", b: "sma200" })] },
   ] },
   { grupo: "Exaustão e extremos", itens: [
     { id: "bb-inf", nome: "Fechou abaixo da Bollinger", vies: "compra", desc: "Fechamento abaixo da banda inferior (20, 2): esticado para baixo.",

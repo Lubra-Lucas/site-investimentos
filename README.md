@@ -14,7 +14,7 @@ Painel pessoal com três telas:
   para ver o balão com o motivo); <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista. O botão ⛶ coloca o gráfico em tela cheia.
 - **Multitela** (`multitela.html`): rastreador de ativos em grade de gráficos interativos (2×2, 3×3 ou 4×3).
   - **⌕ Rastrear condição:** escolha um modelo pronto (tendência de alta/baixa, alta forte com médias alinhadas,
-    pullback na MME 9/MMS 20/MMS 50, fora da Bollinger, IFR e estocástico extremos, IFR 2, longe da média,
+    pullback de compra e de venda na MME 9/MMS 20/MMS 50, fora da Bollinger, IFR e estocástico extremos, IFR 2, longe da média,
     compressão, rompimento de máxima/mínima, perto da máxima de 52 semanas, cruzamentos de médias...) ou monte
     as suas regras (todas precisam ser atendidas): fechamento x média, média x média, inclinação, pullback,
     cruzamentos, distância da média (em % ou × o normal do ativo), IFR 2/9/14, estocástico, Bollinger,
