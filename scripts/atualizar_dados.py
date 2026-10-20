@@ -12,8 +12,9 @@ Uso:  python scripts/atualizar_dados.py
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -32,6 +33,34 @@ SAIDA_INTRADAY = SAIDA / "intraday"
 TICKER_CAMBIO = "USDBRL=X"
 MOEDA = {"BR": "BRL", "US": "USD", "CRIPTO": "USD"}
 
+# O candle diário só vale para sinais depois que o pregão fecha. Antes disso ele aparece no
+# gráfico como "em formação", mas não entra em estratégia, estado, backtest nem carteira.
+# B3: fecha às 17h/18h (conforme o horário de verão dos EUA); o fechamento oficial chega ao
+# Yahoo por volta das 18h30. EUA: fecha às 16h de Nova York. Cripto: dia UTC.
+FECHAMENTO = {"BR": ("America/Sao_Paulo", time(18, 30)), "US": ("America/New_York", time(16, 30)),
+              "CRIPTO": ("UTC", None)}
+# Mesmos horários do cron em .github/workflows/atualizar.yml (UTC); a rodada leva ~10 min
+PUBLICACOES_UTC = (time(10, 17), time(22, 30))
+DURACAO_RODADA = timedelta(minutes=10)
+
+
+def pregao_em_formacao(mercado: str, agora: datetime) -> tuple[date, datetime] | None:
+    """(data do pregão em andamento, quando ele fecha) ou None se o candle de hoje já é definitivo."""
+    fuso, hora = FECHAMENTO[mercado]
+    tz = ZoneInfo(fuso)
+    dia = agora.astimezone(tz).date()
+    fecha = (datetime.combine(dia + timedelta(days=1), time(0), tz) if hora is None
+             else datetime.combine(dia, hora, tz))
+    return (dia, fecha) if agora < fecha else None
+
+
+def proxima_publicacao(depois: datetime) -> datetime:
+    """Primeira rodada agendada que começa depois do fechamento, já com o tempo da rodada."""
+    dia = depois.astimezone(timezone.utc).date()
+    opcoes = [datetime.combine(dia + timedelta(days=n), h, timezone.utc)
+              for n in range(3) for h in PUBLICACOES_UTC]
+    return min(t for t in opcoes if t >= depois) + DURACAO_RODADA
+
 
 def intraday_compacto(h: pd.DataFrame) -> list[list]:
     """Horário local da bolsa como se fosse UTC: o gráfico mostra a hora do pregão."""
@@ -39,6 +68,21 @@ def intraday_compacto(h: pd.DataFrame) -> list[list]:
     epoch = (h.index - pd.Timestamp("1970-01-01")) // pd.Timedelta(seconds=1)
     return [[int(t), round(r.Open, casas), round(r.High, casas), round(r.Low, casas), round(r.Close, casas)]
             for t, r in zip(epoch, h.itertuples())]
+
+
+def separar_parcial(bruto: pd.DataFrame, formacao: tuple[date, datetime] | None,
+                    mercado: str) -> tuple[pd.DataFrame, pd.Series | None]:
+    """Tira do histórico o candle do pregão em andamento. Ele volta só para o gráfico, e só
+    se for coerente (OHLC válido e sem salto absurdo em relação ao último fechamento)."""
+    if formacao is None or bruto.empty or bruto.index[-1] < pd.Timestamp(formacao[0]):
+        return bruto, None
+    fechados = bruto[bruto.index < pd.Timestamp(formacao[0])]
+    c = bruto.iloc[-1]
+    o, h, l, f = (float(c[k]) for k in ("Open", "High", "Low", "Close"))
+    ok = (all(pd.notna(v) and v > 0 for v in (o, h, l, f)) and h >= max(o, f) * 0.999999
+          and l <= min(o, f) * 1.000001 and len(fechados)
+          and abs(f / float(fechados["Close"].iloc[-1]) - 1) <= (0.6 if mercado == "CRIPTO" else 0.4))
+    return fechados, (c if ok else None)
 
 
 def candles_compactos(df: pd.DataFrame) -> list[list]:
@@ -233,6 +277,9 @@ def main() -> None:
     for mercado, fuso in (("BR", "America/Sao_Paulo"), ("US", "America/New_York"), ("CRIPTO", "UTC")):
         intraday.update(fontes.baixar_yahoo_60min([t for t, a in ativos.items() if a["mercado"] == mercado], fuso))
 
+    agora_utc = datetime.now(timezone.utc)
+    formacao = {m: pregao_em_formacao(m, agora_utc) for m in FECHAMENTO}
+    em_formacao: dict[str, dict] = {}
     cambio_df, laudo_fx = validacao.avaliar(brutos[TICKER_CAMBIO], "CRIPTO", None, hoje)
     cambio = cambio_df["Close"]
 
@@ -245,15 +292,14 @@ def main() -> None:
         if tk not in brutos:
             retidos.append({**base, "motivo": "sem dados no Yahoo"})
             continue
-        bruto = brutos[tk]
-        if meta["mercado"] == "CRIPTO":
-            # o candle diário de cripto só fecha à meia-noite UTC: o de hoje ainda está em formação
-            hoje_utc = pd.Timestamp.now(tz="UTC").tz_localize(None).normalize()
-            bruto = bruto[bruto.index < hoje_utc]
-            if tk in intraday:
-                intraday[tk] = intraday[tk][intraday[tk].index < hoje_utc]
+        form = formacao[meta["mercado"]]
+        # pregão de hoje ainda aberto: o candle sai do histórico (sem sinais) e volta só no gráfico
+        bruto, parcial = separar_parcial(brutos[tk], form, meta["mercado"])
+        oficiais = (refs.get(tk) or {}).get("candles")
+        if form and oficiais:
+            oficiais = {d: c for d, c in oficiais.items() if pd.Timestamp(d) < pd.Timestamp(form[0])}
         # candle quebrado/ausente no Yahoo é trocado pelo oficial da B3 ou da Nasdaq, quando existir
-        bruto, completados = validacao.completar_com_oficial(bruto, (refs.get(tk) or {}).get("candles"))
+        bruto, completados = validacao.completar_com_oficial(bruto, oficiais)
         df, laudo = validacao.avaliar(bruto, meta["mercado"], refs.get(tk), hoje)
         precos[tk] = df
         if not laudo["publicar"]:
@@ -261,13 +307,26 @@ def main() -> None:
             print(f"[retido] {tk:10s} {laudo['motivo']}")
             continue
 
-        h, dias_60_descartados = (validacao.limpar_intraday(intraday[tk], df) if tk in intraday else (None, 0))
-        estado, sinais_tk, historico = estrategias.analisar(df, meta["mercado"], h)
+        grafico = df if parcial is None else pd.concat([df, parcial.to_frame().T.astype(float)])
+        # o 60 min de hoje aparece no gráfico, mas a estratégia multitempo só vê pregões fechados
+        h, dias_60_descartados = (validacao.limpar_intraday(intraday[tk], grafico) if tk in intraday else (None, 0))
+        h_fechado = h
+        if h is not None and form:
+            h_fechado = h[h.index.normalize() < pd.Timestamp(form[0])]
+            h_fechado = h_fechado if len(h_fechado) >= 60 else None
+        estado, sinais_tk, historico = estrategias.analisar(df, meta["mercado"], h_fechado)
+        if parcial is not None:
+            estado["parcial"] = {"data": form[0].isoformat(), "ultimo": _num(parcial["Close"], 4),
+                                 "var_pct": _num((parcial["Close"] / df["Close"].iloc[-1] - 1) * 100)}
+            em_formacao.setdefault(meta["mercado"], {
+                "data": form[0].isoformat(), "fecha_em": form[1].astimezone(timezone.utc).isoformat(timespec="minutes"),
+                "sinais_em": proxima_publicacao(form[1]).isoformat(timespec="minutes")})
         if historico:
             teste.adicionar(tk, meta["mercado"], historico)
         arquivo = tk.replace("=", "_")
         (SAIDA_ATIVOS / f"{arquivo}.json").write_text(json.dumps(
-            {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(df)},
+            {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(grafico),
+             "parcial": estado.get("parcial", {}).get("data")},
             separators=(",", ":")), encoding="utf-8")
         if h is not None:
             (SAIDA_INTRADAY / f"{arquivo}.json").write_text(json.dumps(
@@ -315,6 +374,8 @@ def main() -> None:
         "familias": estrategias.FAMILIAS,
         "verificacao": {"conferidos": status.get("conferido", 0), "internos": status.get("interno", 0),
                         "retidos": len(retidos)},
+        # pregões abertos agora: o candle aparece no gráfico, os sinais saem em "sinais_em"
+        "em_formacao": em_formacao,
         "ativos": publicados,
         "sinais": sinais,
         "retidos": retidos,

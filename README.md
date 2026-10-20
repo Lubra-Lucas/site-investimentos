@@ -112,9 +112,18 @@ Na dúvida, o dado não entra:
    precisam caber na do dia (folga de 0,5%), e o último fechamento precisa estar a até 2% do oficial (a diferença normal
    vem do leilão de fechamento). Os dias que não batem são descartados.
 
+### Pregão em andamento
+
+Sinais só saem de **candles fechados**. Se a atualização roda com o pregão aberto (um push no `main`, um cron
+atrasado ou um disparo manual), o candle de hoje aparece no gráfico **translúcido, marcado "em formação"**, mas
+fica fora das estratégias, do estado do ativo, do backtest, da carteira e da estratégia multitempo (o 60 min de
+hoje também não conta). O pregão é considerado fechado a partir de 18h30 em São Paulo (B3), 16h30 em Nova York
+(EUA) e meia-noite UTC (cripto). Radar e Multitela mostram uma contagem regressiva até a rodada que publica os
+sinais do dia ("Brasil e EUA: sinais de 20/10 em 3h05").
+
 ### Cripto
 
-- O candle diário de cripto só fecha à meia-noite UTC. A atualização usa apenas os dias já encerrados.
+- O candle diário de cripto só fecha à meia-noite UTC: o dia em curso é "em formação" e não gera sinais.
 - A semana de cripto vai de segunda a domingo.
 - "Último pregão" é contado por mercado: o último pregão da B3 pode ser sexta, enquanto o de cripto é domingo.
 
