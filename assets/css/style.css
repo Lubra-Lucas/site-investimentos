@@ -78,6 +78,9 @@ main { max-width: 1440px; margin: 0 auto; padding: 20px 24px 40px; display: grid
 .kpi-rotulo { color: var(--texto-fraco); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
 .kpi-valor { font-size: 22px; font-weight: 600; margin-top: 4px; }
 .kpi-extra { font-family: var(--mono); font-size: 12px; margin-top: 2px; }
+.kpi-valor.alta { color: var(--alta); } .kpi-valor.baixa { color: var(--baixa); }
+.placar-sim { margin-bottom: 12px; }
+.placar-sim .kpi { background: var(--bg-elev); }
 
 /* ---------- painéis ---------- */
 .grade { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
