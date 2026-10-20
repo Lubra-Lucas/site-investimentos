@@ -65,7 +65,8 @@ function contasSimulacao(p) {
 const tempoNum = (t) => (typeof t === "number" ? t : Date.parse(`${t}T00:00:00Z`) / 1000);
 
 class Simulador {
-  constructor(grafico, corpo, boleta, botao) {
+  /** Sem boleta e botão, só desenha as simulações salvas (usado na multitela), sem arraste. */
+  constructor(grafico, corpo, boleta = null, botao = null) {
     this.g = grafico;
     this.corpo = corpo;
     this.boleta = boleta;
@@ -75,11 +76,11 @@ class Simulador {
     this.linhas = [];
     this.camada = el("div", { class: "sim-camada" });
     corpo.append(this.camada);
-    botao.addEventListener("click", () => this.novo());
+    botao?.addEventListener("click", () => this.novo());
     grafico.aoMostrar = () => this.desenhar();
-    document.addEventListener("preferencias", () => this.desenhar());
-    this.ligarArraste();
-    const loop = () => { this.posicionarZonas(); requestAnimationFrame(loop); };
+    document.addEventListener("preferencias", () => { if (!grafico.removido) this.desenhar(); });
+    if (boleta) this.ligarArraste();
+    const loop = () => { if (grafico.removido) return; this.posicionarZonas(); requestAnimationFrame(loop); };
     requestAnimationFrame(loop);
   }
 
@@ -103,6 +104,7 @@ class Simulador {
     const diarios = (await carregarCandles(a.arquivo)).candles;
     if (this.ativo !== a) return;  // trocou de ativo enquanto carregava
     this.diarios = diarios;
+    if (this.g.removido) return;
     this.desenhar();
     this.renderBoleta();
   }
@@ -246,6 +248,7 @@ class Simulador {
   // ---------------------------------------------------------- boleta
 
   renderBoleta(refazerCampos = true) {
+    if (!this.boleta) return;
     const a = this.ativo;
     const salvas = a ? Simulacoes.doAtivo(a.ticker) : [];
     const p = this.emEdicao();

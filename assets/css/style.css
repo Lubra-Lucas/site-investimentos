@@ -534,6 +534,10 @@ main.larga { max-width: 1800px; }
 .celula.confluencia { border-left: 3px solid var(--aviso); }
 .celula header { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; align-items: baseline; }
 .celula header > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sim-celula { margin-top: 6px; }
+.chip.sim { border-left: 2px solid var(--alta); white-space: normal; }
+.chip.sim.venda { border-left-color: var(--baixa); }
+.chip.sim b.alta { color: var(--alta); } .chip.sim b.baixa { color: var(--baixa); } .chip.sim b.aviso { color: var(--aviso); }
 .mini-grafico { height: 260px; margin-top: 8px; position: relative; }
 .grade-graficos[data-grade="2"] .mini-grafico { height: 360px; }
 .paginacao { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
