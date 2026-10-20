@@ -27,10 +27,8 @@ function renderKPIs(c) {
 }
 
 function renderSinais() {
-  const datas = datasSinais(R.sinais, "D");
-  const desde = datas[Math.min(5, datas.length) - 1];
-  const daCarteira = R.sinais.filter((s) => porTicker.get(s.ticker)?.carteira);
-  const grupos = agruparSinais(daCarteira, { tf: "D", desde });
+  const daCarteira = sinaisDoPeriodo(R, "D", 5).sinais.filter((s) => porTicker.get(s.ticker)?.carteira);
+  const grupos = agruparSinais(daCarteira, { tf: "D" });
   const bloco = (lado, titulo) => {
     const itens = grupos[lado];
     return el("div", { class: `bloco-lado lado-${lado}` },
@@ -142,12 +140,22 @@ async function iniciar() {
   catch (e) { montarTopo("carteira"); return erroDados(e); }
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
   montarTopo("carteira", R);
-  painel = painelGrafico(document.getElementById("painel-grafico"));
+  painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
 
   renderKPIs(C.carteira);
   renderSinais();
   renderPosicoes(C.carteira);
   renderAcompanhados();
+
+  // simulações: lista, exportar/importar e atualização quando salvar/excluir no gráfico
+  const abrirSimulacao = (tk) => { selecionar(tk, false); document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth" }); };
+  const listarSimulacoes = () => renderListaSimulacoes(document.getElementById("lista-simulacoes"), porTicker, abrirSimulacao);
+  document.addEventListener("simulacoes", listarSimulacoes);
+  document.getElementById("sim-exportar").addEventListener("click", exportarSimulacoes);
+  document.getElementById("sim-importar").addEventListener("change", (e) => {
+    if (e.target.files[0]) importarSimulacoes(e.target.files[0], () => location.reload());
+  });
+  listarSimulacoes();
 
   const salvo = guardar.ler("carteira-ticker", null);
   const inicial = [salvo, C.carteira.posicoes[0]?.ticker, R.ativos.find((a) => a.carteira)?.ticker].find((t) => porTicker.has(t));

@@ -46,7 +46,7 @@ TOLERANCIA = 0.005   # e o fechamento não pode ficar mais de 0,5% do lado errad
 JANELA_DIARIA = 15   # pregões de histórico de sinais
 JANELA_SEMANAL = 8   # semanas de histórico de sinais
 
-LIQUIDEZ_MINIMA = {"BR": 10e6, "US": 100e6, "CRIPTO": 100e6}
+LIQUIDEZ_MINIMA = {"BR": 10e6, "US": 100e6, "CRIPTO": 30e6}
 
 FAMILIAS = {
     "pullback": "Pullback nas médias",
@@ -80,6 +80,24 @@ def reamostrar(df: pd.DataFrame, regra: str) -> pd.DataFrame:
     return df.resample(regra).agg(
         {"Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum"}
     ).dropna(subset=["Close"])
+
+
+def para_4h(h: pd.DataFrame) -> pd.DataFrame:
+    """60 min -> 4 horas, em blocos de 4h contados a partir do primeiro candle de cada dia
+    (a mesma regra do gráfico no site)."""
+    dia = h.index.normalize()
+    inicio = pd.Series(h.index, index=h.index).groupby(dia).transform("min")
+    bloco = ((h.index - inicio) // pd.Timedelta(hours=4)).astype(int)
+    chave = inicio + pd.to_timedelta(bloco * 4, unit="h")
+    return h.groupby(chave.to_numpy()).agg(
+        {"Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum"})
+
+
+def _compressao(f: pd.DataFrame) -> dict:
+    """Estado da Bollinger no último candle de um tempo gráfico."""
+    u = f.iloc[-1]
+    return {"comprimida": bool(u["BBcomprimida"]), "largura_pct": _num(u["BBlarg"] * 100),
+            "desde": _desde(f["BBcomprimida"])}
 
 
 def indicadores(df: pd.DataFrame) -> pd.DataFrame:
@@ -225,9 +243,11 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
 
     df60 já vem verificado contra o diário (validacao.limpar_intraday)."""
     d = indicadores(df)
-    s = indicadores(reamostrar(df, "W-FRI"))
+    # cripto negocia todo dia: a semana vai até domingo
+    cripto = mercado == "CRIPTO"
+    s = indicadores(reamostrar(df, "W-SUN" if cripto else "W-FRI"))
     m = indicadores(reamostrar(df, "MS"))
-    s.index = s.index - pd.Timedelta(days=4)  # semana identificada pela segunda-feira
+    s.index = s.index - pd.Timedelta(days=6 if cripto else 4)  # semana identificada pela segunda-feira
 
     alta_d, baixa_d = _tendencia(d)
     alta_s, baixa_s = _tendencia(s)
@@ -263,6 +283,9 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
         "bb_largura_pct": _num(u["BBlarg"] * 100),
         "bb_comprimida": bool(u["BBcomprimida"]),
         "bb_comprimida_desde": _desde(d["BBcomprimida"]),
+        # compressão por tempo gráfico, para os filtros acompanharem o gráfico escolhido
+        "bb_tf": {"D": _compressao(d), "W": _compressao(s),
+                  **({"60": _compressao(h), "240": _compressao(indicadores(para_4h(df60)))} if h_atual else {})},
         "dist_mm20_pct": _num((u["Close"] / u[f"MM{MM_RAPIDA}"] - 1) * 100),
         "dist_mm50_pct": _num((u["Close"] / u[f"MM{MM_LENTA}"] - 1) * 100),
         "dist_mm200_pct": _num((u["Close"] / u[f"MM{MM_LONGA}"] - 1) * 100),
