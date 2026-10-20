@@ -57,18 +57,43 @@ function preencherLista(itens, render, vazio) {
 
 // ------------------------------------------------------------- oportunidades
 
-const DESCRICAO_FAMILIA = {
-  pullback: "Tendência de alta recuando até a MM20, MM50 ou MM200 sem perdê-la (venda: repique rejeitado na média).",
-  ifr: "IFR 14 cruzou abaixo de 20 (venda: acima de 80).",
-  mtf60: "Diário e semanal acima das duas médias, com estocástico lento < 20 e IFR < 30 no 60 min.",
-  mtfd: "Semanal acima das duas médias, com estocástico lento < 20 e IFR < 40 no diário.",
-  bb_fora: "Fechamento fora da banda de Bollinger: reversão à média ou continuidade, conforme a tendência.",
-  bb_abertura: "Bandas saindo de compressão e abrindo (boca de jacaré), com fechamento fora delas.",
-  prioridade: "Ativos que dispararam 2 ou mais estratégias do mesmo lado no período: merecem mais atenção.",
-  todas: "Todos os ativos com pelo menos um sinal no período.",
-};
-const ORDEM_FAMILIAS = ["mtf60", "mtfd", "pullback", "bb_abertura", "bb_fora", "ifr"];
-const NOME_CATEGORIA = { prioridade: "★ Prioridade", todas: "Todas" };
+const MODALIDADES = [
+  { chave: "tendencia", nome: "A favor da tendência", familias: ["pullback", "boca", "mtf"],
+    dica: { compra: "Para quem compra alta que continua.", venda: "Para quem vende baixa que continua." } },
+  { chave: "contra", nome: "Contra a tendência", familias: ["ifr", "bb_fora", "distancia", "quedas"],
+    dica: { compra: "Para quem compra a faca caindo.", venda: "Para quem vende o que esticou demais." } },
+];
+const ORDEM_FAMILIAS = MODALIDADES.flatMap((m) => m.familias);
+const NOME_CATEGORIA = { prioridade: "★ Confluência", todas: "Todas" };
+
+/** Explicação de cada estratégia, conforme o lado (compra/venda) e o sinal (diário/semanal). */
+function descricaoCategoria(c, lado, tf) {
+  const compra = lado === "compra";
+  const D = tf === "D";
+  const mm = "MM20, MM50 ou MM200";
+  return {
+    prioridade: `Ativos com 2 ou mais estratégias de ${lado} no período: merecem mais atenção.`,
+    todas: `Todos os ativos com pelo menos um sinal de ${lado} no período.`,
+    pullback: compra
+      ? `Médias alinhadas para cima. Rejeição: a mínima furou a ${mm} e o candle fechou acima. Violação e retomada: fechou abaixo da média por 1 ou 2 candles e voltou a fechar acima.`
+      : `Médias alinhadas para baixo. Rejeição: a máxima furou a ${mm} e o candle fechou abaixo. Violação e perda: fechou acima da média por 1 ou 2 candles e voltou a fechar abaixo.`,
+    boca: compra
+      ? "Bollinger comprimida que abre (banda superior sobe, inferior desce) com fechamento acima da banda superior: possível continuidade de alta."
+      : "Bollinger comprimida que abre com fechamento abaixo da banda inferior: possível continuidade de baixa.",
+    mtf: D
+      ? `Diário ${compra ? "em alta (acima" : "em baixa (abaixo"} da MM20 e da MM50) + ${compra ? "exaustão de queda" : "exaustão de alta"} no 60 min: estocástico lento ${compra ? "< 20" : "> 80"} e/ou IFR ${compra ? "< 30" : "> 70"}. Os dois juntos reforçam o sinal.`
+      : `Semanal ${compra ? "em alta" : "em baixa"} (última semana fechada) + ${compra ? "exaustão de queda" : "exaustão de alta"} no diário ou no 4 horas: estocástico lento ${compra ? "< 20" : "> 80"} e/ou IFR ${compra ? "< 30" : "> 70"}.`,
+    ifr: compra
+      ? "IFR 14 abaixo de 20: sobrevendido, clímax de queda. Compra contra a tendência."
+      : "IFR 14 acima de 80: sobrecomprado, clímax de alta. Venda contra a tendência.",
+    bb_fora: compra
+      ? "Fechou abaixo da banda inferior de Bollinger: caiu demais, possível reversão nos próximos candles."
+      : "Fechou acima da banda superior de Bollinger: subiu demais, possível reversão nos próximos candles.",
+    distancia: `Preço muito ${compra ? "abaixo" : "acima"} da MM20 em relação ao normal do próprio ativo: pelo menos 2,5x a distância média ${D ? "do último ano" : "dos últimos 2 anos"}.`,
+    quedas: `Entre as 8% maiores ${compra ? "quedas" : "altas"} do mercado em ${D ? "21 pregões" : "13 semanas"} (movimento de pelo menos ${D ? "8" : "12"}%): ${compra ? "preço descontado" : "preço esticado"}.`,
+  }[c];
+}
+
 let grupos = { compra: [], venda: [] };
 
 function itemOportunidade(item) {
@@ -81,8 +106,8 @@ function itemOportunidade(item) {
     cabecalhoItem(a),
     el("div", { class: "chips" },
       n >= 2 ? el("span", { class: "chip destaque" }, `★ ${n}`) : null,
-      chipsFamilias(item.familias),
-      a.tendencia_forte === (estado.lado === "compra" ? "alta" : "baixa") ? el("span", { class: "chip ctx" }, "forte D+S") : null),
+      chipsFamilias(item.familias, estado.lado),
+      a.tendencia_forte === (estado.lado === "compra" ? "alta" : "baixa") ? el("span", { class: "chip ctx" }, "tendência forte D+S") : null),
     el("ul", { class: "motivos" }, sinais.map((s) =>
       el("li", { class: s.familia === estado.categoria ? "foco" : null }, el("span", { class: "data" }, fmtData(s.data)), s.texto))));
 }
@@ -109,11 +134,17 @@ function renderOportunidades() {
   for (const f of ORDEM_FAMILIAS) contagem[f] = itens.filter((i) => i.familias.has(f)).length;
   if (!contagem[estado.categoria]) estado.categoria = contagem.prioridade ? "prioridade" : "todas";
 
-  document.getElementById("categorias").replaceChildren(...["prioridade", ...ORDEM_FAMILIAS, "todas"].map((c) =>
-    el("button", { class: `cat ${c === estado.categoria ? "ativo" : ""} ${c in FAMILIA_CURTA ? "fam-" + c : "cat-" + c}`,
-      disabled: !contagem[c], onclick: () => { estado.categoria = c; salvar(); renderOportunidades(); abrirPrimeiro(); } },
-      NOME_CATEGORIA[c] ?? R.familias[c] ?? c, " ", el("span", { class: "contagem" }, contagem[c]))));
-  document.getElementById("cat-descricao").textContent = DESCRICAO_FAMILIA[estado.categoria];
+  const botao = (c) => el("button", {
+    class: `cat ${c === estado.categoria ? "ativo" : ""} ${c in FAMILIA_CURTA ? "fam-" + c : "cat-" + c}`,
+    disabled: !contagem[c], onclick: () => { estado.categoria = c; salvar(); renderOportunidades(); abrirPrimeiro(); } },
+  NOME_CATEGORIA[c] ?? (c === "quedas" && estado.lado === "venda" ? "Maiores altas" : R.familias[c]?.nome ?? c),
+  " ", el("span", { class: "contagem" }, contagem[c]));
+  document.getElementById("categorias").replaceChildren(
+    el("div", { class: "grupo-cat" }, botao("prioridade"), botao("todas")),
+    ...MODALIDADES.map((m) => el("div", { class: `grupo-cat modalidade-${m.chave}` },
+      el("div", { class: "grupo-titulo" }, el("b", {}, m.nome), el("span", {}, m.dica[estado.lado])),
+      m.familias.map(botao))));
+  document.getElementById("cat-descricao").textContent = descricaoCategoria(estado.categoria, estado.lado, estado.tf);
 
   preencherLista(itens.filter((i) => estado.categoria === "todas" ? true
     : estado.categoria === "prioridade" ? i.familias.size >= 2 : i.familias.has(estado.categoria)),
@@ -122,7 +153,6 @@ function renderOportunidades() {
 
 // ------------------------------------------------------------- filtros de estado
 
-const ifrExtremo = (x) => x != null && (x < 20 || x > 80);
 const FILTROS = {
   "forte-alta": {
     nome: "▲ Tendência forte de alta", classe: "alta",
@@ -135,12 +165,6 @@ const FILTROS = {
     desc: "Preço abaixo da MM20 e da MM50 no diário e no semanal.",
     filtro: (a) => a.tendencia_forte === "baixa",
     padrao: (a, b) => (b.tendencia_desde ?? "").localeCompare(a.tendencia_desde ?? ""), rotPadrao: "Tendência mais recente",
-  },
-  ifr: {
-    nome: "IFR extremo", classe: "ifr",
-    desc: "IFR 14 abaixo de 20 ou acima de 80 no 60 min, diário, semanal ou mensal.",
-    filtro: (a) => [a.ifr_60, a.ifr_d, a.ifr_s, a.ifr_m].some(ifrExtremo),
-    padrao: (a, b) => Math.min(a.ifr_d ?? 50, a.ifr_m ?? 50) - Math.min(b.ifr_d ?? 50, b.ifr_m ?? 50), rotPadrao: "IFR mais baixo",
   },
   bb: {
     nome: "Bollinger comprimida", classe: "bb",
@@ -255,6 +279,7 @@ async function iniciar() {
   montarTopo("radar", R);
   painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
   Object.assign(estado, guardar.ler("radar-v2", {}));
+  if (!FILTROS[estado.filtro]) estado.filtro = "forte-alta";  // filtro salvo que deixou de existir
 
   const ligar = (id, chave, conv, depois) =>
     segmento(id, ({ v }) => { estado[chave] = conv(v); salvar(); depois(); abrirPrimeiro(); }).marcar("v", String(estado[chave]));

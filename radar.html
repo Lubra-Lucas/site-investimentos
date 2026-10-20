@@ -17,7 +17,7 @@
     <section class="filtros painel menu-radar">
       <div class="linha-menu">
         <div class="filtro">
-          <span class="filtro-rotulo">Mercado</span>
+          <span class="filtro-rotulo"><i class="passo">1</i> Mercado</span>
           <div class="segmento" id="f-mercado">
             <button data-v="" class="ativo">Todos</button>
             <button data-v="BR">Brasil</button>
@@ -26,20 +26,20 @@
           </div>
         </div>
         <div class="filtro">
-          <span class="filtro-rotulo">Visão</span>
+          <span class="filtro-rotulo"><i class="passo">2</i> O que ver</span>
           <div class="segmento segmento-forte" id="f-visao">
-            <button data-v="oportunidades" class="ativo">◎ Oportunidades</button>
-            <button data-v="estado">▤ Filtros de estado</button>
+            <button data-v="oportunidades" class="ativo" title="Sinais de compra e venda por estratégia, datados">◎ Oportunidades</button>
+            <button data-v="estado" title="Panorama: quem está em tendência forte ou com a Bollinger comprimida">▤ Filtros de estado</button>
           </div>
         </div>
       </div>
 
       <div class="linha-menu" id="menu-oportunidades">
         <div class="filtro">
-          <span class="filtro-rotulo">Camada</span>
+          <span class="filtro-rotulo"><i class="passo">3</i> Sinal</span>
           <div class="segmento" id="f-tf">
-            <button data-v="D" class="ativo">Diário</button>
-            <button data-v="S">Semanal</button>
+            <button data-v="D" class="ativo" title="Sinais no gráfico diário">Diário</button>
+            <button data-v="S" title="Sinais no gráfico semanal">Semanal</button>
           </div>
         </div>
         <div class="filtro">
@@ -55,6 +55,7 @@
       </div>
 
       <div class="linha-menu" id="menu-estado" hidden>
+        <span class="filtro-rotulo"><i class="passo">3</i> Panorama</span>
         <div class="filtros-estado" id="f-estado" role="group" aria-label="Filtro de estado"></div>
         <div class="filtro" id="caixa-bb-tf" hidden>
           <span class="filtro-rotulo">Tempo da Bollinger</span>

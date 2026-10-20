@@ -41,7 +41,7 @@ function renderSinais() {
             el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct))),
           el("div", { class: "chips" },
             i.familias.size >= 2 ? el("span", { class: "chip destaque" }, `★ ${i.familias.size} estratégias`) : null,
-            chipsFamilias(i.familias)),
+            chipsFamilias(i.familias, lado)),
           el("ul", { class: "motivos" }, i.sinais.map((s) => el("li", {}, el("span", { class: "data" }, fmtData(s.data)), s.texto))));
       })) : el("p", { class: "vazio" }, "Nenhum sinal."));
   };
