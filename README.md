@@ -14,7 +14,7 @@ Painel pessoal com três telas:
   para ver o balão com o motivo); <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista. O botão ⛶ coloca o gráfico em tela cheia.
 - **Multitela** (`multitela.html`): grade de gráficos interativos (2×2, 3×3 ou 4×3). Escolha o que mostrar:
   oportunidades de compra ou venda (com período e opção "só com confluência"), panorama (tendência forte,
-  Bollinger comprimida) ou seus ativos (carteira, lista própria). Cada gráfico pode ser arrastado e aberto em tela cheia.
+  Bollinger comprimida) ou seus ativos (carteira, lista própria). Cada gráfico pode ser arrastado, ter zoom pela roda do mouse e ser aberto em tela cheia.
 
 Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (20, 2) e IFR 14, nos tempos
 **60 min, 4 horas**, diário, semanal e mensal. **Alt+R** centraliza o gráfico no preço.

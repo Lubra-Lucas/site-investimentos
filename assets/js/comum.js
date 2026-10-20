@@ -294,8 +294,6 @@ class Grafico {
     this.bbInf = linha(css("--bb"), 0, bb);
     this.marcadores = LWC.createSeriesMarkers(this.candles, []);
     this.sinais = [];
-    // no mini (multitela) a roda do mouse rola a página; arrastar navega; em tela cheia volta o zoom pela roda
-    if (this.mini) this.rodaDoMouse(false);
     graficos.add(this);
     this.balao = el("div", { class: "balao-sinal", hidden: true });
     alvo.append(this.balao);
@@ -417,10 +415,6 @@ class Grafico {
     const x = param.point.x + 16 + w > larg ? param.point.x - w - 16 : param.point.x + 16;
     this.balao.style.left = `${Math.max(4, x)}px`;
     this.balao.style.top = `${Math.max(4, Math.min(param.point.y - h / 2, this.alvo.clientHeight - h - 4))}px`;
-  }
-
-  rodaDoMouse(ligada) {
-    this.chart.applyOptions({ handleScroll: { mouseWheel: ligada }, handleScale: { mouseWheel: ligada } });
   }
 
   /** Desmonta o gráfico; respostas que ainda estiverem a caminho são descartadas. */
