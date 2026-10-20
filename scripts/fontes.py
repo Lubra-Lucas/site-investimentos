@@ -10,6 +10,7 @@
       no dia seguinte, então confere os pregões anteriores.
     * API de cotações: abertura, máxima e mínima do pregão de hoje.
 - brapi.dev (opcional, token em BRAPI_TOKEN): fechamentos da B3, inclusive o de hoje.
+- Coinbase Exchange (sem chave): candles diários em UTC para conferir as criptos.
 """
 
 from __future__ import annotations
@@ -57,8 +58,9 @@ def baixar_yahoo(tickers: list[str], tentativas: int = 3) -> dict[str, pd.DataFr
                            auto_adjust=False, actions=False, threads=True, progress=False)
         for tk in pendentes:
             df = _do_lote(lote, tk)
-            if df is not None and "Close" in df and not (df := df.dropna(subset=["Close"])).empty:
-                dados[tk] = _normalizar(df)
+            # candle sem fechamento fica (a validação descarta e registra o motivo); só some a linha vazia
+            if df is not None and "Close" in df and df["Close"].notna().any():
+                dados[tk] = _normalizar(df.dropna(how="all", subset=["Open", "High", "Low", "Close"]))
         pendentes = [t for t in pendentes if t not in dados]
         if pendentes:
             time.sleep(5 * (i + 1))  # Yahoo limita requisições (HTTP 429); espera e tenta de novo
@@ -97,6 +99,15 @@ def _nasdaq_hoje(ticker: str) -> dict | None:
         return {"high": alta, "low": baixa, "fechamento_anterior": num(anterior)}
     except ValueError:
         return None
+
+
+def _coinbase(simbolo: str) -> dict[str, float]:
+    """Fechamentos diários (UTC) do par SIMBOLO-USD na Coinbase."""
+    r = requests.get(f"https://api.exchange.coinbase.com/products/{simbolo}-USD/candles",
+                     params={"granularity": 86400}, timeout=15)
+    r.raise_for_status()
+    # cada candle: [início (s), mínima, máxima, abertura, fechamento, volume]
+    return {pd.Timestamp(c[0], unit="s").strftime("%Y-%m-%d"): float(c[4]) for c in r.json()[:15]}
 
 
 def _brapi(ticker: str, token: str) -> dict[str, float]:
@@ -173,6 +184,8 @@ def referencias(ativos: list[dict]) -> dict[str, dict]:
                         fech.update(_brapi(tk, token))
                         fonte = "B3 + brapi"
                     return tk, {"fonte": fonte, "fechamentos": fech, "hoje": _b3_hoje(tk)}
+                if a["mercado"] == "CRIPTO" and a.get("simbolo"):
+                    return tk, {"fonte": "Coinbase", "fechamentos": _coinbase(a["simbolo"]), "hoje": None}
                 return tk, None
             except Exception:
                 time.sleep(1 + i)
@@ -180,7 +193,7 @@ def referencias(ativos: list[dict]) -> dict[str, dict]:
 
     refs = {}
     with ThreadPoolExecutor(6) as ex:
-        for tk, ref in ex.map(rodar, [a for a in ativos if a["mercado"] in ("US", "BR")]):
+        for tk, ref in ex.map(rodar, ativos):
             if ref and (ref["fechamentos"] or ref["hoje"]):
                 refs[tk] = ref
     return refs

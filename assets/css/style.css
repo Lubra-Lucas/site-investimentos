@@ -127,6 +127,7 @@ select:focus, .segmento button:focus-visible { outline: 1px solid var(--acento);
 .pilula.aviso { color: var(--aviso); border-color: rgba(245, 185, 66, 0.4); }
 .selo { font: 500 10px var(--mono); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
 .selo-conferido { color: var(--alta); background: rgba(38, 194, 129, 0.1); }
+.selo-pendente { color: var(--aviso); background: rgba(245, 185, 66, 0.1); }
 .selo-interno { color: var(--texto-fraco); background: var(--bg-elev); }
 
 /* ---------- tabelas ---------- */
@@ -167,10 +168,48 @@ footer { text-align: center; color: var(--texto-fraco); font-size: 12px; padding
   font: 12px var(--mono); padding: 6px 10px; width: min(360px, 70vw);
 }
 
+/* ---------- radar: menu superior ---------- */
+.menu-radar { flex-direction: column; align-items: stretch; gap: 10px; }
+.linha-menu { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
+.linha-menu + .linha-menu { border-top: 1px solid var(--borda); padding-top: 10px; }
+.linha-menu .sub { margin: 0; }
+.segmento-forte button { font-size: 13px; padding: 7px 14px; }
+.filtros-estado { display: flex; flex-wrap: wrap; gap: 8px; }
+.filtro-estado {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  background: var(--bg-elev); border: 1px solid var(--borda-forte); border-radius: 8px;
+  color: var(--texto); font: 600 13px Inter, sans-serif; padding: 8px 12px;
+}
+.filtro-estado .contagem { margin: 0; background: var(--bg); color: var(--texto); }
+.filtro-estado:hover { border-color: var(--texto-fraco); }
+.fe-alta { color: var(--alta); }
+.fe-baixa { color: var(--baixa); }
+.fe-ifr { color: #ff8fab; }
+.fe-bb { color: var(--aviso); }
+.filtro-estado.ativo { box-shadow: inset 0 0 0 1px currentColor; border-color: currentColor; }
+.filtro-estado.fe-alta.ativo { background: rgba(38, 194, 129, 0.12); }
+.filtro-estado.fe-baixa.ativo { background: rgba(240, 80, 110, 0.12); }
+.filtro-estado.fe-ifr.ativo { background: rgba(255, 143, 171, 0.12); }
+.filtro-estado.fe-bb.ativo { background: rgba(245, 185, 66, 0.12); }
+.filtro-estado.fe-todos.ativo { background: rgba(59, 232, 176, 0.1); color: var(--acento); }
+.cab-estado {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 12px 14px; border-bottom: 1px solid var(--borda);
+}
+.cab-estado > div { display: flex; align-items: center; gap: 8px; }
+.cab-estado h2 { font-size: 15px; }
+.cab-estado select { max-width: 190px; }
+.metricas { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 5px; font: 11px var(--mono); color: var(--texto-fraco); }
+.metricas b { font-weight: 500; color: var(--texto); }
+.metricas b.alta { color: var(--alta); }
+.metricas b.baixa { color: var(--baixa); }
+.metricas b.forte { font-weight: 700; }
+b.aviso { color: var(--aviso); font-weight: 500; }
+
 /* ---------- radar: gráfico + lista lateral ---------- */
 .area-radar {
   display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 16px;
-  height: calc(100vh - 190px); min-height: 620px;
+  height: calc(100vh - 240px); min-height: 620px;
 }
 .area-radar .painel-grafico { display: flex; flex-direction: column; min-height: 0; }
 .area-radar .grafico { flex: 1; height: auto; min-height: 360px; }
@@ -210,6 +249,45 @@ footer { text-align: center; color: var(--texto-fraco); font-size: 12px; padding
 .motivos li.foco { color: var(--texto); }
 .dica { margin: 0; padding: 8px 14px; border-top: 1px solid var(--borda); font-size: 11px; color: var(--texto-fraco); }
 .grafico-cab-sub { display: flex; gap: 8px; }
+/* ---------- simulador de posição ---------- */
+.grafico { position: relative; }
+.sim-camada { position: absolute; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
+.sim-zona { position: absolute; display: none; }
+.sim-zona.ganho { background: rgba(38, 194, 129, 0.16); border-left: 1px solid rgba(38, 194, 129, 0.5); }
+.sim-zona.perda { background: rgba(240, 80, 110, 0.16); border-left: 1px solid rgba(240, 80, 110, 0.5); }
+.botao-simular, .botao {
+  background: var(--bg-elev); color: var(--texto); border: 1px solid var(--borda-forte); border-radius: 6px;
+  font: 600 12px Inter, sans-serif; padding: 6px 12px; cursor: pointer; white-space: nowrap;
+}
+.botao-simular { color: var(--acento); border-color: rgba(59, 232, 176, 0.45); }
+.botao-simular:hover, .botao:hover { background: var(--bg); }
+.botao.primario { background: var(--acento); border-color: var(--acento); color: var(--bg); }
+.botao.primario:disabled { opacity: 0.4; cursor: not-allowed; }
+.botao.perigo { color: var(--baixa); border-color: rgba(240, 80, 110, 0.45); }
+.boleta { border-top: 1px solid var(--borda); margin-top: 8px; padding-top: 10px; display: grid; gap: 8px; }
+.boleta-topo { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+.sim-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.sim-chip {
+  background: var(--bg-elev); border: 1px solid var(--borda); border-radius: 99px; color: var(--texto-fraco);
+  font: 11px var(--mono); padding: 3px 9px; cursor: pointer;
+}
+.sim-chip.ativo { border-color: var(--acento); color: var(--texto); }
+.sim-chip b.alta { color: var(--alta); } .sim-chip b.baixa { color: var(--baixa); } .sim-chip b.aviso { color: var(--aviso); }
+.boleta-linha { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.boleta-campo { display: grid; gap: 3px; font-size: 11px; color: var(--texto-fraco); text-transform: uppercase; letter-spacing: 0.05em; }
+.boleta-campo input {
+  width: 110px; background: var(--bg-elev); color: var(--texto); border: 1px solid var(--borda); border-radius: 6px;
+  font: 13px var(--mono); padding: 6px 8px;
+}
+.boleta-acoes { display: flex; gap: 6px; margin-left: auto; }
+.boleta-resumo { display: flex; gap: 6px 18px; flex-wrap: wrap; font: 12px var(--mono); color: var(--texto-fraco); }
+.boleta-resumo b { color: var(--texto); font-weight: 600; }
+.boleta-resumo b.alta, .boleta-status b.alta { color: var(--alta); }
+.boleta-resumo b.baixa, .boleta-resumo .baixa, .boleta-status b.baixa { color: var(--baixa); }
+.boleta-status b.aviso { color: var(--aviso); }
+.boleta-status, .boleta-dica { margin: 0; }
+td.aviso { color: var(--aviso); }
+
 .nota-tf { margin: 0 0 6px; font-size: 11px; color: var(--aviso); }
 .segmento button:disabled { opacity: 0.35; cursor: not-allowed; }
 

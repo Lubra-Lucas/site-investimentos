@@ -14,65 +14,96 @@
   <header class="topo" id="topo"></header>
 
   <main>
-    <section class="filtros painel">
-      <div class="filtro">
-        <span class="filtro-rotulo">Mercado</span>
-        <div class="segmento" id="f-mercado">
-          <button data-v="" class="ativo">Todos</button>
-          <button data-v="BR">Brasil</button>
-          <button data-v="US">EUA</button>
+    <section class="filtros painel menu-radar">
+      <div class="linha-menu">
+        <div class="filtro">
+          <span class="filtro-rotulo">Mercado</span>
+          <div class="segmento" id="f-mercado">
+            <button data-v="" class="ativo">Todos</button>
+            <button data-v="BR">Brasil</button>
+            <button data-v="US">EUA</button>
+            <button data-v="CRIPTO">Cripto</button>
+          </div>
+        </div>
+        <div class="filtro">
+          <span class="filtro-rotulo">Visão</span>
+          <div class="segmento segmento-forte" id="f-visao">
+            <button data-v="oportunidades" class="ativo">◎ Oportunidades</button>
+            <button data-v="estado">▤ Filtros de estado</button>
+          </div>
         </div>
       </div>
-      <div class="filtro">
-        <span class="filtro-rotulo">Camada</span>
-        <div class="segmento" id="f-tf">
-          <button data-v="D" class="ativo">Diário</button>
-          <button data-v="S">Semanal</button>
+
+      <div class="linha-menu" id="menu-oportunidades">
+        <div class="filtro">
+          <span class="filtro-rotulo">Camada</span>
+          <div class="segmento" id="f-tf">
+            <button data-v="D" class="ativo">Diário</button>
+            <button data-v="S">Semanal</button>
+          </div>
+        </div>
+        <div class="filtro">
+          <span class="filtro-rotulo">Período</span>
+          <div class="segmento" id="f-periodo">
+            <button data-v="1" class="ativo">Último</button>
+            <button data-v="3">3</button>
+            <button data-v="5">5</button>
+            <button data-v="99">Todos</button>
+          </div>
+        </div>
+        <p class="sub" id="f-descricao"></p>
+      </div>
+
+      <div class="linha-menu" id="menu-estado" hidden>
+        <div class="filtros-estado" id="f-estado" role="group" aria-label="Filtro de estado"></div>
+        <div class="filtro" id="caixa-bb-tf" hidden>
+          <span class="filtro-rotulo">Tempo da Bollinger</span>
+          <div class="segmento" id="f-bb-tf">
+            <button data-v="60">60m</button>
+            <button data-v="240">4h</button>
+            <button data-v="D" class="ativo">Diário</button>
+            <button data-v="W">Semanal</button>
+          </div>
         </div>
       </div>
-      <div class="filtro">
-        <span class="filtro-rotulo">Período</span>
-        <div class="segmento" id="f-periodo">
-          <button data-v="1" class="ativo">Último</button>
-          <button data-v="3">3</button>
-          <button data-v="5">5</button>
-          <button data-v="99">Todos</button>
-        </div>
-      </div>
-      <p class="sub" id="f-descricao"></p>
     </section>
 
     <section class="area-radar">
       <div class="painel painel-grafico" id="painel-grafico"></div>
 
-      <aside class="painel lista-sinais" aria-label="Oportunidades">
-        <div class="abas-lado" role="tablist">
-          <button role="tab" data-lado="compra" class="aba-compra ativo">▲ Compra <span class="contagem" id="n-compra">0</span></button>
-          <button role="tab" data-lado="venda" class="aba-venda">▼ Venda <span class="contagem" id="n-venda">0</span></button>
+      <aside class="painel lista-sinais" aria-label="Lista de ativos">
+        <div id="cab-oportunidades">
+          <div class="abas-lado" role="tablist">
+            <button role="tab" data-lado="compra" class="aba-compra ativo">▲ Compra <span class="contagem" id="n-compra">0</span></button>
+            <button role="tab" data-lado="venda" class="aba-venda">▼ Venda <span class="contagem" id="n-venda">0</span></button>
+          </div>
+          <div class="categorias" id="categorias" role="group" aria-label="Estratégia"></div>
         </div>
-        <div class="categorias" id="categorias" role="group" aria-label="Estratégia"></div>
+        <div id="cab-estado" class="cab-estado" hidden>
+          <div>
+            <h2 id="estado-titulo"></h2>
+            <span class="contagem" id="estado-n"></span>
+          </div>
+          <select id="estado-ordem" aria-label="Ordenar"></select>
+        </div>
         <p class="sub cat-descricao" id="cat-descricao"></p>
         <ol class="lista-ativos" id="lista-ativos"></ol>
         <p class="dica"><kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista · <kbd>Alt</kbd>+<kbd>R</kbd> centraliza</p>
       </aside>
     </section>
 
-    <section class="painel">
+    <section class="painel" id="secao-simulacoes">
       <div class="painel-cab">
         <div>
-          <h2>Filtros de estado</h2>
-          <p class="sub">A foto de hoje: onde cada ativo está, independente de evento</p>
+          <h2>Minhas simulações</h2>
+          <p class="sub">Posições simuladas no gráfico, reavaliadas a cada atualização. Ficam salvas neste navegador.</p>
         </div>
-        <div class="segmento" id="f-tabela">
-          <button data-v="forte-alta" class="ativo">Tendência forte de alta</button>
-          <button data-v="forte-baixa">Tendência forte de baixa</button>
-          <button data-v="ifr">IFR extremo</button>
-          <button data-v="bb">Bollinger comprimida</button>
-          <button data-v="todos">Todos</button>
+        <div class="controles">
+          <button class="botao" id="sim-exportar">Exportar</button>
+          <label class="botao">Importar<input type="file" accept="application/json" id="sim-importar" hidden></label>
         </div>
       </div>
-      <p class="sub" id="tabela-descricao"></p>
-      <div class="tabela-wrap"><table id="tabela"></table></div>
+      <div id="lista-simulacoes"></div>
     </section>
 
     <details class="painel retidos">
@@ -84,10 +115,11 @@
 
   <footer>
     Uso pessoal. Os sinais são filtros técnicos automáticos, não recomendação de investimento.
-    Dados: Yahoo Finance, conferidos com Nasdaq (EUA) e brapi (B3, quando configurado).
+    Dados: Yahoo Finance, conferidos com B3 (COTAHIST e cotações), Nasdaq (EUA) e Coinbase (cripto).
   </footer>
 
   <script src="assets/js/comum.js"></script>
+  <script src="assets/js/simulador.js"></script>
   <script src="assets/js/radar.js"></script>
 </body>
 </html>

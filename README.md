@@ -3,11 +3,14 @@
 Painel pessoal com três telas:
 
 - **Carteira** (`index.html`): patrimônio em BRL, posições, evolução da carteira e sinais nos ativos acompanhados.
-- **Radar** (`radar.html`): ~420 ações (todas as da B3 com volume médio acima de R$ 10 mi/dia e ~260 dos EUA).
-  Gráfico à esquerda e, à direita, as oportunidades em abas **Compra** e **Venda**, separadas por estratégia,
-  com o bloco **Prioridade** para quem dispara 2 ou mais estratégias. Clicou, o gráfico abre ao lado, com setas
-  nos candles em que cada sinal apareceu; <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista. Também tem filtros de estado:
-  tendência forte, IFR extremo e Bollinger comprimida.
+- **Radar** (`radar.html`): ~450 ativos. São todas as ações da B3 com volume médio acima de R$ 10 mi/dia,
+  ~260 dos EUA e 31 criptos. O menu superior escolhe o mercado e a visão, e a lista à direita do gráfico mostra o resultado:
+  - **Oportunidades:** abas **Compra** e **Venda**, separadas por estratégia, com o bloco **Prioridade** para quem
+    dispara 2 ou mais estratégias. A **camada** define o tempo gráfico dos sinais (diário ou semanal).
+  - **Filtros de estado:** tendência forte de alta e de baixa, IFR extremo e Bollinger comprimida. A Bollinger
+    escolhe o tempo (60m, 4h, diário, semanal), e o gráfico acompanha.
+
+  Clicou, o gráfico abre ao lado, com setas nos candles em que cada sinal apareceu; <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista.
 - **Multitela** (`multitela.html`): grade de gráficos (2×2, 3×3 ou 4×3) para bater o olho nas oportunidades do dia.
 
 Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (20, 2) e IFR 14, nos tempos
@@ -25,6 +28,20 @@ GitHub Actions (todo dia 19:30 BRT)
    └─ publica o site estático no GitHub Pages
 ```
 
+## Simulador de posição
+
+No Radar e na Carteira, o botão **⊕ Simular** abre uma ferramenta de risco/retorno no gráfico, como a do TradingView:
+
+- Linhas de **entrada**, **stop** e **alvo** que você arrasta com o mouse, com as zonas de risco (vermelha) e retorno (verde).
+- **Boleta** abaixo do gráfico: compra ou venda, preços, capital, quantidade, risco, retorno e R:R, atualizados ao vivo.
+- **Simulações salvas** são reavaliadas a cada atualização com os candles diários: *aguardando entrada*,
+  *em aberto* (com o resultado do dia), *alvo atingido* ou *stop atingido* (com a data). Se stop e alvo cabem no
+  mesmo candle, conta o stop (conservador).
+- A seção **Minhas simulações** lista todas com o resultado.
+
+As simulações ficam salvas **no navegador** (localStorage), sem servidor. Para levar a outro computador ou guardar
+uma cópia, use **Exportar** e **Importar** (arquivo JSON).
+
 ## Integridade dos dados
 
 Na dúvida, o dado não entra:
@@ -41,10 +58,20 @@ Na dúvida, o dado não entra:
      Sem chave. Opcional: um token gratuito da [brapi.dev](https://brapi.dev) no secret `BRAPI_TOKEN` acrescenta
      uma terceira fonte.
    - **EUA:** API pública da Nasdaq (histórico oficial e faixa do dia). Sem chave.
+   - **Cripto:** Coinbase Exchange (candles diários em UTC), com tolerância de 1%, porque não existe fechamento
+     oficial único. Só entram as moedas que existem na Coinbase e cujo preço no Yahoo bate com ela. Ficaram de fora,
+     por exemplo, TON (o Yahoo devolve outro token com o mesmo símbolo), TRX (sem par na Coinbase), SHIB e PEPE
+     (o Yahoo arredonda o preço e distorce os candles).
 5. Um ativo que falha em qualquer etapa fica **retido**: sem gráfico e sem sinais no dia. A lista de retidos aparece no fim do Radar.
 6. **60 min e 4h:** cada dia de intraday é comparado com o candle diário já verificado. A máxima e a mínima
    precisam caber na do dia (folga de 0,5%), e o último fechamento precisa estar a até 2% do oficial (a diferença normal
    vem do leilão de fechamento). Os dias que não batem são descartados.
+
+### Cripto
+
+- O candle diário de cripto só fecha à meia-noite UTC. A atualização usa apenas os dias já encerrados.
+- A semana de cripto vai de segunda a domingo.
+- "Último pregão" é contado por mercado: o último pregão da B3 pode ser sexta, enquanto o de cripto é domingo.
 
 ## Estratégias
 

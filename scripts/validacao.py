@@ -10,6 +10,8 @@ from __future__ import annotations
 import pandas as pd
 
 TOLERANCIA_FECHAMENTO = 0.006   # 0,6% de diferença máxima para a fonte de referência
+# Cripto não tem fechamento oficial: o Yahoo agrega várias corretoras e a Coinbase é uma só
+TOLERANCIA_CRIPTO = 0.01
 DIAS_CONFERIDOS = 5             # quantos pregões recentes comparar com a referência
 REFERENCIA_ABSURDA = 0.5        # ponto da referência a mais de 50% da mediana dela mesma = erro da fonte
 SALTO_ACAO, SALTO_CRIPTO = 0.20, 0.30
@@ -77,7 +79,7 @@ def limpar(df: pd.DataFrame, mercado: str) -> tuple[pd.DataFrame, list[tuple[pd.
     return df, problemas
 
 
-def conferir(df: pd.DataFrame, ref: dict | None) -> dict:
+def conferir(df: pd.DataFrame, ref: dict | None, tol: float = TOLERANCIA_FECHAMENTO) -> dict:
     """Compara os últimos fechamentos com a referência e, se houver, a faixa do pregão de hoje."""
     vazio = {"status": "interno", "comparados": 0, "dif_max_pct": None, "ate": None}
     if not ref:
@@ -98,10 +100,9 @@ def conferir(df: pd.DataFrame, ref: dict | None) -> dict:
     mesmo_pregao = bool(hoje) and (
         hoje.get("data") == ultimo
         or ("fechamento_anterior" in hoje
-            and abs(float(df["Close"].iloc[-2]) / hoje["fechamento_anterior"] - 1) <= TOLERANCIA_FECHAMENTO))
+            and abs(float(df["Close"].iloc[-2]) / hoje["fechamento_anterior"] - 1) <= tol))
     faixa_ok = None
     if mesmo_pregao and ultimo not in difs:
-        tol = TOLERANCIA_FECHAMENTO
         faixa_ok = (abs(u["High"] / hoje["high"] - 1) <= tol and abs(u["Low"] / hoje["low"] - 1) <= tol
                     and hoje["low"] * (1 - tol) <= u["Close"] <= hoje["high"] * (1 + tol))
         if not faixa_ok:
@@ -114,7 +115,7 @@ def conferir(df: pd.DataFrame, ref: dict | None) -> dict:
                 "fonte": ref.get("fonte"), "ate": ultimo if faixa_ok else None}
 
     pior = max(difs, key=difs.get)
-    if difs[pior] > TOLERANCIA_FECHAMENTO:
+    if difs[pior] > tol:
         return {**vazio, "status": "divergente", "pior_dia": pior, "dif_max_pct": round(difs[pior] * 100, 3),
                 "motivo": (f"fechamento de {pd.Timestamp(pior):%d/%m} diverge {difs[pior] * 100:.2f}% "
                            f"da referência ({float(df.loc[pior, 'Close']):.2f} x {fech[pior]:.2f})")}
@@ -143,7 +144,7 @@ def avaliar(df_bruto: pd.DataFrame, mercado: str, ref: dict | None,
     if (hoje - df.index[-1]).days > DIAS_SEM_PREGAO:
         return df, {**laudo, "publicar": False, "motivo": f"sem cotação desde {df.index[-1]:%d/%m/%Y}"}
 
-    conf = conferir(df, ref)
+    conf = conferir(df, ref, TOLERANCIA_CRIPTO if mercado == "CRIPTO" else TOLERANCIA_FECHAMENTO)
     laudo["conferencia"] = conf
     if conf["status"] == "divergente":
         return df, {**laudo, "publicar": False, "motivo": conf["motivo"]}

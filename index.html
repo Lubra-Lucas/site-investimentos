@@ -42,6 +42,20 @@
       <div id="grafico-patrimonio"></div>
     </section>
 
+    <section class="painel" id="secao-simulacoes">
+      <div class="painel-cab">
+        <div>
+          <h2>Minhas simulações</h2>
+          <p class="sub">Posições simuladas no gráfico, reavaliadas a cada atualização. Ficam salvas neste navegador.</p>
+        </div>
+        <div class="controles">
+          <button class="botao" id="sim-exportar">Exportar</button>
+          <label class="botao">Importar<input type="file" accept="application/json" id="sim-importar" hidden></label>
+        </div>
+      </div>
+      <div id="lista-simulacoes"></div>
+    </section>
+
     <section class="painel">
       <div class="painel-cab">
         <div>
@@ -58,6 +72,7 @@
   </footer>
 
   <script src="assets/js/comum.js"></script>
+  <script src="assets/js/simulador.js"></script>
   <script src="assets/js/carteira.js"></script>
 </body>
 </html>

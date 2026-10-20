@@ -23,7 +23,9 @@ const fmtData = (iso, comDia = false) => {
   const dt = new Date(Date.UTC(+a, +m - 1, +d));
   return `${comDia ? DIAS_SEMANA[dt.getUTCDay()] + " " : ""}${d}/${m}`;
 };
-const semSufixo = (t) => t.replace(/\.SA$/, "");
+/** Rótulo de exibição: PETR4 em vez de PETR4.SA, SUI em vez de SUI20947-USD. */
+const ROTULOS = new Map();
+const semSufixo = (t) => ROTULOS.get(t) ?? t.replace(/\.SA$/, "");
 
 function el(tag, attrs = {}, ...filhos) {
   const n = document.createElement(tag);
@@ -52,7 +54,10 @@ function buscarJSON(url) {
   });
   return cacheJSON[url];
 }
-const carregarRadar = () => buscarJSON("data/radar.json");
+const carregarRadar = () => buscarJSON("data/radar.json").then((r) => {
+  if (!ROTULOS.size) for (const a of r.ativos) if (a.rotulo) ROTULOS.set(a.ticker, a.rotulo);
+  return r;
+});
 const carregarResumo = () => buscarJSON("data/resumo.json");
 async function carregarIntraday(arquivo) {
   const d = await buscarJSON(`data/intraday/${encodeURIComponent(arquivo)}.json`);
@@ -87,6 +92,30 @@ function agruparSinais(sinais, { tf = "D", desde = null } = {}) {
   return { compra: ordenar(grupos.compra), venda: ordenar(grupos.venda) };
 }
 
+/**
+ * Sinais dos últimos `n` pregões de cada mercado. Cripto tem candle no fim de semana e a
+ * ação não, então "o último pregão" é contado separadamente por mercado.
+ */
+function sinaisDoPeriodo(R, tf, n) {
+  const mercado = new Map(R.ativos.map((a) => [a.ticker, a.mercado]));
+  const datas = new Map();
+  for (const s of R.sinais) {
+    if (s.tf !== tf) continue;
+    const m = mercado.get(s.ticker);
+    if (!datas.has(m)) datas.set(m, new Set());
+    datas.get(m).add(s.data);
+  }
+  const desde = new Map([...datas].map(([m, d]) => {
+    const ord = [...d].sort().reverse();
+    return [m, ord[Math.min(n, ord.length) - 1]];
+  }));
+  const ultima = new Map([...datas].map(([m, d]) => [m, [...d].sort().pop()]));
+  return {
+    sinais: R.sinais.filter((s) => s.tf === tf && s.data >= desde.get(mercado.get(s.ticker))),
+    desde, ultima,
+  };
+}
+
 /** Datas de pregão presentes nos sinais (mais recente primeiro). */
 const datasSinais = (sinais, tf) => [...new Set(sinais.filter((s) => s.tf === tf).map((s) => s.data))].sort().reverse();
 
@@ -100,7 +129,11 @@ function seloVerificacao(a) {
     ? `Conferido com ${v.fonte}${v.ate ? " até " + fmtData(v.ate) : ""}` +
       (v.dif_max_pct != null ? ` · diferença máx. ${fmtNum(v.dif_max_pct, 2)}%` : "")
     : "Só verificação interna (sem fonte de referência)";
-  return el("span", { class: `selo selo-${v.status}`, title: txt }, v.status === "conferido" ? "✓ conferido" : "◦ interno");
+  const selo = el("span", { class: `selo selo-${v.status}`, title: txt }, v.status === "conferido" ? "✓ conferido" : "◦ interno");
+  if (!v.pendente) return selo;
+  return el("span", {}, selo, " ", el("span", { class: "selo selo-pendente",
+    title: `O candle de ${fmtData(v.pendente)} veio sem fechamento da fonte e ficou de fora até a próxima atualização.` },
+    `${fmtData(v.pendente)} incompleto na fonte`));
 }
 
 // ------------------------------------------------------------- indicadores
@@ -180,6 +213,7 @@ const graficos = new Set();
 const BARRAS_VISIVEIS = { 60: 160, 240: 120, D: 180, W: 110, M: 72 };
 const INTRADAY = new Set(["60", "240"]);
 const ROTULO_TF = { 60: "60 min", 240: "4 horas", D: "Diário", W: "Semanal", M: "Mensal" };
+const ROTULO_TF_FRASE = { 60: "60 min", 240: "4 horas", D: "diário", W: "semanal", M: "mensal" };
 
 class Grafico {
   /** opcoes: { mini: bool } — o mini não tem painel de IFR nem eixo de tempo detalhado. */
@@ -235,7 +269,7 @@ class Grafico {
     this.tf = tf;
     const intraday = INTRADAY.has(tf);
     const dados = await (intraday ? carregarIntraday(arquivo) : carregarCandles(arquivo));
-    if (pedido !== this.pedido) return false;
+    if (pedido !== this.pedido || this.removido) return false;
     this.chart.timeScale().applyOptions({ timeVisible: intraday, secondsVisible: false });
     const c = agregar(dados.candles, tf);
     this.candles.setData(c);
@@ -247,9 +281,11 @@ class Grafico {
     this.bbInf.setData(inf);
     this.ifr?.setData(ifr(c));
     this.marcar(c);
+    this.c = c;
     this.n = c.length;
     this.aplicarCamadas();
     this.centralizar();
+    this.aoMostrar?.();
     return true;
   }
 
@@ -275,6 +311,13 @@ class Grafico {
   aplicarCamadas() {
     for (const s of [this.mm20, this.mm50, this.mm200]) s.applyOptions({ visible: this.camadas.mm });
     for (const s of [this.bbSup, this.bbInf]) s.applyOptions({ visible: this.camadas.bb });
+  }
+
+  /** Desmonta o gráfico; respostas que ainda estiverem a caminho são descartadas. */
+  remover() {
+    this.removido = true;
+    graficos.delete(this);
+    this.chart.remove();
   }
 
   /** Volta a escala automática de preço e o enquadramento padrão (Alt+R). */
@@ -338,11 +381,14 @@ function segmento(id, aoMudar) {
 // ------------------------------------------------------------- painel de gráfico
 
 /** Painel completo: cabeçalho do ativo, tempo gráfico, camadas e o gráfico. */
-function painelGrafico(alvo, { aoSelecionar } = {}) {
+function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
   const titulo = el("h2", {}, "Gráfico");
   const sub = el("p", { class: "sub" });
   const contexto = el("div", { class: "contexto" });
   const corpo = el("div", { class: "grafico" });
+  const boleta = el("div", { class: "boleta", hidden: true });
+  const botaoSimular = el("button", { class: "botao-simular", hidden: !simular,
+    title: "Simular uma posição: entrada, stop e alvo arrastáveis no gráfico" }, "⊕ Simular");
   const nota = el("p", { class: "nota-tf", hidden: true },
     "60 min e 4h: o último candle é o do pregão contínuo; o fechamento oficial do dia sai no leilão e pode diferir um pouco.");
   const tfs = el("div", { class: "segmento", role: "group", "aria-label": "Tempo gráfico" },
@@ -355,13 +401,15 @@ function painelGrafico(alvo, { aoSelecionar } = {}) {
     el("label", { class: "leg bb" }, el("input", { type: "checkbox", checked: true, "data-c": "bb" }), "Bollinger 20,2"),
     el("span", { class: "leg ifr" }, "IFR 14"));
   alvo.replaceChildren(
-    el("div", { class: "painel-cab" }, el("div", {}, titulo, sub), el("div", { class: "controles" }, tfs)),
+    el("div", { class: "painel-cab" }, el("div", {}, titulo, sub), el("div", { class: "controles" }, botaoSimular, tfs)),
     el("div", { class: "barra-grafico" }, camadas, contexto),
     nota,
-    corpo);
+    corpo,
+    boleta);
   const atualizarNota = () => { nota.hidden = !INTRADAY.has(g.tf); };
 
   const g = new Grafico(corpo);
+  const sim = simular && typeof Simulador !== "undefined" ? new Simulador(g, corpo, boleta, botaoSimular) : null;
   let atual = null;
   tfs.addEventListener("click", (e) => {
     const b = e.target.closest("button");
@@ -378,6 +426,13 @@ function painelGrafico(alvo, { aoSelecionar } = {}) {
 
   return {
     grafico: g,
+    simulador: sim,
+    /** Troca o tempo gráfico de fora (ex.: filtro de Bollinger no 4h). */
+    mudarTf(tf) {
+      const b = tfs.querySelector(`button[data-tf="${tf}"]`);
+      if (b && !b.disabled && g.tf !== tf) b.click();
+      else if (b?.disabled) g.tf = tf;  // o próximo ativo com intraday já abre nesse tempo
+    },
     async selecionar(a, sinais = []) {
       atual = a;
       g.sinais = sinais;
@@ -395,6 +450,7 @@ function painelGrafico(alvo, { aoSelecionar } = {}) {
       if (INTRADAY.has(g.tf) && !a.tem_intraday) g.tf = "D";
       tfs.querySelectorAll("button").forEach((b) => b.classList.toggle("ativo", b.dataset.tf === g.tf));
       atualizarNota();
+      sim?.definirAtivo(a);
       await g.mostrar(a.arquivo);
       aoSelecionar?.(a);
     },

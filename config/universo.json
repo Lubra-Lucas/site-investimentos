@@ -1690,5 +1690,162 @@
    "ticker": "SE",
    "nome": "Sea"
   }
+ ],
+ "CRIPTO": [
+  {
+   "ticker": "BTC-USD",
+   "nome": "Bitcoin",
+   "simbolo": "BTC"
+  },
+  {
+   "ticker": "ETH-USD",
+   "nome": "Ethereum",
+   "simbolo": "ETH"
+  },
+  {
+   "ticker": "XRP-USD",
+   "nome": "XRP",
+   "simbolo": "XRP"
+  },
+  {
+   "ticker": "BNB-USD",
+   "nome": "BNB",
+   "simbolo": "BNB"
+  },
+  {
+   "ticker": "SOL-USD",
+   "nome": "Solana",
+   "simbolo": "SOL"
+  },
+  {
+   "ticker": "DOGE-USD",
+   "nome": "Dogecoin",
+   "simbolo": "DOGE"
+  },
+  {
+   "ticker": "ADA-USD",
+   "nome": "Cardano",
+   "simbolo": "ADA"
+  },
+  {
+   "ticker": "AVAX-USD",
+   "nome": "Avalanche",
+   "simbolo": "AVAX"
+  },
+  {
+   "ticker": "LINK-USD",
+   "nome": "Chainlink",
+   "simbolo": "LINK"
+  },
+  {
+   "ticker": "DOT-USD",
+   "nome": "Polkadot",
+   "simbolo": "DOT"
+  },
+  {
+   "ticker": "LTC-USD",
+   "nome": "Litecoin",
+   "simbolo": "LTC"
+  },
+  {
+   "ticker": "BCH-USD",
+   "nome": "Bitcoin Cash",
+   "simbolo": "BCH"
+  },
+  {
+   "ticker": "XLM-USD",
+   "nome": "Stellar",
+   "simbolo": "XLM"
+  },
+  {
+   "ticker": "HBAR-USD",
+   "nome": "Hedera",
+   "simbolo": "HBAR"
+  },
+  {
+   "ticker": "NEAR-USD",
+   "nome": "NEAR Protocol",
+   "simbolo": "NEAR"
+  },
+  {
+   "ticker": "ICP-USD",
+   "nome": "Internet Computer",
+   "simbolo": "ICP"
+  },
+  {
+   "ticker": "AAVE-USD",
+   "nome": "Aave",
+   "simbolo": "AAVE"
+  },
+  {
+   "ticker": "ATOM-USD",
+   "nome": "Cosmos",
+   "simbolo": "ATOM"
+  },
+  {
+   "ticker": "OP-USD",
+   "nome": "Optimism",
+   "simbolo": "OP"
+  },
+  {
+   "ticker": "FIL-USD",
+   "nome": "Filecoin",
+   "simbolo": "FIL"
+  },
+  {
+   "ticker": "ETC-USD",
+   "nome": "Ethereum Classic",
+   "simbolo": "ETC"
+  },
+  {
+   "ticker": "RENDER-USD",
+   "nome": "Render",
+   "simbolo": "RENDER"
+  },
+  {
+   "ticker": "INJ-USD",
+   "nome": "Injective",
+   "simbolo": "INJ"
+  },
+  {
+   "ticker": "ONDO-USD",
+   "nome": "Ondo",
+   "simbolo": "ONDO"
+  },
+  {
+   "ticker": "SUI20947-USD",
+   "nome": "Sui",
+   "simbolo": "SUI"
+  },
+  {
+   "ticker": "UNI7083-USD",
+   "nome": "Uniswap",
+   "simbolo": "UNI"
+  },
+  {
+   "ticker": "APT21794-USD",
+   "nome": "Aptos",
+   "simbolo": "APT"
+  },
+  {
+   "ticker": "POL28321-USD",
+   "nome": "Polygon (POL)",
+   "simbolo": "POL"
+  },
+  {
+   "ticker": "HYPE32196-USD",
+   "nome": "Hyperliquid",
+   "simbolo": "HYPE"
+  },
+  {
+   "ticker": "TAO22974-USD",
+   "nome": "Bittensor",
+   "simbolo": "TAO"
+  },
+  {
+   "ticker": "ARB11841-USD",
+   "nome": "Arbitrum",
+   "simbolo": "ARB"
+  }
  ]
 }

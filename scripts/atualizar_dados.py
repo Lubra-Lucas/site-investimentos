@@ -193,8 +193,9 @@ def main() -> None:
     print("Buscando fechamentos de referência...")
     refs = fontes.referencias(list(ativos.values()))
     print("Baixando candles de 60 min...")
-    intraday = {**fontes.baixar_yahoo_60min([t for t, a in ativos.items() if a["mercado"] == "BR"], "America/Sao_Paulo"),
-                **fontes.baixar_yahoo_60min([t for t, a in ativos.items() if a["mercado"] == "US"], "America/New_York")}
+    intraday = {}
+    for mercado, fuso in (("BR", "America/Sao_Paulo"), ("US", "America/New_York"), ("CRIPTO", "UTC")):
+        intraday.update(fontes.baixar_yahoo_60min([t for t, a in ativos.items() if a["mercado"] == mercado], fuso))
 
     cambio_df, laudo_fx = validacao.avaliar(brutos[TICKER_CAMBIO], "CRIPTO", None, hoje)
     cambio = cambio_df["Close"]
@@ -202,11 +203,19 @@ def main() -> None:
     publicados, retidos, sinais = [], [], []
     precos: dict[str, pd.DataFrame] = {}
     for tk, meta in ativos.items():
-        base = {"ticker": tk, "nome": meta["nome"], "mercado": meta["mercado"]}
+        rotulo = meta.get("simbolo") or tk.removesuffix(".SA")
+        base = {"ticker": tk, "rotulo": rotulo, "nome": meta["nome"], "mercado": meta["mercado"]}
         if tk not in brutos:
             retidos.append({**base, "motivo": "sem dados no Yahoo"})
             continue
-        df, laudo = validacao.avaliar(brutos[tk], meta["mercado"], refs.get(tk), hoje)
+        bruto = brutos[tk]
+        if meta["mercado"] == "CRIPTO":
+            # o candle diário de cripto só fecha à meia-noite UTC: o de hoje ainda está em formação
+            hoje_utc = pd.Timestamp.now(tz="UTC").tz_localize(None).normalize()
+            bruto = bruto[bruto.index < hoje_utc]
+            if tk in intraday:
+                intraday[tk] = intraday[tk][intraday[tk].index < hoje_utc]
+        df, laudo = validacao.avaliar(bruto, meta["mercado"], refs.get(tk), hoje)
         precos[tk] = df
         if not laudo["publicar"]:
             retidos.append({**base, "motivo": laudo["motivo"]})
@@ -229,7 +238,10 @@ def main() -> None:
             "verificacao": {"status": conf.get("status", "interno"), "fonte": conf.get("fonte"),
                             "ate": conf.get("ate"), "dif_max_pct": conf.get("dif_max_pct"),
                             "comparados": conf.get("comparados", 0), "candles_descartados": laudo["n_correcoes"],
-                            "dias_60min_descartados": dias_60_descartados},
+                            "dias_60min_descartados": dias_60_descartados,
+                            # candle mais recente que veio incompleto da fonte e ficou de fora
+                            "pendente": (bruto.index[-1].strftime("%Y-%m-%d")
+                                         if bruto.index[-1] > df.index[-1] else None)},
             "tem_intraday": h is not None,
             **estado,
         })

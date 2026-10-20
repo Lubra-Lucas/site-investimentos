@@ -5,30 +5,34 @@ let R, porTicker, carteira = [];
 const abertos = [];
 
 function listar() {
-  const datas = datasSinais(R.sinais, "D");
-  const ultimo = datas[0], cinco = datas[Math.min(5, datas.length) - 1];
   const doMercado = (tk) => {
     const a = porTicker.get(tk);
     return a && (!estado.mercado || a.mercado === estado.mercado);
   };
-  const acao = (tk) => doMercado(tk) && porTicker.get(tk).mercado !== "CRIPTO";
-  const deGrupo = (lado, desde, minimo) => agruparSinais(R.sinais, { tf: "D", desde })[lado]
-    .filter((i) => i.familias.size >= minimo && acao(i.ticker))
+  // sinais só existem nas camadas diária e semanal; 60m/4h usam os do diário
+  const tfSinal = estado.tf === "W" ? "S" : "D";
+  const deGrupo = (lado, pregoes, minimo) => agruparSinais(sinaisDoPeriodo(R, tfSinal, pregoes).sinais, { tf: tfSinal })[lado]
+    .filter((i) => i.familias.size >= minimo && doMercado(i.ticker))
     .map((i) => ({ ticker: i.ticker, familias: i.familias, motivo: i.sinais.map((s) => `${fmtData(s.data)} ${s.texto}`).join("\n") }));
 
   switch (estado.fonte) {
-    case "prioridade-compra": return deGrupo("compra", cinco, 2);
-    case "prioridade-venda": return deGrupo("venda", cinco, 2);
-    case "compra": return deGrupo("compra", ultimo, 1);
-    case "venda": return deGrupo("venda", ultimo, 1);
-    case "forte-alta": return R.ativos.filter((a) => a.liquido && a.tendencia_forte === "alta" && acao(a.ticker))
+    case "prioridade-compra": return deGrupo("compra", 5, 2);
+    case "prioridade-venda": return deGrupo("venda", 5, 2);
+    case "compra": return deGrupo("compra", 1, 1);
+    case "venda": return deGrupo("venda", 1, 1);
+    case "forte-alta": return R.ativos.filter((a) => a.liquido && a.tendencia_forte === "alta" && doMercado(a.ticker))
       .sort((a, b) => (b.tendencia_desde ?? "").localeCompare(a.tendencia_desde ?? "")).map((a) => ({ ticker: a.ticker }));
-    case "bb": return R.ativos.filter((a) => a.liquido && a.bb_comprimida && acao(a.ticker))
-      .sort((a, b) => a.bb_largura_pct - b.bb_largura_pct).map((a) => ({ ticker: a.ticker }));
+    case "bb": {
+      // compressão no tempo gráfico escolhido (60m, 4h, diário ou semanal)
+      const bb = (a) => a.bb_tf?.[estado.tf];
+      return R.ativos.filter((a) => a.liquido && bb(a)?.comprimida && doMercado(a.ticker))
+        .sort((a, b) => bb(a).largura_pct - bb(b).largura_pct).map((a) => ({ ticker: a.ticker }));
+    }
     case "carteira": return carteira.filter(doMercado).map((ticker) => ({ ticker }));
     case "personalizada": {
       const pedidos = estado.tickers.split(/[\s,;]+/).map((t) => t.trim().toUpperCase()).filter(Boolean);
-      return pedidos.map((t) => [t, `${t}.SA`, t.replace(".", "-")].find((x) => porTicker.has(x)) ?? t)
+      const porRotulo = new Map(R.ativos.map((a) => [(a.rotulo ?? a.ticker).toUpperCase(), a.ticker]));
+      return pedidos.map((t) => [t, `${t}.SA`, t.replace(".", "-"), porRotulo.get(t)].find((x) => porTicker.has(x)) ?? t)
         .filter(doMercado).map((ticker) => ({ ticker }));
     }
   }
@@ -73,7 +77,7 @@ const observador = new IntersectionObserver((entradas) => {
 
 function render() {
   observador.disconnect();
-  abertos.splice(0).forEach((g) => { graficos.delete(g); g.chart.remove(); });
+  abertos.splice(0).forEach((g) => g.remover());
   document.getElementById("caixa-personalizada").hidden = estado.fonte !== "personalizada";
   const lista = listar().filter((i) => porTicker.has(i.ticker));
   const porPagina = { 2: 4, 3: 9, 4: 12 }[estado.grade];
@@ -83,7 +87,13 @@ function render() {
 
   const grade = document.getElementById("grade");
   grade.dataset.grade = estado.grade;
-  document.getElementById("f-descricao").textContent = `${lista.length} ativo(s)`;
+  const tfNome = ROTULO_TF_FRASE[estado.tf] ?? estado.tf;
+  const explica = {
+    bb: `Bollinger comprimida no ${tfNome}`,
+    "forte-alta": "Tendência forte de alta (diário + semanal)",
+  }[estado.fonte] ?? (estado.fonte.includes("compra") || estado.fonte.includes("venda")
+    ? `Sinais da camada ${estado.tf === "W" ? "semanal" : "diária"}` : "");
+  document.getElementById("f-descricao").textContent = `${lista.length} ativo(s)${explica ? " · " + explica : ""}`;
   grade.replaceChildren(...(pagina.length ? pagina.map(celula)
     : [el("p", { class: "vazio painel" }, "Nenhum ativo nesta lista hoje.")]));
   grade.querySelectorAll(".mini-grafico").forEach((c) => observador.observe(c));
