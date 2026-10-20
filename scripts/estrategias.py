@@ -298,8 +298,10 @@ def _desde(serie: pd.Series) -> str | None:
 
 # ------------------------------------------------------------- análise
 
-def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -> tuple[dict, list[dict]]:
-    """Retorna (estado atual do ativo, lista de sinais datados).
+def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -> tuple[dict, list[dict], dict | None]:
+    """Retorna (estado atual do ativo, sinais recentes datados, histórico para o backtest).
+
+    O histórico traz todos os eventos de todo o período e os candles diário/semanal usados.
 
     df60 já vem verificado contra o diário (validacao.limpar_intraday)."""
     d = indicadores(df)
@@ -356,7 +358,7 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
         "intraday_ok": bool(h_atual),
     }
     if not liquido:
-        return estado, []
+        return estado, [], None
 
     eventos = []  # (data, tf, lado, familia, texto)
     for tf, f in (("D", d), ("S", s)):
@@ -391,4 +393,4 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
         sinais.append({"data": data.strftime("%Y-%m-%d"), "tf": tf, "lado": lado, "familia": familia,
                        "modalidade": FAMILIAS[familia]["modalidade"], "texto": texto,
                        "preco": _num(f.loc[data, "Close"], 4)})
-    return estado, sinais
+    return estado, sinais, {"eventos": eventos, "frames": frames}

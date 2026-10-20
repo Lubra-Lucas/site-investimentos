@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backtest das Estratégias</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topo" id="topo"></header>
+
+  <main>
+    <section class="filtros painel menu-radar">
+      <div class="linha-menu">
+        <div class="filtro">
+          <span class="filtro-rotulo"><i class="passo">1</i> Mercado</span>
+          <div class="segmento" id="f-mercado">
+            <button data-v="BR" class="ativo">Brasil</button>
+            <button data-v="US">EUA</button>
+            <button data-v="CRIPTO">Cripto</button>
+          </div>
+        </div>
+        <div class="filtro">
+          <span class="filtro-rotulo"><i class="passo">2</i> Sinal</span>
+          <div class="segmento" id="f-tf">
+            <button data-v="D" class="ativo">Diário</button>
+            <button data-v="S">Semanal</button>
+          </div>
+        </div>
+        <div class="filtro">
+          <span class="filtro-rotulo"><i class="passo">3</i> Lado</span>
+          <div class="segmento" id="f-lado">
+            <button data-v="compra" class="ativo">▲ Compra</button>
+            <button data-v="venda">▼ Venda</button>
+          </div>
+        </div>
+        <div class="filtro">
+          <span class="filtro-rotulo"><i class="passo">4</i> Prazo</span>
+          <div class="segmento" id="f-prazo"></div>
+        </div>
+      </div>
+      <div class="linha-menu"><p class="sub" id="f-descricao"></p></div>
+    </section>
+
+    <section class="painel como-ler">
+      <h2>Como ler</h2>
+      <p class="sub">
+        Para cada estratégia, o site refez todas as vezes que ela disparou nos últimos 6 anos em cada ativo do mercado.
+        A simulação <b>entra na abertura do candle seguinte</b> ao sinal (o site publica depois do fechamento) e
+        <b>sai no fechamento depois do prazo escolhido</b>. Na venda, ganha quando o preço cai. Sinais repetidos da
+        mesma estratégia dentro do prazo contam uma vez só.
+      </p>
+      <p class="sub">
+        <b>Vantagem</b> é o retorno médio do sinal menos o retorno médio de entrar num dia qualquer, no mesmo
+        mercado e prazo. Em mercado de alta, quase toda compra dá lucro; a vantagem mostra se a estratégia acrescenta
+        algo além disso. Não inclui custos, impostos nem deslizamento, e resultado passado não garante resultado futuro.
+      </p>
+    </section>
+
+    <section class="grade-backtest">
+      <div class="painel">
+        <div class="painel-cab">
+          <div>
+            <h2>Estratégias</h2>
+            <p class="sub" id="base"></p>
+          </div>
+        </div>
+        <div class="tabela-wrap"><table id="tabela-estrategias" class="tabela-bt"></table></div>
+      </div>
+      <aside class="painel">
+        <div class="painel-cab">
+          <div>
+            <h2 id="ativos-titulo">Ativos</h2>
+            <p class="sub" id="ativos-sub">Clique numa estratégia para ver onde ela funcionou melhor.</p>
+          </div>
+        </div>
+        <div id="ativos"></div>
+      </aside>
+    </section>
+  </main>
+
+  <footer>Uso pessoal. Backtest sem custos operacionais; não é recomendação de investimento.</footer>
+
+  <script src="assets/js/comum.js"></script>
+  <script src="assets/js/backtest.js"></script>
+</body>
+</html>

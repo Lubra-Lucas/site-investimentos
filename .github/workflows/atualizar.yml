@@ -47,7 +47,7 @@ jobs:
       - name: Montar site
         run: |
           mkdir _site
-          cp -r index.html radar.html multitela.html assets data _site/
+          cp -r index.html radar.html multitela.html backtest.html assets data _site/
 
       - uses: actions/upload-pages-artifact@v3
         with:

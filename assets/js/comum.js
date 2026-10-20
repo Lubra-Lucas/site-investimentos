@@ -59,6 +59,7 @@ const carregarRadar = () => buscarJSON("data/radar.json").then((r) => {
   return r;
 });
 const carregarResumo = () => buscarJSON("data/resumo.json");
+const carregarBacktest = () => buscarJSON("data/backtest.json");
 async function carregarIntraday(arquivo) {
   const d = await buscarJSON(`data/intraday/${encodeURIComponent(arquivo)}.json`);
   d.candles ??= d.h.map(([time, open, high, low, close]) => ({ time, open, high, low, close }));
@@ -123,6 +124,19 @@ const datasSinais = (sinais, tf) => [...new Set(sinais.filter((s) => s.tf === tf
 
 function chipsFamilias(familias, lado = "compra") {
   return [...familias].map((f) => el("span", { class: `chip fam-${f}` }, nomeFamilia(f, lado)));
+}
+
+/** Selo do backtest do sinal neste ativo: [casos, acerto %, retorno médio %, vantagem %]. */
+function seloHistorico(bt, tf) {
+  if (!bt) return null;
+  const [n, acerto, medio, vantagem] = bt;
+  const prazo = tf === "S" ? "8 semanas" : "10 pregões";
+  if (acerto == null) return el("span", { class: "hist hist-poucos", title: `Só ${n} caso(s) no histórico deste ativo: pouco para tirar conclusão` }, `histórico: ${n} caso(s)`);
+  const cls = acerto >= 55 && vantagem > 0 ? "hist-bom" : acerto < 45 || vantagem < 0 ? "hist-ruim" : "hist-neutro";
+  return el("span", { class: `hist ${cls}`,
+    title: `Nos últimos 6 anos, este sinal apareceu ${n} vezes neste ativo. Entrando na abertura seguinte e saindo ${prazo} depois: ` +
+      `${fmtNum(acerto, 0)}% deram lucro, retorno médio de ${fmtPct(medio)} e ${fmtPct(vantagem)} em relação a entrar num dia qualquer.` },
+  `${fmtNum(acerto, 0)}% acerto · ${fmtPct(medio)} · ${n} casos`);
 }
 
 function seloVerificacao(a) {
@@ -408,7 +422,8 @@ class Grafico {
       if (!doLado.length) return [];
       return [el("div", { class: `balao-bloco ${lado}` },
         el("b", {}, `${lado === "compra" ? "▲ Sinal de compra" : "▼ Sinal de venda"} · ${semana}${fmtData(doLado[0].data)} · ${tfNome}`),
-        el("ul", {}, doLado.map((s) => el("li", {}, el("span", { class: `chip fam-${s.familia}` }, nomeFamilia(s.familia, lado)), " ", s.texto))))];
+        el("ul", {}, doLado.map((s) => el("li", {}, el("span", { class: `chip fam-${s.familia}` }, nomeFamilia(s.familia, lado)), " ", s.texto,
+          s.bt ? el("div", {}, seloHistorico(s.bt, s.tf)) : null))))];
     }));
     this.balao.hidden = false;
     const larg = this.alvo.clientWidth, w = this.balao.offsetWidth, h = this.balao.offsetHeight;
@@ -448,7 +463,7 @@ function montarTopo(pagina, dados) {
   const v = dados?.verificacao;
   topo.replaceChildren(
     el("div", { class: "marca" }, el("span", { class: "marca-ponto" }), el("h1", {}, "Carteira", el("span", {}, "Terminal"))),
-    el("nav", {}, link("index.html", "carteira", "Carteira"), link("radar.html", "radar", "Radar"), link("multitela.html", "multitela", "Multitela")),
+    el("nav", {}, link("index.html", "carteira", "Carteira"), link("radar.html", "radar", "Radar"), link("multitela.html", "multitela", "Multitela"), link("backtest.html", "backtest", "Backtest")),
     el("div", { class: "topo-info" },
       v ? el("span", { title: "Ativos publicados após a verificação de integridade" },
         "Dados ", el("b", {}, `${v.conferidos} conferidos · ${v.internos} internos · ${v.retidos} retidos`)) : null,

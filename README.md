@@ -31,6 +31,24 @@ GitHub Actions (todo dia 19:30 BRT)
    └─ publica o site estático no GitHub Pages
 ```
 
+## Backtest das estratégias
+
+A página **Backtest** (`backtest.html`) mostra, para cada mercado, sinal (diário/semanal), lado e prazo, como
+cada estratégia se saiu nos últimos 6 anos, ativo por ativo (`scripts/backtest.py`):
+
+- **Entrada na abertura do candle seguinte** ao sinal (o site publica depois do fechamento) e **saída no
+  fechamento** depois de 5, 10 ou 20 pregões (sinal diário) ou 4, 8 ou 13 semanas (sinal semanal). Na venda,
+  o resultado é invertido.
+- Sinais repetidos da mesma estratégia dentro do prazo contam **uma vez só**.
+- **Vantagem** = retorno médio do sinal menos o retorno médio de entrar num dia qualquer (mesmo mercado e prazo),
+  porque em mercado de alta quase toda compra dá lucro.
+- Estratégias e ativos com menos de 5 casos aparecem como "poucos casos".
+- No Radar, cada sinal traz o selo do histórico **naquele ativo** (acerto, retorno médio e casos, no prazo de 10
+  pregões ou 8 semanas), e a lista pode ser ordenada por **melhor histórico**.
+
+Sem custos, impostos ou deslizamento; resultado passado não garante resultado futuro. "Maiores quedas/altas"
+não tem backtest, porque depende da comparação entre ativos a cada dia.
+
 ## Personalizar o gráfico
 
 O botão **⚙ Personalizar** (no Radar, na Carteira e na Multitela) ajusta todos os gráficos do site:
