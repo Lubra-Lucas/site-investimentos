@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 
+import backtest
 import estrategias
 import fontes
 import validacao
@@ -235,6 +236,7 @@ def main() -> None:
     cambio_df, laudo_fx = validacao.avaliar(brutos[TICKER_CAMBIO], "CRIPTO", None, hoje)
     cambio = cambio_df["Close"]
 
+    teste = backtest.Backtest()
     publicados, retidos, sinais = [], [], []
     precos: dict[str, pd.DataFrame] = {}
     for tk, meta in ativos.items():
@@ -260,7 +262,9 @@ def main() -> None:
             continue
 
         h, dias_60_descartados = (validacao.limpar_intraday(intraday[tk], df) if tk in intraday else (None, 0))
-        estado, sinais_tk = estrategias.analisar(df, meta["mercado"], h)
+        estado, sinais_tk, historico = estrategias.analisar(df, meta["mercado"], h)
+        if historico:
+            teste.adicionar(tk, meta["mercado"], historico)
         arquivo = tk.replace("=", "_")
         (SAIDA_ATIVOS / f"{arquivo}.json").write_text(json.dumps(
             {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(df)},
@@ -286,6 +290,12 @@ def main() -> None:
         sinais += [{"ticker": tk, **x} for x in sinais_tk]
 
     sinais += maiores_movimentos(publicados)
+    # histórico de cada estratégia neste ativo: [casos, acerto %, retorno médio %, vantagem %]
+    for x in sinais:
+        x["bt"] = teste.do_sinal(x["ticker"], x["tf"], x["familia"], x["lado"])
+    resultado_bt = teste.resultado()
+    resultado_bt["gerado_em"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    (SAIDA / "backtest.json").write_text(json.dumps(resultado_bt, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     sinais.sort(key=lambda x: (x["data"], x["ticker"]), reverse=True)
     sem_intraday = [a["ticker"] for a in publicados if a["liquido"] and a["mercado"] != "CRIPTO" and not a["intraday_ok"]]
     if sem_intraday:

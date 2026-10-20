@@ -3,7 +3,7 @@
 
 const estado = {
   mercado: "", visao: "oportunidades", tf: "D", periodo: 1, lado: "compra", categoria: "prioridade",
-  filtro: "forte-alta", ordem: "padrao", bbTf: "D", ticker: null,
+  filtro: "forte-alta", ordem: "padrao", bbTf: "D", ordemOp: "confluencia", ticker: null,
 };
 let R, porTicker, painel;
 let listaAtual = [];
@@ -109,7 +109,8 @@ function itemOportunidade(item) {
       chipsFamilias(item.familias, estado.lado),
       a.tendencia_forte === (estado.lado === "compra" ? "alta" : "baixa") ? el("span", { class: "chip ctx" }, "tendência forte D+S") : null),
     el("ul", { class: "motivos" }, sinais.map((s) =>
-      el("li", { class: s.familia === estado.categoria ? "foco" : null }, el("span", { class: "data" }, fmtData(s.data)), s.texto))));
+      el("li", { class: s.familia === estado.categoria ? "foco" : null }, el("span", { class: "data" }, fmtData(s.data)), s.texto,
+        " ", seloHistorico(s.bt, s.tf)))));
 }
 
 function calcularOportunidades() {
@@ -146,9 +147,23 @@ function renderOportunidades() {
       m.familias.map(botao))));
   document.getElementById("cat-descricao").textContent = descricaoCategoria(estado.categoria, estado.lado, estado.tf);
 
-  preencherLista(itens.filter((i) => estado.categoria === "todas" ? true
-    : estado.categoria === "prioridade" ? i.familias.size >= 2 : i.familias.has(estado.categoria)),
-  itemOportunidade, "Nenhum sinal no período.");
+  document.getElementById("categorias").append(el("div", { class: "grupo-cat ordem-op" },
+    el("span", { class: "filtro-rotulo" }, "Ordenar"),
+    ...[["confluencia", "Confluência"], ["historico", "Melhor histórico"]].map(([k, rot]) =>
+      el("button", { class: `ordem ${estado.ordemOp === k ? "ativo" : ""}`,
+        title: k === "historico" ? "Quem teve a maior vantagem no backtest deste ativo com estas estratégias" : "Mais estratégias ao mesmo tempo",
+        onclick: () => { estado.ordemOp = k; salvar(); renderOportunidades(); } }, rot))));
+
+  let lista = itens.filter((i) => estado.categoria === "todas" ? true
+    : estado.categoria === "prioridade" ? i.familias.size >= 2 : i.familias.has(estado.categoria));
+  if (estado.ordemOp === "historico") {
+    // melhor vantagem histórica entre os sinais da categoria (só conta com casos suficientes)
+    const nota = (i) => Math.max(-1e9, ...i.sinais
+      .filter((s) => (estado.categoria in FAMILIA_CURTA ? s.familia === estado.categoria : true) && s.bt?.[3] != null)
+      .map((s) => s.bt[3]));
+    lista = [...lista].sort((a, b) => nota(b) - nota(a));
+  }
+  preencherLista(lista, itemOportunidade, "Nenhum sinal no período.");
 }
 
 // ------------------------------------------------------------- filtros de estado
@@ -264,7 +279,7 @@ function renderRetidos() {
 
 const salvar = () => guardar.gravar("radar-v2", {
   mercado: estado.mercado, visao: estado.visao, tf: estado.tf, periodo: estado.periodo,
-  lado: estado.lado, categoria: estado.categoria, filtro: estado.filtro, bbTf: estado.bbTf,
+  lado: estado.lado, categoria: estado.categoria, filtro: estado.filtro, bbTf: estado.bbTf, ordemOp: estado.ordemOp,
 });
 
 document.addEventListener("keydown", (e) => {

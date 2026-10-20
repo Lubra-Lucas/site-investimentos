@@ -15,7 +15,8 @@ TOLERANCIA_CRIPTO = 0.01
 DIAS_CONFERIDOS = 5             # quantos pregões recentes comparar com a referência
 REFERENCIA_ABSURDA = 0.5        # ponto da referência a mais de 50% da mediana dela mesma = erro da fonte
 SALTO_ACAO, SALTO_CRIPTO = 0.20, 0.30
-QUEBRA_ACAO, QUEBRA_CRIPTO = 0.40, 0.60  # gap maior que isso = quebra de série (grupamento, reestruturação)
+QUEBRA_ACAO, QUEBRA_CRIPTO = 0.40, 0.60
+SALTO_IMPOSSIVEL = 20  # gap maior que isso = quebra de série (grupamento, reestruturação)
 MAX_CORRECOES_RECENTES = 3      # mais que isso nos últimos 60 pregões => dados instáveis
 DIAS_SEM_PREGAO = 5             # último candle mais velho que isso => desatualizado
 
@@ -93,7 +94,10 @@ def limpar(df: pd.DataFrame, mercado: str) -> tuple[pd.DataFrame, list[tuple[pd.
     quebra = QUEBRA_CRIPTO if mercado == "CRIPTO" else QUEBRA_ACAO
     vol_normal = df["Volume"].rolling(20, min_periods=5).median().shift(1)
     sem_fluxo = ~(df["Volume"] > vol_normal * 3)
-    saltos = ((df["Close"] / df["Close"].shift(1) - 1).abs() > quebra) & sem_fluxo
+    razao = df["Close"] / df["Close"].shift(1)
+    # Salto de mais de 20x em um candle é sempre outro ativo com o mesmo ticker (ex.: OP-USD no Yahoo
+    # antes de 2022 era outro token), mesmo que venha com volume.
+    saltos = (((razao - 1).abs() > quebra) & sem_fluxo) | (razao > SALTO_IMPOSSIVEL) | (razao < 1 / SALTO_IMPOSSIVEL)
     if saltos.any():
         ultima = df.index[saltos][-1]
         problemas.append((ultima, f"quebra de série ({df['Close'].shift(1)[ultima]:.2f} → "
