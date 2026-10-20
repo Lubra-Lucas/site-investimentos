@@ -209,6 +209,48 @@ function agregar(candles, tf) {
 
 // ------------------------------------------------------------- gráfico
 
+// ------------------------------------------------------------- preferências do gráfico
+
+/** Predefinições. "limpo" = fundo branco, sem grade e sem indicadores (o usuário liga o que quiser). */
+const PREDEFINICOES = {
+  escuro: {
+    nome: "Escuro", fundo: "#0f141c", gradeV: true, gradeH: true, corAlta: "#26c281", corBaixa: "#f0506e",
+    mm20: true, mm50: true, mm200: true, bb: true, ifr: true, sinais: true,
+  },
+  limpo: {
+    nome: "Claro limpo", fundo: "#ffffff", gradeV: false, gradeH: false, corAlta: "#089981", corBaixa: "#f23645",
+    mm20: false, mm50: false, mm200: false, bb: false, ifr: false, sinais: false,
+  },
+  claro: {
+    nome: "Claro com grade", fundo: "#ffffff", gradeV: true, gradeH: true, corAlta: "#089981", corBaixa: "#f23645",
+    mm20: true, mm50: true, mm200: true, bb: true, ifr: true, sinais: true,
+  },
+};
+
+const Preferencias = {
+  chave: "grafico-preferencias",
+  atual: null,
+  ler() {
+    this.atual ??= { ...PREDEFINICOES.escuro, ...guardar.ler(this.chave, {}) };
+    return this.atual;
+  },
+  definir(mudancas) {
+    this.atual = { ...this.ler(), ...mudancas };
+    guardar.gravar(this.chave, this.atual);
+    graficos.forEach((g) => g.aplicarPreferencias());
+    document.dispatchEvent(new CustomEvent("preferencias"));
+  },
+  /** Cores que dependem do fundo: texto, grade e linhas auxiliares legíveis no claro e no escuro. */
+  derivadas(p = this.ler()) {
+    const hex = p.fundo.replace("#", "");
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const claro = (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55;
+    return claro
+      ? { claro, texto: "#4a5361", grade: "#e9ecef", borda: "#d6dae0", bb: "#8a94a6", ifr: "#7e57c2", nivel: "#c9ced6" }
+      : { claro, texto: css("--texto-fraco"), grade: "rgba(31,39,51,0.5)", borda: css("--borda"), bb: css("--bb"), ifr: css("--acento"), nivel: css("--borda-forte") };
+  },
+};
+
 const graficos = new Set();
 const BARRAS_VISIVEIS = { 60: 160, 240: 120, D: 180, W: 110, M: 72 };
 const INTRADAY = new Set(["60", "240"]);
@@ -222,46 +264,82 @@ class Grafico {
     this.mini = !!opcoes.mini;
     this.pedido = 0;
     this.tf = "D";
-    this.camadas = { mm: true, bb: true };
     this.chart = LWC.createChart(alvo, {
       autoSize: true,
       layout: {
-        background: { type: "solid", color: "transparent" },
-        textColor: css("--texto-fraco"),
         fontFamily: "JetBrains Mono, monospace",
         fontSize: this.mini ? 10 : 11,
         attributionLogo: !this.mini,
         panes: { separatorColor: css("--borda"), separatorHoverColor: css("--bg-elev") },
       },
-      grid: { vertLines: { color: "rgba(31,39,51,0.5)" }, horzLines: { color: "rgba(31,39,51,0.5)" } },
-      rightPriceScale: { borderColor: css("--borda") },
-      timeScale: { borderColor: css("--borda"), rightOffset: 3 },
+      timeScale: { rightOffset: 3 },
       crosshair: { mode: LWC.CrosshairMode.Normal },
       handleScroll: !this.mini, handleScale: !this.mini,
       localization: { locale: "pt-BR", priceFormatter: (p) => fmtNum(p, casasPreco(p)) },
     });
-    this.candles = this.chart.addSeries(LWC.CandlestickSeries, {
-      upColor: css("--alta"), downColor: css("--baixa"), borderVisible: false,
-      wickUpColor: css("--alta"), wickDownColor: css("--baixa"),
-    });
+    this.candles = this.chart.addSeries(LWC.CandlestickSeries, { borderVisible: false });
     const linha = (cor, pane = 0, extra = {}) => this.chart.addSeries(LWC.LineSeries, {
       color: cor, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, ...extra,
     }, pane);
     this.mm20 = linha(css("--mm20"));
     this.mm50 = linha(css("--mm50"));
     this.mm200 = linha(css("--mm200"), 0, { lineWidth: 2 });
-    const bb = { color: css("--bb"), lineWidth: 1, lineStyle: LWC.LineStyle.Dotted };
-    this.bbSup = linha(bb.color, 0, bb);
-    this.bbInf = linha(bb.color, 0, bb);
+    const bb = { lineWidth: 1, lineStyle: LWC.LineStyle.Dotted };
+    this.bbSup = linha(css("--bb"), 0, bb);
+    this.bbInf = linha(css("--bb"), 0, bb);
     this.marcadores = LWC.createSeriesMarkers(this.candles, []);
     this.sinais = [];
-    if (!this.mini) {
-      this.ifr = linha(css("--acento"), 1, { lastValueVisible: true, priceFormat: { type: "price", precision: 0, minMove: 1 } });
-      for (const [p, c] of [[80, "--baixa"], [70, "--borda-forte"], [30, "--borda-forte"], [20, "--alta"]])
-        this.ifr.createPriceLine({ price: p, color: css(c), lineStyle: LWC.LineStyle.Dashed, lineWidth: 1, axisLabelVisible: false });
-      this.chart.panes()[1].setHeight(110);
-    }
     graficos.add(this);
+    this.aplicarPreferencias();
+  }
+
+  /** O painel do IFR só existe quando o indicador está ligado (sem ele, o gráfico fica limpo). */
+  painelIFR(ligado) {
+    if (this.mini) return;
+    if (ligado && !this.ifr) {
+      const d = Preferencias.derivadas();
+      this.ifr = this.chart.addSeries(LWC.LineSeries, {
+        color: d.ifr, lineWidth: 1.5, priceLineVisible: false, crosshairMarkerVisible: false,
+        lastValueVisible: true, priceFormat: { type: "price", precision: 0, minMove: 1 },
+      }, 1);
+      this.niveisIFR = [[80, "baixa"], [70, "nivel"], [30, "nivel"], [20, "alta"]].map(([price, c]) =>
+        this.ifr.createPriceLine({ price, color: c, lineStyle: LWC.LineStyle.Dashed, lineWidth: 1, axisLabelVisible: false }));
+      this.chart.panes()[1]?.setHeight(110);
+      if (this.c) this.ifr.setData(ifr(this.c));
+    } else if (!ligado && this.ifr) {
+      this.chart.removeSeries(this.ifr);  // painel vazio é removido junto
+      this.ifr = null;
+    }
+  }
+
+  /** Aplica fundo, grade, cores dos candles e quais indicadores aparecem. */
+  aplicarPreferencias() {
+    const p = Preferencias.ler();
+    const d = Preferencias.derivadas(p);
+    this.chart.applyOptions({
+      layout: {
+        background: { type: "solid", color: p.fundo }, textColor: d.texto,
+        panes: { separatorColor: d.borda, separatorHoverColor: d.grade },
+      },
+      grid: { vertLines: { visible: p.gradeV, color: d.grade }, horzLines: { visible: p.gradeH, color: d.grade } },
+      rightPriceScale: { borderColor: d.borda },
+      timeScale: { borderColor: d.borda },
+    });
+    this.candles.applyOptions({
+      upColor: p.corAlta, downColor: p.corBaixa, wickUpColor: p.corAlta, wickDownColor: p.corBaixa,
+    });
+    this.mm20.applyOptions({ visible: p.mm20 });
+    this.mm50.applyOptions({ visible: p.mm50 });
+    this.mm200.applyOptions({ visible: p.mm200 });
+    for (const s of [this.bbSup, this.bbInf]) s.applyOptions({ visible: p.bb, color: d.bb });
+    this.painelIFR(p.ifr);
+    if (this.ifr) {
+      this.ifr.applyOptions({ color: d.ifr });
+      const cores = { baixa: p.corBaixa, nivel: d.nivel, alta: p.corAlta };
+      this.niveisIFR.forEach((l, i) => l.applyOptions({ color: cores[["baixa", "nivel", "nivel", "alta"][i]] }));
+    }
+    this.alvo.classList.toggle("grafico-claro", d.claro);
+    if (this.c) this.marcar(this.c);
   }
 
   async mostrar(arquivo, tf = this.tf) {
@@ -280,10 +358,9 @@ class Grafico {
     this.bbSup.setData(sup);
     this.bbInf.setData(inf);
     this.ifr?.setData(ifr(c));
-    this.marcar(c);
     this.c = c;
+    this.marcar(c);
     this.n = c.length;
-    this.aplicarCamadas();
     this.centralizar();
     this.aoMostrar?.();
     return true;
@@ -291,7 +368,8 @@ class Grafico {
 
   /** Setas nos candles em que as estratégias dispararam (diário e semanal). */
   marcar(candles) {
-    const tfSinal = { D: "D", W: "S" }[this.tf];
+    const p = Preferencias.ler();
+    const tfSinal = p.sinais ? { D: "D", W: "S" }[this.tf] : null;
     const existe = new Set(candles.map((c) => c.time));
     const porDia = new Map();
     for (const s of this.sinais) {
@@ -303,14 +381,9 @@ class Grafico {
       time: s.data,
       position: s.lado === "compra" ? "belowBar" : "aboveBar",
       shape: s.lado === "compra" ? "arrowUp" : "arrowDown",
-      color: css(s.lado === "compra" ? "--alta" : "--baixa"),
+      color: s.lado === "compra" ? p.corAlta : p.corBaixa,
     }));
     this.marcadores.setMarkers(m);
-  }
-
-  aplicarCamadas() {
-    for (const s of [this.mm20, this.mm50, this.mm200]) s.applyOptions({ visible: this.camadas.mm });
-    for (const s of [this.bbSup, this.bbInf]) s.applyOptions({ visible: this.camadas.bb });
   }
 
   /** Desmonta o gráfico; respostas que ainda estiverem a caminho são descartadas. */
@@ -396,10 +469,7 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
       const [tf, rot] = x.split(":");
       return el("button", { "data-tf": tf, class: tf === "D" ? "ativo" : null, title: ROTULO_TF[tf] }, rot);
     }));
-  const camadas = el("div", { class: "camadas" },
-    el("label", { class: "leg mm" }, el("input", { type: "checkbox", checked: true, "data-c": "mm" }), "MM 20/50/200"),
-    el("label", { class: "leg bb" }, el("input", { type: "checkbox", checked: true, "data-c": "bb" }), "Bollinger 20,2"),
-    el("span", { class: "leg ifr" }, "IFR 14"));
+  const camadas = atalhosIndicadores({ comSinais: true });
   alvo.replaceChildren(
     el("div", { class: "painel-cab" }, el("div", {}, titulo, sub), el("div", { class: "controles" }, botaoSimular, tfs)),
     el("div", { class: "barra-grafico" }, camadas, contexto),
@@ -418,10 +488,6 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
     tfs.querySelectorAll("button").forEach((x) => x.classList.toggle("ativo", x === b));
     g.mostrar(atual.arquivo, b.dataset.tf);
     atualizarNota();
-  });
-  camadas.addEventListener("change", (e) => {
-    g.camadas[e.target.dataset.c] = e.target.checked;
-    g.aplicarCamadas();
   });
 
   return {
@@ -474,4 +540,79 @@ function contextoAtivo(a) {
     p.push(el("span", { class: "pilula" }, `Estoc. lento 60m ${v(a.estoc_60)} · D ${v(a.estoc_d)}`));
   if (a.bb_comprimida) p.push(el("span", { class: "pilula aviso" }, `Bollinger comprimida desde ${fmtData(a.bb_comprimida_desde)}`));
   return p;
+}
+
+// ------------------------------------------------------------- personalização do gráfico
+
+const INDICADORES = [
+  ["mm20", "MM20", "--mm20"], ["mm50", "MM50", "--mm50"], ["mm200", "MM200", "--mm200"],
+  ["bb", "Bollinger", "--bb"], ["ifr", "IFR", "--acento"], ["sinais", "Setas dos sinais", "--aviso"],
+];
+
+/** Liga/desliga rápido de cada indicador + botão que abre a personalização completa. */
+function atalhosIndicadores({ comSinais = false, comIFR = true } = {}) {
+  const p = Preferencias.ler();
+  const caixa = el("div", { class: "camadas" },
+    ...INDICADORES.filter(([k]) => (comSinais || k !== "sinais") && (comIFR || k !== "ifr")).map(([k, rot, cor]) =>
+      el("label", { class: "leg", style: `--cor-leg: var(${cor})` },
+        el("input", { type: "checkbox", "data-k": k, checked: p[k], onchange: (e) => Preferencias.definir({ [k]: e.target.checked }) }), rot)),
+    el("button", { class: "botao-personalizar", title: "Fundo, grade, cores e indicadores do gráfico",
+      onclick: (e) => abrirPersonalizacao(e.currentTarget) }, "⚙ Personalizar"));
+  // mudança feita em outro lugar (painel de personalização) reflete aqui
+  document.addEventListener("preferencias", () => {
+    const atual = Preferencias.ler();
+    caixa.querySelectorAll("input[data-k]").forEach((i) => { i.checked = atual[i.dataset.k]; });
+  });
+  return caixa;
+}
+
+let caixaPersonalizacao = null;
+
+function abrirPersonalizacao(ancora) {
+  if (caixaPersonalizacao?.isConnected) { caixaPersonalizacao.remove(); return; }
+  const caixa = el("div", { class: "personalizacao", role: "dialog", "aria-label": "Personalizar gráfico" });
+  caixaPersonalizacao = caixa;
+  const p = Preferencias.ler();
+  const marcar = (k, rot) => el("label", { class: "opcao" },
+    el("input", { type: "checkbox", "data-k": k, checked: p[k], onchange: (e) => Preferencias.definir({ [k]: e.target.checked }) }), rot);
+  const corInput = (k, rot) => el("label", { class: "opcao cor" }, rot,
+    el("input", { type: "color", "data-k": k, value: p[k], oninput: (e) => Preferencias.definir({ [k]: e.target.value }) }));
+  caixa.replaceChildren(
+    el("div", { class: "personalizacao-topo" }, el("b", {}, "Personalizar gráfico"),
+      el("button", { class: "fechar", "aria-label": "Fechar", onclick: () => caixa.remove() }, "×")),
+    el("p", { class: "rotulo" }, "Predefinições"),
+    el("div", { class: "predefinicoes" }, Object.entries(PREDEFINICOES).map(([k, pre]) =>
+      el("button", { class: "predef", onclick: () => Preferencias.definir({ ...pre }) },
+        el("span", { class: "amostra", style: `background:${pre.fundo}` },
+          el("i", { style: `background:${pre.corAlta}` }), el("i", { style: `background:${pre.corBaixa}` })),
+        pre.nome))),
+    el("p", { class: "rotulo" }, "Fundo e grade"),
+    el("div", { class: "grade-opcoes" }, corInput("fundo", "Cor de fundo"),
+      marcar("gradeV", "Linhas verticais"), marcar("gradeH", "Linhas horizontais")),
+    el("p", { class: "rotulo" }, "Candles"),
+    el("div", { class: "grade-opcoes" }, corInput("corAlta", "Alta"), corInput("corBaixa", "Baixa")),
+    el("p", { class: "rotulo" }, "Indicadores"),
+    el("div", { class: "grade-opcoes" }, INDICADORES.map(([k, rot]) => marcar(k, rot))),
+    el("p", { class: "sub" }, "Vale para todos os gráficos do site, inclusive a Multitela, e fica salvo neste navegador."),
+  );
+  // atualiza os campos no lugar (redesenhar fecharia o seletor de cor no meio da escolha)
+  const sincronizar = () => {
+    if (!caixa.isConnected) { document.removeEventListener("preferencias", sincronizar); return; }
+    const atual = Preferencias.ler();
+    caixa.querySelectorAll("input[data-k]").forEach((i) => {
+      if (i === document.activeElement) return;
+      if (i.type === "checkbox") i.checked = atual[i.dataset.k]; else i.value = atual[i.dataset.k];
+    });
+  };
+  document.addEventListener("preferencias", sincronizar);
+  document.body.append(caixa);
+  const r = ancora.getBoundingClientRect();
+  const largura = Math.min(320, window.innerWidth - 32);
+  caixa.style.width = `${largura}px`;
+  caixa.style.top = `${r.bottom + window.scrollY + 6}px`;
+  caixa.style.left = `${Math.max(16, Math.min(r.right - largura, window.innerWidth - largura - 16)) + window.scrollX}px`;
+  const fora = (e) => {
+    if (!caixa.contains(e.target) && e.target !== ancora) { caixa.remove(); document.removeEventListener("pointerdown", fora); }
+  };
+  setTimeout(() => document.addEventListener("pointerdown", fora));
 }

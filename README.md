@@ -28,6 +28,17 @@ GitHub Actions (todo dia 19:30 BRT)
    └─ publica o site estático no GitHub Pages
 ```
 
+## Personalizar o gráfico
+
+O botão **⚙ Personalizar** (no Radar, na Carteira e na Multitela) ajusta todos os gráficos do site:
+
+- **Predefinições:** *Escuro* (padrão), *Claro limpo* (fundo branco, sem grade e sem indicadores) e *Claro com grade*.
+- **Fundo e grade:** cor de fundo e linhas verticais e horizontais ligadas ou desligadas.
+- **Candles:** cores de alta e de baixa.
+- **Indicadores:** MM20, MM50, MM200, Bollinger, IFR (o painel some quando desligado) e as setas dos sinais.
+
+Os indicadores também têm atalhos de liga/desliga na barra acima de cada gráfico. A escolha fica salva no navegador.
+
 ## Simulador de posição
 
 No Radar e na Carteira, o botão **⊕ Simular** abre uma ferramenta de risco/retorno no gráfico, como a do TradingView:
