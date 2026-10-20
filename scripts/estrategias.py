@@ -6,7 +6,8 @@ A favor da tendência (comprar alta que continua / vender baixa que continua):
   pullback   Pullback nas médias (MM20, MM50 ou MM200), com as médias alinhadas a favor:
              - rejeição: a mínima fura a média e o candle fecha acima dela;
              - violação e retomada: fecha abaixo da média por 1 ou 2 candles e volta a fechar acima.
-             Venda: o espelho (máxima fura e fecha abaixo; ou fecha acima 1-2 candles e perde de novo).
+             Se o candle também fecha em alta sobre o anterior, ganha "+ fechamento positivo"
+             (sinal mais forte). Venda: o espelho (máxima fura e fecha abaixo; ou fecha acima 1-2 candles e perde de novo).
   boca       Boca de jacaré: bandas de Bollinger comprimidas que abrem (superior sobe, inferior
              desce) com fechamento fora delas.
   mtf        Multitempo: tendência no tempo do sinal + exaustão no tempo menor.
@@ -157,28 +158,29 @@ def _pullbacks(f: pd.DataFrame) -> list[tuple]:
         mm = f[f"MM{n}"]
         alta_ok, baixa_ok = (x.fillna(False) for x in contexto[n])
         abaixo, acima = (c < mm).fillna(False), (c > mm).fillna(False)
+        sobe, desce = (c > c.shift(1)).fillna(False), (c < c.shift(1)).fillna(False)
         casos = {
             "compra": [
-                (alta_ok & (l < mm) & acima & _antes(acima, 1), f"Rejeição da MM{n}: a mínima furou e fechou acima"),
-                (alta_ok & acima & _antes(abaixo, 1) & ~_antes(abaixo, 2),
-                 f"Violação e retomada da MM{n}: 1 candle abaixo e voltou"),
+                (alta_ok & (l < mm) & acima & _antes(acima, 1), f"Rejeição da MM{n}", sobe),
+                (alta_ok & acima & _antes(abaixo, 1) & ~_antes(abaixo, 2), f"Violação e retomada da MM{n} (1 candle)", sobe),
                 (alta_ok & acima & _antes(abaixo, 1) & _antes(abaixo, 2) & ~_antes(abaixo, 3),
-                 f"Violação e retomada da MM{n}: 2 candles abaixo e voltou"),
+                 f"Violação e retomada da MM{n} (2 candles)", sobe),
             ],
             "venda": [
-                (baixa_ok & (h > mm) & abaixo & _antes(abaixo, 1), f"Rejeição da MM{n}: a máxima furou e fechou abaixo"),
-                (baixa_ok & abaixo & _antes(acima, 1) & ~_antes(acima, 2),
-                 f"Violação e perda da MM{n}: 1 candle acima e voltou a perder"),
+                (baixa_ok & (h > mm) & abaixo & _antes(abaixo, 1), f"Rejeição da MM{n}", desce),
+                (baixa_ok & abaixo & _antes(acima, 1) & ~_antes(acima, 2), f"Violação e perda da MM{n} (1 candle)", desce),
                 (baixa_ok & abaixo & _antes(acima, 1) & _antes(acima, 2) & ~_antes(acima, 3),
-                 f"Violação e perda da MM{n}: 2 candles acima e voltou a perder"),
+                 f"Violação e perda da MM{n} (2 candles)", desce),
             ],
         }
         for lado, regras in casos.items():
-            for cond, texto in regras:
+            fechamento = "positivo" if lado == "compra" else "negativo"
+            for cond, texto, forte in regras:
                 for d in f.index[cond.fillna(False)]:
                     if (d, lado) not in vistos:
                         vistos.add((d, lado))
-                        out.append((d, lado, "pullback", texto))
+                        # sinal mais forte: além de defender a média, o candle fechou a favor
+                        out.append((d, lado, "pullback", f"{texto} + fechamento {fechamento}" if forte[d] else texto))
     return out
 
 
@@ -277,6 +279,13 @@ def _var(close: pd.Series, desde: pd.Timestamp):
     return None if base.empty else _num((close.iloc[-1] / base.iloc[-1] - 1) * 100)
 
 
+def _sequencia(serie: pd.Series) -> int:
+    """Quantos candles seguidos, até o último, a condição vale."""
+    serie = serie.fillna(False).astype(bool)
+    falsos = serie[~serie]
+    return int(len(serie) if falsos.empty else (serie.index > falsos.index[-1]).sum())
+
+
 def _desde(serie: pd.Series) -> str | None:
     """Data em que começou a sequência atual de True."""
     serie = serie.fillna(False).astype(bool)
@@ -331,6 +340,7 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
         "tend_s": "alta" if alta_s.iloc[-1] else "baixa" if baixa_s.iloc[-1] else "lateral",
         "tendencia_forte": forte,
         "tendencia_desde": _desde(alta_d if forte == "alta" else baixa_d) if forte else None,
+        "tendencia_pregoes": _sequencia(alta_d if forte == "alta" else baixa_d) if forte else 0,
         "bb_largura_pct": _num(u["BBlarg"] * 100),
         "bb_comprimida": bool(u["BBcomprimida"]),
         "bb_comprimida_desde": _desde(d["BBcomprimida"]),

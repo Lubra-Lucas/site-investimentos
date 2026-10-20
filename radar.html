@@ -81,11 +81,14 @@
           <div class="categorias" id="categorias" role="group" aria-label="Estratégia"></div>
         </div>
         <div id="cab-estado" class="cab-estado" hidden>
-          <div>
+          <div class="cab-estado-titulo">
             <h2 id="estado-titulo"></h2>
             <span class="contagem" id="estado-n"></span>
           </div>
-          <select id="estado-ordem" aria-label="Ordenar"></select>
+          <div class="ordenacao">
+            <span class="filtro-rotulo">Ordenar por</span>
+            <div class="ordens" id="estado-ordem" role="group" aria-label="Ordenar"></div>
+          </div>
         </div>
         <p class="sub cat-descricao" id="cat-descricao"></p>
         <ol class="lista-ativos" id="lista-ativos"></ol>

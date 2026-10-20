@@ -178,9 +178,10 @@ const FILTROS = {
   },
 };
 const ORDENS = {
-  "var-dia": ["Maior alta no dia", (a, b) => (b.var_dia_pct ?? -1e9) - (a.var_dia_pct ?? -1e9)],
-  "var-mes": ["Maior alta no mês", (a, b) => (b.var_mes_pct ?? -1e9) - (a.var_mes_pct ?? -1e9)],
-  "ifr-d": ["Menor IFR diário", (a, b) => (a.ifr_d ?? 999) - (b.ifr_d ?? 999)],
+  "var-dia": ["▲ Alta no dia", (a, b) => (b.var_dia_pct ?? -1e9) - (a.var_dia_pct ?? -1e9)],
+  "var-mes": ["▲ Alta no mês", (a, b) => (b.var_mes_pct ?? -1e9) - (a.var_mes_pct ?? -1e9)],
+  "queda-mes": ["▼ Queda no mês", (a, b) => (a.var_mes_pct ?? 1e9) - (b.var_mes_pct ?? 1e9)],
+  "ifr-d": ["IFR diário mais baixo", (a, b) => (a.ifr_d ?? 999) - (b.ifr_d ?? 999)],
   "mm50": ["Mais perto da MM50", (a, b) => Math.abs(a.dist_mm50_pct ?? 999) - Math.abs(b.dist_mm50_pct ?? 999)],
 };
 
@@ -196,32 +197,32 @@ function renderMenuEstado() {
       el("span", {}, f.nome), el("b", { class: "contagem" }, doFiltro(k).length))));
 }
 
-/** Largura da Bollinger no tempo do filtro (ou no diário, nos outros filtros). */
-function bbItem(a) {
-  const tf = estado.filtro === "bb" ? estado.bbTf : "D";
-  const bb = a.bb_tf?.[tf];
-  if (!bb) return el("span", {}, `BB ${ROTULO_TF_FRASE[tf]} —`);
-  return el("span", {}, `BB ${ROTULO_TF_FRASE[tf]} ${fmtNum(bb.largura_pct, 1)}%`,
-    bb.comprimida ? el("b", { class: "aviso" }, ` comprimida${bb.desde ? " desde " + fmtData(bb.desde.slice(0, 10)) : ""}`) : "");
-}
-
+/** Cartão do filtro de estado: cada número com o seu rótulo, agrupado por assunto. */
 function itemEstado(a) {
   const v = (x) => (x == null ? "—" : fmtNum(x, 0));
-  const ifrCls = (x) => (x == null ? "" : x < 20 ? "alta forte" : x < 30 ? "alta" : x > 80 ? "baixa forte" : x > 70 ? "baixa" : "");
-  const seta = (t) => el("span", { class: `tend ${t}` }, t === "alta" ? "▲" : t === "baixa" ? "▼" : "▬");
-  return el("li", { class: "item", "data-tk": a.ticker, onclick: () => selecionar(a.ticker) },
-    cabecalhoItem(a),
-    el("div", { class: "metricas" },
-      el("span", {}, "D ", seta(a.tend_d), " S ", seta(a.tend_s),
-        a.tendencia_desde ? ` desde ${fmtData(a.tendencia_desde)}` : ""),
-      el("span", {}, "IFR ",
-        el("b", { class: ifrCls(a.ifr_60) }, `60m ${v(a.ifr_60)}`), " · ",
-        el("b", { class: ifrCls(a.ifr_d) }, `D ${v(a.ifr_d)}`), " · ",
-        el("b", { class: ifrCls(a.ifr_s) }, `S ${v(a.ifr_s)}`), " · ",
-        el("b", { class: ifrCls(a.ifr_m) }, `M ${v(a.ifr_m)}`)),
-      bbItem(a),
-      el("span", {}, "MM50 ", el("b", { class: cor(a.dist_mm50_pct) }, fmtPct(a.dist_mm50_pct)), " · mês ",
-        el("b", { class: cor(a.var_mes_pct) }, fmtPct(a.var_mes_pct)))));
+  const ifrCls = (x) => (x == null ? "" : x < 30 ? "alta" : x > 70 ? "baixa" : "");
+  const tend = (rot, t) => el("span", { class: `tend-pilula ${t}` }, rot, " ",
+    el("b", {}, t === "alta" ? "▲ alta" : t === "baixa" ? "▼ baixa" : "▬ lateral"));
+  const metrica = (rot, valor, cls = "") => el("div", { class: "metrica" }, el("span", {}, rot), el("b", { class: cls }, valor));
+  const bloco = (titulo, ...metricas) => el("div", { class: "bloco-metricas" }, el("p", {}, titulo), el("div", { class: "metricas-linha" }, metricas));
+  const bbTf = estado.filtro === "bb" ? estado.bbTf : "D";
+  const bb = a.bb_tf?.[bbTf];
+  return el("li", { class: "item cartao-estado", "data-tk": a.ticker, onclick: () => selecionar(a.ticker) },
+    el("div", { class: "ce-topo" },
+      el("div", {}, el("b", { class: "ce-ticker" }, semSufixo(a.ticker)), el("span", { class: "ce-nome" }, a.nome)),
+      el("div", { class: "ce-preco" }, el("b", {}, fmtMoeda(a.ultimo, a.moeda)), el("span", { class: cor(a.var_dia_pct) }, fmtPct(a.var_dia_pct)))),
+    el("div", { class: "ce-tendencia" }, tend("Diário", a.tend_d), tend("Semanal", a.tend_s),
+      a.tendencia_desde ? el("span", { class: "ce-desde" }, `há ${a.tendencia_pregoes} pregões · desde ${fmtData(a.tendencia_desde)}`) : null),
+    bloco("Variação", metrica("Dia", fmtPct(a.var_dia_pct), cor(a.var_dia_pct)),
+      metrica("Mês", fmtPct(a.var_mes_pct), cor(a.var_mes_pct)), metrica("Ano", fmtPct(a.var_ano_pct), cor(a.var_ano_pct))),
+    bloco("IFR 14", metrica("60 min", v(a.ifr_60), ifrCls(a.ifr_60)), metrica("Diário", v(a.ifr_d), ifrCls(a.ifr_d)),
+      metrica("Semanal", v(a.ifr_s), ifrCls(a.ifr_s)), metrica("Mensal", v(a.ifr_m), ifrCls(a.ifr_m))),
+    bloco("Distância das médias", metrica("MM20", fmtPct(a.dist_mm20_pct), cor(a.dist_mm20_pct)),
+      metrica("MM50", fmtPct(a.dist_mm50_pct), cor(a.dist_mm50_pct)), metrica("MM200", fmtPct(a.dist_mm200_pct), cor(a.dist_mm200_pct))),
+    bloco(`Bollinger ${ROTULO_TF_FRASE[bbTf]}`,
+      metrica("Largura", bb ? `${fmtNum(bb.largura_pct, 1)}%` : "—"),
+      metrica("Situação", bb?.comprimida ? "Comprimida" : bb ? "Normal" : "—", bb?.comprimida ? "aviso" : ""),
+      metrica("Desde", bb?.desde ? fmtData(bb.desde.slice(0, 10)) : "—")));
 }
 
 function renderEstado() {
@@ -232,10 +233,10 @@ function renderEstado() {
   titulo.textContent = f.nome;
   titulo.className = `fe-${f.classe}`;
   document.getElementById("estado-n").textContent = itens.length;
-  const sel = document.getElementById("estado-ordem");
-  sel.replaceChildren(el("option", { value: "padrao" }, f.rotPadrao),
-    ...Object.entries(ORDENS).map(([k, [rot]]) => el("option", { value: k }, rot)));
-  sel.value = estado.ordem;
+  document.getElementById("estado-ordem").replaceChildren(
+    ...[["padrao", f.rotPadrao], ...Object.entries(ORDENS).map(([k, [rot]]) => [k, rot])].map(([k, rot]) =>
+      el("button", { class: `ordem ${k === estado.ordem ? "ativo" : ""}`,
+        onclick: () => { estado.ordem = k; renderEstado(); abrirPrimeiro(); } }, rot)));
   document.getElementById("cat-descricao").textContent = f.desc;
   document.getElementById("caixa-bb-tf").hidden = estado.filtro !== "bb";
   preencherLista(itens, itemEstado, "Nenhum ativo neste filtro hoje.");
@@ -249,6 +250,7 @@ function aplicarVisao() {
   document.getElementById("menu-estado").hidden = op;
   document.getElementById("cab-oportunidades").hidden = !op;
   document.getElementById("cab-estado").hidden = op;
+  document.querySelector(".area-radar").classList.toggle("modo-estado", !op);
   if (op) { calcularOportunidades(); renderOportunidades(); }
   else { renderMenuEstado(); renderEstado(); }
 }
@@ -301,10 +303,6 @@ async function iniciar() {
     salvar(); marcarAba(); renderOportunidades(); abrirPrimeiro();
   });
   marcarAba();
-  document.getElementById("estado-ordem").addEventListener("change", (e) => {
-    estado.ordem = e.target.value;
-    renderEstado();
-  });
 
   aplicarVisao();
   renderRetidos();
