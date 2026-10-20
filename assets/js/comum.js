@@ -60,6 +60,56 @@ const carregarRadar = () => buscarJSON("data/radar.json").then((r) => {
 });
 const carregarResumo = () => buscarJSON("data/resumo.json");
 const carregarBacktest = () => buscarJSON("data/backtest.json");
+
+/** Preço mais recente: o do pregão em andamento, se houver, senão o último fechamento. */
+const precoAtual = (a) => (a.parcial
+  ? { ultimo: a.parcial.ultimo, var_pct: a.parcial.var_pct, parcial: true }
+  : { ultimo: a.ultimo, var_pct: a.var_dia_pct, parcial: false });
+
+/** Preço e variação do dia; durante o pregão, o valor em formação com um ponto indicando isso. */
+const precoComFormacao = (a, classe) => {
+  const p = precoAtual(a);
+  return el("div", { class: classe, title: p.parcial ? `Pregão de ${fmtData(a.parcial.data)} em andamento (sem sinais até o fechamento)` : null },
+    p.parcial ? el("span", { class: "ponto-formacao" }, "● ") : null,
+    el("span", { class: "mono" }, fmtMoeda(p.ultimo, a.moeda)), " ",
+    el("span", { class: `mono ${cor(p.var_pct)}` }, fmtPct(p.var_pct)));
+};
+
+const fmtDuracao = (ms) => {
+  const min = Math.max(1, Math.round(ms / 60000));
+  return min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`;
+};
+
+/**
+ * Aviso de pregão em andamento com contagem regressiva até os sinais do dia saírem
+ * (candle fechado + rodada de atualização). Atualiza sozinho a cada 30 s.
+ */
+function avisoFormacao(R) {
+  const caixa = el("div", { class: "aviso-formacao", hidden: true });
+  const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto" };
+  const atualizar = () => {
+    const grupos = new Map();  // mesmo horário de saída -> mercados
+    for (const [m, f] of Object.entries(R.em_formacao ?? {})) {
+      const chave = `${f.data}|${f.sinais_em}`;
+      if (!grupos.has(chave)) grupos.set(chave, { ...f, mercados: [] });
+      grupos.get(chave).mercados.push(nomes[m] ?? m);
+    }
+    caixa.hidden = !grupos.size;
+    caixa.replaceChildren(...[...grupos.values()].sort((a, b) => a.sinais_em.localeCompare(b.sinais_em)).map((g) => {
+      const falta = Date.parse(g.sinais_em) - Date.now();
+      const hora = new Date(g.sinais_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      return el("span", { class: "formacao-item",
+        title: `O pregão de ${fmtData(g.data)} ainda não fechou: o candle aparece no gráfico como "em formação", ` +
+          `mas só gera sinais depois do fechamento, na atualização prevista para ${hora}.` },
+        "⏳ ", el("b", {}, g.mercados.join(" e ")), `: sinais de ${fmtData(g.data)} `,
+        falta > 0 ? el("b", { class: "contagem-regressiva" }, `em ${fmtDuracao(falta)}`) : el("b", {}, "já devem ter saído"),
+        falta > 0 ? ` (≈ ${hora})` : " · recarregue a página");
+    }));
+  };
+  atualizar();
+  setInterval(atualizar, 30000);
+  return caixa;
+}
 async function carregarIntraday(arquivo) {
   const d = await buscarJSON(`data/intraday/${encodeURIComponent(arquivo)}.json`);
   d.candles ??= d.h.map(([time, open, high, low, close]) => ({ time, open, high, low, close }));
@@ -68,6 +118,7 @@ async function carregarIntraday(arquivo) {
 async function carregarCandles(arquivo) {
   const d = await buscarJSON(`data/ativos/${encodeURIComponent(arquivo)}.json`);
   d.candles ??= d.c.map(([time, open, high, low, close]) => ({ time, open, high, low, close }));
+  // d.parcial: data do candle do pregão em andamento (o último), que ainda não gera sinais
   return d;
 }
 
@@ -366,7 +417,7 @@ class Grafico {
       this.niveisIFR.forEach((l, i) => l.applyOptions({ color: cores[["baixa", "nivel", "nivel", "alta"][i]] }));
     }
     this.alvo.classList.toggle("grafico-claro", d.claro);
-    if (this.c) this.marcar(this.c);
+    if (this.c) { this.pintarCandles(this.c); this.marcar(this.c); }
   }
 
   async mostrar(arquivo, tf = this.tf) {
@@ -377,7 +428,9 @@ class Grafico {
     if (pedido !== this.pedido || this.removido) return false;
     this.chart.timeScale().applyOptions({ timeVisible: intraday, secondsVisible: false });
     const c = agregar(dados.candles, tf);
-    this.candles.setData(c);
+    // no diário/semanal/mensal, o último candle contém o pregão em andamento
+    this.parcial = !intraday && dados.parcial && dados.candles.at(-1)?.time === dados.parcial ? c.at(-1).time : null;
+    this.pintarCandles(c);
     this.mm20.setData(sma(c, 20));
     this.mm50.setData(sma(c, 50));
     this.mm200.setData(sma(c, 200));
@@ -393,6 +446,15 @@ class Grafico {
     this.centralizar();
     this.aoMostrar?.();
     return true;
+  }
+
+  /** Candles na série; o do pregão em andamento fica translúcido. */
+  pintarCandles(c) {
+    if (!this.parcial) { this.candles.setData(c); return; }
+    const p = Preferencias.ler();
+    const claro = (hex) => `rgba(${hex.slice(1).match(/../g).map((x) => parseInt(x, 16)).join(",")},0.4)`;
+    this.candles.setData(c.map((x) => (x.time !== this.parcial ? x : {
+      ...x, color: claro(x.close >= x.open ? p.corAlta : p.corBaixa), wickColor: claro(x.close >= x.open ? p.corAlta : p.corBaixa) })));
   }
 
   /** Setas nos candles em que as estratégias dispararam (diário e semanal). */
@@ -415,6 +477,11 @@ class Grafico {
       shape: s.lado === "compra" ? "arrowUp" : "arrowDown",
       color: s.lado === "compra" ? p.corAlta : p.corBaixa,
     }));
+    if (this.parcial) {
+      m.push({ time: this.parcial, position: "aboveBar", shape: "circle", size: 0.5, color: css("--texto-fraco"),
+        text: this.tf === "D" ? "em formação" : "inclui pregão em formação" });
+      m.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+    }
     this.marcadores.setMarkers(m);
   }
 
@@ -612,7 +679,9 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
       sub.replaceChildren(
         el("span", { class: "mono" }, fmtMoeda(a.ultimo, a.moeda)), " ",
         el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)), " · ",
-        `fechamento de ${fmtData(a.data)} `, seloVerificacao(a));
+        `fechamento de ${fmtData(a.data)} `, seloVerificacao(a),
+        a.parcial ? el("span", { class: "selo selo-formacao", title: "Pregão em andamento: o candle de hoje aparece no gráfico, mas só gera sinais depois do fechamento" },
+          `hoje ${fmtData(a.parcial.data)} em formação: ${fmtMoeda(a.parcial.ultimo, a.moeda)} ${fmtPct(a.parcial.var_pct)}`) : null);
       contexto.replaceChildren(...contextoAtivo(a));
       // 60 min/4h só existem para ações com intraday verificado
       tfs.querySelectorAll("button").forEach((b) => {

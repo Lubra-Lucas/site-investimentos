@@ -45,9 +45,7 @@ function mover(passo) {
 
 const cabecalhoItem = (a) => el("div", { class: "item-topo" },
   el("div", { class: "item-nome" }, el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
-  el("div", { class: "cartao-preco" },
-    el("span", { class: "mono" }, fmtMoeda(a.ultimo, a.moeda)), " ",
-    el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct))));
+  precoComFormacao(a, "cartao-preco"));
 
 function preencherLista(itens, render, vazio) {
   listaAtual = itens;
@@ -393,6 +391,7 @@ async function iniciar() {
   try { R = await carregarRadar(); } catch (e) { montarTopo("radar"); return erroDados(e); }
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
   montarTopo("radar", R);
+  document.getElementById("menu-oportunidades").append(avisoFormacao(R));
   painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
   Object.assign(estado, guardar.ler("radar-v2", {}));
   if (!FILTROS[estado.filtro]) estado.filtro = "forte-alta";  // filtro salvo que deixou de existir

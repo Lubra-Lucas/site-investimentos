@@ -160,6 +160,13 @@ select:focus, .segmento button:focus-visible { outline: 1px solid var(--acento);
 .selo { font: 500 10px var(--mono); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
 .selo-conferido { color: var(--alta); background: rgba(38, 194, 129, 0.1); }
 .selo-pendente { color: var(--aviso); background: rgba(245, 185, 66, 0.1); }
+.selo-formacao { color: var(--texto-fraco); background: var(--bg-elev); border: 1px dashed var(--borda-forte); margin-left: 4px; }
+.ponto-formacao { color: var(--aviso); font-size: 9px; vertical-align: 1px; }
+.celula-preco { display: inline; white-space: nowrap; }
+.aviso-formacao { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--texto-fraco); }
+.formacao-item { background: rgba(245, 185, 66, 0.08); border: 1px solid rgba(245, 185, 66, 0.3); border-radius: 6px; padding: 4px 10px; }
+.formacao-item b { color: var(--texto); }
+.formacao-item .contagem-regressiva { color: var(--aviso); }
 .selo-interno { color: var(--texto-fraco); background: var(--bg-elev); }
 
 /* ---------- tabelas ---------- */

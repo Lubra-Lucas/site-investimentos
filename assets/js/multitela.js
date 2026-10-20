@@ -76,8 +76,7 @@ function celula(item) {
       el("div", {},
         el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
       el("div", { class: "celula-acoes" },
-        el("span", { class: "mono" }, fmtMoeda(a.ultimo, a.moeda)), " ",
-        el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)),
+        precoComFormacao(a, "celula-preco"),
         botaoTelaCheia(() => cel),
         el("a", { class: "abrir-radar", href: `radar.html?ativo#${encodeURIComponent(item.ticker)}`, title: "Abrir no Radar com os dados deste ativo" }, "↗"))),
     el("div", { class: "chips" },
@@ -186,6 +185,7 @@ async function iniciar() {
   try { carteira = (await carregarResumo()).carteira.posicoes.map((p) => p.ticker); } catch {}
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
   montarTopo("multitela", R);
+  document.getElementById("f-descricao").after(avisoFormacao(R));
   document.getElementById("f-indicadores").replaceChildren(atalhosIndicadores({ comSinais: true, comIFR: false }));
 
   renderFontes();
