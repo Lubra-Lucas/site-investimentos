@@ -21,6 +21,7 @@ import pandas as pd
 import backtest
 import estrategias
 import fontes
+import rastreador
 import validacao
 from estrategias import _num, _var
 
@@ -285,6 +286,7 @@ def main() -> None:
 
     teste = backtest.Backtest()
     publicados, retidos, sinais = [], [], []
+    fotos: dict[str, dict] = {}  # indicadores para o rastreador da Multitela
     precos: dict[str, pd.DataFrame] = {}
     for tk, meta in ativos.items():
         rotulo = meta.get("simbolo") or tk.removesuffix(".SA")
@@ -315,6 +317,7 @@ def main() -> None:
             h_fechado = h[h.index.normalize() < pd.Timestamp(form[0])]
             h_fechado = h_fechado if len(h_fechado) >= 60 else None
         estado, sinais_tk, historico = estrategias.analisar(df, meta["mercado"], h_fechado)
+        fotos[tk] = rastreador.fotos(df, meta["mercado"])
         if parcial is not None:
             estado["parcial"] = {"data": form[0].isoformat(), "ultimo": _num(parcial["Close"], 4),
                                  "var_pct": _num((parcial["Close"] / df["Close"].iloc[-1] - 1) * 100)}
@@ -380,6 +383,10 @@ def main() -> None:
         "sinais": sinais,
         "retidos": retidos,
     }
+    (SAIDA / "rastreador.json").write_text(json.dumps({
+        "gerado_em": agora, "periodos_mm": rastreador.PERIODOS_MM, "periodos_ifr": rastreador.PERIODOS_IFR,
+        "janelas": rastreador.JANELAS, "ativos": fotos,
+    }, separators=(",", ":")), encoding="utf-8")
     (SAIDA / "radar.json").write_text(json.dumps(radar, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
     resumo = {
