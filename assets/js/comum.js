@@ -312,6 +312,11 @@ class Grafico {
     this.balao = el("div", { class: "balao-sinal", hidden: true });
     alvo.append(this.balao);
     this.chart.subscribeCrosshairMove((param) => this.mostrarBalao(param));
+    // faixa que destaca o candle de um sinal escolhido na lista (irPara)
+    this.destaque = el("div", { class: "destaque-sinal", hidden: true });
+    alvo.append(this.destaque);
+    this.chart.timeScale().subscribeVisibleLogicalRangeChange(() => this.posicionarDestaque());
+    this.chart.timeScale().subscribeSizeChange(() => this.posicionarDestaque());
     this.aplicarPreferencias();
   }
 
@@ -381,6 +386,8 @@ class Grafico {
     this.bbInf.setData(inf);
     this.ifr?.setData(ifr(c));
     this.c = c;
+    this.dataDestaque = null;
+    this.destaque.hidden = true;
     this.marcar(c);
     this.n = c.length;
     this.centralizar();
@@ -437,6 +444,33 @@ class Grafico {
     this.removido = true;
     graficos.delete(this);
     this.chart.remove();
+  }
+
+  /**
+   * Leva o gráfico até o candle de uma data e o destaca, deixando espaço à direita
+   * para ver o que o preço fez depois (o sinal deu certo?).
+   */
+  irPara(data) {
+    if (!this.c?.length) return;
+    let i = this.c.findIndex((c) => c.time >= data);
+    if (i < 0) i = this.c.length - 1;
+    for (const s of [this.candles, this.ifr]) s?.priceScale().applyOptions({ autoScale: true });
+    const vis = this.mini ? Math.min(BARRAS_VISIVEIS[this.tf], 120) : BARRAS_VISIVEIS[this.tf];
+    // o sinal fica a uns 40% da largura; perto do fim, encosta no último candle
+    const to = Math.min(i + Math.round(vis * 0.6), this.n + 2);
+    this.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, to - vis), to });
+    this.dataDestaque = this.c[i].time;
+    this.posicionarDestaque();
+  }
+
+  posicionarDestaque() {
+    if (!this.dataDestaque) return;
+    const ts = this.chart.timeScale();
+    const x = ts.timeToCoordinate(this.dataDestaque);
+    if (x == null || x < 0 || x > ts.width()) { this.destaque.hidden = true; return; }
+    const larg = Math.max(6, ts.options().barSpacing);
+    Object.assign(this.destaque.style, { left: `${x - larg / 2}px`, width: `${larg}px`, height: `${this.chart.panes()[0]?.getHeight() ?? 0}px` });
+    this.destaque.hidden = false;
   }
 
   /** Volta a escala automática de preço e o enquadramento padrão (Alt+R). */
@@ -560,6 +594,16 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
       const b = tfs.querySelector(`button[data-tf="${tf}"]`);
       if (b && !b.disabled && g.tf !== tf) b.click();
       else if (b?.disabled) g.tf = tf;  // o próximo ativo com intraday já abre nesse tempo
+    },
+    /** Vai até o candle do sinal no tempo gráfico dele (diário ou semanal). */
+    async irPara(data, tf) {
+      if (!atual) return;
+      if (g.tf !== tf) {
+        tfs.querySelectorAll("button").forEach((x) => x.classList.toggle("ativo", x.dataset.tf === tf));
+        await g.mostrar(atual.arquivo, tf);
+        atualizarNota();
+      }
+      g.irPara(data);
     },
     async selecionar(a, sinais = []) {
       atual = a;
