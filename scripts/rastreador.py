@@ -55,7 +55,9 @@ def _sequencia(cond: pd.Series) -> int:
     return n
 
 
-def foto(f: pd.DataFrame, tf: str) -> dict | None:
+def foto(f: pd.DataFrame, tf: str, fracao: float = 1.0) -> dict | None:
+    """fracao: quanto do último candle já passou (semana em andamento com 2 de 5 pregões = 0,4),
+    para o volume relativo não parecer fraco só porque a semana não acabou."""
     if len(f) < 30:
         return None
     casas = 2 if f["Close"].min() >= 1 else 6
@@ -66,7 +68,7 @@ def foto(f: pd.DataFrame, tf: str) -> dict | None:
     }
     vol = f["Volume"].fillna(0)
     media_vol = vol.shift(1).rolling(20).mean().iloc[-1]
-    out["vr"] = _r(vol.iloc[-1] / media_vol, 2) if media_vol and media_vol > 0 else None
+    out["vr"] = _r(vol.iloc[-1] / (media_vol * fracao), 2) if media_vol and media_vol > 0 else None
 
     sma = {n: c.rolling(n).mean() for n in PERIODOS_MM}
     ema = {n: c.ewm(span=n, adjust=False, min_periods=n).mean() for n in PERIODOS_MM}
@@ -117,4 +119,6 @@ def fotos(df: pd.DataFrame, mercado: str) -> dict:
     cripto = mercado == "CRIPTO"
     semanal = reamostrar(df, "W-SUN" if cripto else "W-FRI")
     semanal.index = semanal.index - pd.Timedelta(days=6 if cripto else 4)  # semana pela segunda-feira
-    return {tf: x for tf, x in (("D", foto(df, "D")), ("W", foto(semanal, "W"))) if x}
+    dias = int((df.index >= semanal.index[-1]).sum())
+    fracao = min(1.0, dias / (7 if cripto else 5))
+    return {tf: x for tf, x in (("D", foto(df, "D")), ("W", foto(semanal, "W", fracao))) if x}
