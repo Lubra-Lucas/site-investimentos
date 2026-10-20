@@ -129,7 +129,10 @@ function seloVerificacao(a) {
     ? `Conferido com ${v.fonte}${v.ate ? " até " + fmtData(v.ate) : ""}` +
       (v.dif_max_pct != null ? ` · diferença máx. ${fmtNum(v.dif_max_pct, 2)}%` : "")
     : "Só verificação interna (sem fonte de referência)";
-  const selo = el("span", { class: `selo selo-${v.status}`, title: txt }, v.status === "conferido" ? "✓ conferido" : "◦ interno");
+  const completados = v.completados_oficial ?? [];
+  const extra = completados.length
+    ? ` · candle de ${completados.map((d) => fmtData(d)).join(", ")} veio quebrado do Yahoo e foi trocado pelo oficial (${v.fonte})` : "";
+  const selo = el("span", { class: `selo selo-${v.status}`, title: txt + extra }, v.status === "conferido" ? "✓ conferido" : "◦ interno");
   if (!v.pendente) return selo;
   return el("span", {}, selo, " ", el("span", { class: "selo selo-pendente",
     title: `O candle de ${fmtData(v.pendente)} veio sem fechamento da fonte e ficou de fora até a próxima atualização.` },

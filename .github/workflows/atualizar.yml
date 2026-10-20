@@ -6,6 +6,9 @@ on:
     # por volta das 18:30; com folga, o candle do dia já vem consolidado.
     # Roda também no fim de semana para pegar o candle diário das criptos.
     - cron: "30 22 * * *"
+    # 10:17 UTC = 07:17 em Brasília: o COTAHIST oficial da B3 do pregão anterior já está
+    # publicado e completa qualquer candle que tenha vindo quebrado do Yahoo na rodada da noite.
+    - cron: "17 10 * * *"
   push:
     branches: [main]
   workflow_dispatch: {}

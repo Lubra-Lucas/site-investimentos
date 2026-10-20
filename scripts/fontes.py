@@ -69,7 +69,8 @@ def baixar_yahoo(tickers: list[str], tentativas: int = 3) -> dict[str, pd.DataFr
 
 # ------------------------------------------------------------- referências
 
-def _nasdaq(ticker: str) -> dict[str, float]:
+def _nasdaq(ticker: str) -> dict[str, dict]:
+    """Candles diários oficiais recentes: {data: {open, high, low, close, volume}}."""
     simbolo = ticker.replace("-", ".")
     hoje = date.today()
     url = (f"https://api.nasdaq.com/api/quote/{simbolo}/historical?assetclass=stocks"
@@ -77,10 +78,15 @@ def _nasdaq(ticker: str) -> dict[str, float]:
     r = requests.get(url, headers=HEADERS_NASDAQ, timeout=15)
     r.raise_for_status()
     linhas = ((r.json().get("data") or {}).get("tradesTable") or {}).get("rows") or []
+    num = lambda x: float(str(x).replace("$", "").replace(",", ""))
     out = {}
     for l in linhas:
         m, d, a = l["date"].split("/")
-        out[f"{a}-{m}-{d}"] = float(l["close"].replace("$", "").replace(",", ""))
+        try:
+            out[f"{a}-{m}-{d}"] = {"open": num(l["open"]), "high": num(l["high"]), "low": num(l["low"]),
+                                   "close": num(l["close"]), "volume": num(l["volume"])}
+        except (KeyError, ValueError):
+            continue
     return out
 
 
@@ -126,9 +132,9 @@ def _brapi(ticker: str, token: str) -> dict[str, float]:
     return out
 
 
-def b3_cotahist(pregoes: int = 6) -> dict[str, dict[str, float]]:
-    """Fechamentos oficiais da B3 dos últimos pregões publicados: {PAPEL: {data: fechamento}}."""
-    out: dict[str, dict[str, float]] = {}
+def b3_cotahist(pregoes: int = 6) -> dict[str, dict[str, dict]]:
+    """Candles oficiais da B3 dos últimos pregões publicados: {PAPEL: {data: {open, high, low, close, volume}}}."""
+    out: dict[str, dict[str, dict]] = {}
     achados, dia = 0, date.today()
     for _ in range(14):
         if achados >= pregoes:
@@ -143,7 +149,11 @@ def b3_cotahist(pregoes: int = 6) -> dict[str, dict[str, float]]:
                         # registro 01, lote padrão (BDI 02), mercado à vista (010)
                         if l[:2] == "01" and l[10:12] == "02" and l[24:27] == "010":
                             data = f"{l[2:6]}-{l[6:8]}-{l[8:10]}"
-                            out.setdefault(l[12:24].strip(), {})[data] = int(l[108:121]) / 100
+                            preco = lambda i, f: int(l[i:f]) / 100
+                            out.setdefault(l[12:24].strip(), {})[data] = {
+                                "open": preco(56, 69), "high": preco(69, 82), "low": preco(82, 95),
+                                "close": preco(108, 121), "volume": float(int(l[152:170])),
+                            }
                     achados += 1
             except Exception:
                 pass
@@ -165,7 +175,8 @@ def _b3_hoje(ticker: str) -> dict | None:
 
 
 def referencias(ativos: list[dict]) -> dict[str, dict]:
-    """Referências por ticker: {"fonte", "fechamentos": {data: close}, "hoje": {...} | None}."""
+    """Referências por ticker: {"fonte", "fechamentos": {data: close}, "candles": {data: OHLCV} (só das
+    fontes oficiais, para completar candle quebrado no Yahoo), "hoje": {...} | None}."""
     token = os.environ.get("BRAPI_TOKEN", "").strip()
     tem_br = any(a["mercado"] == "BR" for a in ativos)
     cotahist = b3_cotahist() if tem_br else {}
@@ -176,14 +187,17 @@ def referencias(ativos: list[dict]) -> dict[str, dict]:
         for i in range(3):
             try:
                 if a["mercado"] == "US":
-                    return tk, {"fonte": "Nasdaq", "fechamentos": _nasdaq(tk), "hoje": _nasdaq_hoje(tk)}
+                    candles = _nasdaq(tk)
+                    return tk, {"fonte": "Nasdaq", "fechamentos": {d: c["close"] for d, c in candles.items()},
+                                "candles": candles, "hoje": _nasdaq_hoje(tk)}
                 if a["mercado"] == "BR":
-                    fech = dict(cotahist.get(tk.removesuffix(".SA"), {}))
+                    candles = cotahist.get(tk.removesuffix(".SA"), {})
+                    fech = {d: c["close"] for d, c in candles.items()}
                     fonte = "B3"
                     if token:
                         fech.update(_brapi(tk, token))
                         fonte = "B3 + brapi"
-                    return tk, {"fonte": fonte, "fechamentos": fech, "hoje": _b3_hoje(tk)}
+                    return tk, {"fonte": fonte, "fechamentos": fech, "candles": candles, "hoje": _b3_hoje(tk)}
                 if a["mercado"] == "CRIPTO" and a.get("simbolo"):
                     return tk, {"fonte": "Coinbase", "fechamentos": _coinbase(a["simbolo"]), "hoje": None}
                 return tk, None
