@@ -389,7 +389,8 @@ class Grafico {
     const bb = { lineWidth: 1, lineStyle: LWC.LineStyle.Dotted };
     this.bbSup = linha(css("--bb"), 0, bb);
     this.bbInf = linha(css("--bb"), 0, bb);
-    this.marcadores = LWC.createSeriesMarkers(this.candles, []);
+    // as setas não mexem na escala: em gráfico baixo, abrir espaço para elas achatava os candles
+    this.marcadores = LWC.createSeriesMarkers(this.candles, [], { autoScale: false });
     this.sinais = [];
     graficos.add(this);
     this.balao = el("div", { class: "balao-sinal", hidden: true });
