@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Backtest das Estratégias</title>
+  <title>Backtest dos Setups</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -28,7 +28,7 @@
           <span class="filtro-rotulo"><i class="passo">2</i> Sinal</span>
           <div class="segmento" id="f-tf">
             <button data-v="D" class="ativo">Diário</button>
-            <button data-v="S">Semanal</button>
+            <button data-v="W">Semanal</button>
           </div>
         </div>
         <div class="filtro">
@@ -49,14 +49,15 @@
     <section class="painel como-ler">
       <h2>Como ler</h2>
       <p class="sub">
-        Para cada estratégia, o site refez todas as vezes que ela disparou nos últimos 6 anos em cada ativo do mercado.
+        Para cada setup do catálogo, o site refez todas as vezes que ele disparou nos últimos 6 anos em cada ativo do mercado
+        (só candles fechados; no semanal, só semanas completas).
         A simulação <b>entra na abertura do candle seguinte</b> ao sinal (o site publica depois do fechamento) e
-        <b>sai no fechamento depois do prazo escolhido</b>. Na venda, ganha quando o preço cai. Sinais repetidos da
-        mesma estratégia dentro do prazo contam uma vez só.
+        <b>sai no fechamento depois do prazo escolhido</b>. Na venda, ganha quando o preço cai. Um setup que continua
+        valendo nos candles seguintes (ou dispara de novo) dentro do prazo principal conta uma vez só.
       </p>
       <p class="sub">
         <b>Vantagem</b> é o retorno médio do sinal menos o retorno médio de entrar num dia qualquer, no mesmo
-        mercado e prazo. Em mercado de alta, quase toda compra dá lucro; a vantagem mostra se a estratégia acrescenta
+        mercado e prazo. Em mercado de alta, quase toda compra dá lucro; a vantagem mostra se o setup acrescenta
         algo além disso. Não inclui custos, impostos nem deslizamento, e resultado passado não garante resultado futuro.
       </p>
     </section>
@@ -65,7 +66,7 @@
       <div class="painel">
         <div class="painel-cab">
           <div>
-            <h2>Estratégias</h2>
+            <h2>Setups</h2>
             <p class="sub" id="base"></p>
           </div>
         </div>
@@ -75,7 +76,7 @@
         <div class="painel-cab">
           <div>
             <h2 id="ativos-titulo">Ativos</h2>
-            <p class="sub" id="ativos-sub">Clique numa estratégia para ver onde ela funcionou melhor.</p>
+            <p class="sub" id="ativos-sub">Clique num setup para ver onde ele funcionou melhor.</p>
           </div>
         </div>
         <div id="ativos"></div>
