@@ -41,11 +41,18 @@
           <button role="tab" data-lado="compra" class="aba-compra ativo">▲ Oportunidades de compra <span class="contagem" id="n-compra">0</span></button>
           <button role="tab" data-lado="venda" class="aba-venda">▼ Oportunidades de venda <span class="contagem" id="n-venda">0</span></button>
         </div>
-        <div class="op-estilo">
+        <!-- árvore: o lado escolhido se abre em dois braços (a favor / contra a tendência) e o estilo nas estratégias -->
+        <div class="fluxo-op" id="fluxo-op" data-lado="compra" data-estilo="tendencia">
+          <div class="ramos" aria-hidden="true">
+            <span class="tronco"></span><span class="barra"></span>
+            <span class="braco b-tendencia"></span><span class="braco b-contra"></span>
+          </div>
           <div class="estilos" id="f-estilo" role="tablist" aria-label="Estilo de operação"></div>
-          <p class="sub dica-estilo" id="dica-estilo"></p>
+          <div class="ramos ramos-cat" aria-hidden="true">
+            <span class="braco b-tendencia"></span><span class="braco b-contra"></span>
+          </div>
+          <div class="categorias" id="categorias" role="group" aria-label="Estratégia"></div>
         </div>
-        <div class="categorias" id="categorias" role="group" aria-label="Estratégia"></div>
         <div class="linha-menu op-tempo">
           <div class="filtro">
             <span class="filtro-rotulo">Sinais do</span>

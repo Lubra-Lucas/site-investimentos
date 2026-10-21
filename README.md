@@ -5,8 +5,10 @@ Painel pessoal com três telas:
 - **Carteira** (`index.html`): patrimônio em BRL, posições, evolução da carteira e sinais nos ativos acompanhados.
 - **Radar** (`radar.html`): ~450 ativos. São todas as ações da B3 com volume médio acima de R$ 10 mi/dia,
   ~260 dos EUA e 31 criptos. O menu superior escolhe o mercado e a visão, e a lista à direita do gráfico mostra o resultado:
-  - **Oportunidades:** abas **Compra** e **Venda**, separadas por estratégia, com o bloco **Prioridade** para quem
-    dispara 2 ou mais estratégias. A **camada** define o tempo gráfico dos sinais (diário ou semanal).
+  - **Oportunidades:** **Compra** ou **Venda** se abre em dois braços, **A favor da tendência** e **Contra a
+    tendência** (cartões com o que cada um busca e quantos ativos têm sinal), e o estilo escolhido se abre nas
+    estratégias. O caminho escolhido fica aceso, com setas animadas; passar o mouse no outro estilo mostra o
+    caminho até ele. A opção "Só com 2+ estratégias" mostra quem dispara 2 ou mais. A **camada** define o tempo gráfico dos sinais (diário ou semanal).
   - **Filtros de estado:** tendência forte de alta e de baixa, IFR extremo e Bollinger comprimida. A Bollinger
     escolhe o tempo (60m, 4h, diário, semanal), e o gráfico acompanha.
 
