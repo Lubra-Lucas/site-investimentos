@@ -5,7 +5,10 @@ Cada sinal tem um LADO (compra ou venda), uma FAMÍLIA de estratégia e uma MODA
 A favor da tendência (comprar alta que continua / vender baixa que continua):
   pullback   Pullback nas médias (MM20, MM50 ou MM200), com as médias alinhadas a favor:
              - rejeição: a mínima fura a média e o candle fecha acima dela;
-             - violação e retomada: fecha abaixo da média por 1 ou 2 candles e volta a fechar acima.
+             - violação e retomada: fecha abaixo da média por 1 ou 2 candles (até 1 ATR abaixo,
+               vindo de cima) e volta a fechar acima.
+             Nos dois casos o candle do sinal precisa estar NA média: a mínima chega até ela (folga
+             de 1/4 de ATR) e o fechamento fica a até 1 ATR dela; um gap que se afasta não conta.
              Se o candle também fecha em alta sobre o anterior, ganha "+ fechamento positivo"
              (sinal mais forte). Venda: o espelho (máxima fura e fecha abaixo; ou fecha acima 1-2 candles e perde de novo).
   boca       Boca de jacaré: bandas de Bollinger comprimidas que abrem (superior sobe, inferior
@@ -48,6 +51,11 @@ BB_PERIODO, BB_DESVIOS = 20, 2.0
 BB_JANELA_COMPRESSAO, BB_PERCENTIL_COMPRESSAO = 120, 0.10
 DISTANCIA_FATOR = 2.5                  # distância da MM20 x a distância média do ativo
 DISTANCIA_MINIMA = {"D": 0.02, "S": 0.04}  # e nunca menos que isso
+ATR_PERIODO = 14
+# pullback: o quanto o candle pode ficar da média, em ATR (iguais aos de assets/js/rastreador.js)
+PB_TOQUE_ATR = 0.25      # a sombra precisa chegar até a média (com esta folga)
+PB_FECHAMENTO_ATR = 1.0  # e o fechamento ficar perto dela
+PB_VIOLACAO_ATR = 1.0    # na violação, o fechamento do outro lado não pode ir além disso
 JANELA_DIARIA = 15   # pregões de histórico de sinais
 JANELA_SEMANAL = 8   # semanas de histórico de sinais
 
@@ -112,6 +120,9 @@ def indicadores(df: pd.DataFrame) -> pd.DataFrame:
     for n in (MM_RAPIDA, MM_LENTA, MM_LONGA):
         f[f"MM{n}"] = f["Close"].rolling(n).mean()
     f["IFR"] = ifr(f["Close"])
+    anterior = f["Close"].shift(1)
+    tr = pd.concat([f["High"] - f["Low"], (f["High"] - anterior).abs(), (f["Low"] - anterior).abs()], axis=1).max(axis=1)
+    f["ATR"] = tr.ewm(alpha=1 / ATR_PERIODO, adjust=False, min_periods=ATR_PERIODO).mean()
     f["EstK"], f["EstD"] = estocastico_lento(f)
     media = f["Close"].rolling(BB_PERIODO).mean()
     desvio = f["Close"].rolling(BB_PERIODO).std(ddof=0)
@@ -154,23 +165,33 @@ def _pullbacks(f: pd.DataFrame) -> list[tuple]:
         MM_LENTA: (m50 > m200, m50 < m200),
         MM_RAPIDA: ((m20 > m50) & (m50 > m200), (m20 < m50) & (m50 < m200)),
     }
+    atr = f["ATR"]
     vistos, out = set(), []
     for n in (MM_LONGA, MM_LENTA, MM_RAPIDA):  # a média mais longa é a mais relevante
         mm = f[f"MM{n}"]
         alta_ok, baixa_ok = (x.fillna(False) for x in contexto[n])
         abaixo, acima = (c < mm).fillna(False), (c > mm).fillna(False)
+        # o candle precisa estar NA média: a sombra encosta nela e o fechamento fica perto.
+        # Sem isso, um gap que se afasta da média passaria como "retomada".
+        na_media_compra = ((l - mm <= PB_TOQUE_ATR * atr) & (c - mm <= PB_FECHAMENTO_ATR * atr)).fillna(False)
+        na_media_venda = ((mm - h <= PB_TOQUE_ATR * atr) & (mm - c <= PB_FECHAMENTO_ATR * atr)).fillna(False)
+        # violação rasa: o fechamento do outro lado ficou a até 1 ATR da média (mais fundo é virada)
+        abaixo_raso = abaixo & (mm - c <= PB_VIOLACAO_ATR * atr).fillna(False)
+        acima_raso = acima & (c - mm <= PB_VIOLACAO_ATR * atr).fillna(False)
         sobe, desce = (c > c.shift(1)).fillna(False), (c < c.shift(1)).fillna(False)
         casos = {
             "compra": [
-                (alta_ok & (l < mm) & acima & _antes(acima, 1), f"Rejeição da MM{n}", sobe),
-                (alta_ok & acima & _antes(abaixo, 1) & ~_antes(abaixo, 2), f"Violação e retomada da MM{n} (1 candle)", sobe),
-                (alta_ok & acima & _antes(abaixo, 1) & _antes(abaixo, 2) & ~_antes(abaixo, 3),
+                (alta_ok & na_media_compra & (l < mm) & acima & _antes(acima, 1), f"Rejeição da MM{n}", sobe),
+                (alta_ok & na_media_compra & acima & _antes(abaixo_raso, 1) & _antes(acima, 2),
+                 f"Violação e retomada da MM{n} (1 candle)", sobe),
+                (alta_ok & na_media_compra & acima & _antes(abaixo_raso, 1) & _antes(abaixo_raso, 2) & _antes(acima, 3),
                  f"Violação e retomada da MM{n} (2 candles)", sobe),
             ],
             "venda": [
-                (baixa_ok & (h > mm) & abaixo & _antes(abaixo, 1), f"Rejeição da MM{n}", desce),
-                (baixa_ok & abaixo & _antes(acima, 1) & ~_antes(acima, 2), f"Violação e perda da MM{n} (1 candle)", desce),
-                (baixa_ok & abaixo & _antes(acima, 1) & _antes(acima, 2) & ~_antes(acima, 3),
+                (baixa_ok & na_media_venda & (h > mm) & abaixo & _antes(abaixo, 1), f"Rejeição da MM{n}", desce),
+                (baixa_ok & na_media_venda & abaixo & _antes(acima_raso, 1) & _antes(abaixo, 2),
+                 f"Violação e perda da MM{n} (1 candle)", desce),
+                (baixa_ok & na_media_venda & abaixo & _antes(acima_raso, 1) & _antes(acima_raso, 2) & _antes(abaixo, 3),
                  f"Violação e perda da MM{n} (2 candles)", desce),
             ],
         }

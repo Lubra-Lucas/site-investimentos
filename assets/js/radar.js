@@ -133,6 +133,22 @@ function calcularOportunidades() {
     (estado.tf === "S" ? " (semana em andamento)" : "");
 }
 
+/** Mini gráfico do estilo: alta que continua (a favor) ou queda que vira (contra). Na venda, o CSS espelha. */
+function iconeEstilo(chave) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  const pontos = chave === "tendencia"
+    ? ["3,19 9,12 13,15 21,5", "15,5 21,5 21,11"]
+    : ["3,4 8,12 12,19 16,13 21,9", "15.5,8 21,9 19.5,14.5"];
+  for (const p of pontos) {
+    const linha = document.createElementNS(ns, "polyline");
+    linha.setAttribute("points", p);
+    svg.append(linha);
+  }
+  return svg;
+}
+
 /** Os itens de um lado só com as estratégias de um estilo (a favor ou contra a tendência). */
 function doEstilo(itens, estilo) {
   const fams = new Set(MODALIDADES.find((m) => m.chave === estilo).familias);
@@ -149,12 +165,24 @@ function renderOportunidades() {
   document.getElementById("n-compra").textContent = doEstilo(grupos.compra, m.chave).length;
   document.getElementById("n-venda").textContent = doEstilo(grupos.venda, m.chave).length;
 
-  // 1) estilo: a favor ou contra a tendência (nunca misturados)
-  document.getElementById("f-estilo").replaceChildren(...MODALIDADES.map((x) =>
-    el("button", { class: `estilo ${x.chave === m.chave ? "ativo" : ""}`, role: "tab", "aria-selected": x.chave === m.chave,
+  // 1) estilo: a favor ou contra a tendência (nunca misturados), como braços do lado escolhido
+  const fluxo = document.getElementById("fluxo-op");
+  const mudou = fluxo.dataset.lado !== estado.lado || fluxo.dataset.estilo !== m.chave;
+  fluxo.dataset.lado = estado.lado;
+  fluxo.dataset.estilo = m.chave;
+  // o caminho aceso: do lado (esquerda = compra) até o estilo (esquerda = a favor)
+  fluxo.querySelector(".barra").classList.toggle("on", (estado.lado === "compra") !== (m.chave === "tendencia"));
+  fluxo.querySelectorAll(".braco").forEach((b) => b.classList.toggle("on", b.classList.contains("b-" + m.chave)));
+  document.getElementById("f-estilo").replaceChildren(...MODALIDADES.map((x) => {
+    const ativo = x.chave === m.chave;
+    return el("button", { class: `estilo-card ${ativo ? "ativo" : ""} ${ativo && mudou ? "pulso" : ""}`, role: "tab",
+      "aria-selected": ativo, "data-estilo": x.chave,
       onclick: () => { estado.estilo = x.chave; estado.categoria = "todas"; salvar(); renderOportunidades(); abrirPrimeiro(); } },
-    x.nome, el("span", { class: "contagem" }, doEstilo(grupos[estado.lado], x.chave).length))));
-  document.getElementById("dica-estilo").textContent = m.dica[estado.lado];
+    el("span", { class: "estilo-topo" }, el("span", { class: "estilo-icone" }, iconeEstilo(x.chave)),
+      el("b", {}, x.nome), el("span", { class: "contagem" }, doEstilo(grupos[estado.lado], x.chave).length)),
+    el("span", { class: "estilo-dica" }, x.dica[estado.lado]),
+    el("span", { class: "estilo-fams" }, x.familias.map((f) => el("span", {}, nomeFamilia(f, estado.lado)))));
+  }));
 
   // 2) estratégias do estilo
   const contagem = { todas: itens.length };
