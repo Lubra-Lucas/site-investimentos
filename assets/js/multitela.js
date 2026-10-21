@@ -40,6 +40,7 @@ const salvos = () => guardar.ler(SALVOS, []);
 function regrasAtuais() {
   const r = estado.rast ??= {};
   r.tf ??= "D";
+  r.periodos ??= 1;
   r.modelo ??= "m:tend-alta";
   if (!r.regras) {
     const base = modeloEscolhido();
@@ -91,10 +92,14 @@ function listar() {
       if (!F) return [];
       const { tf, regras } = regrasAtuais();
       const chave = ORDENS[estado.ordem]?.[1] ?? ORDENS.var_mes[1];
-      const nota = (a) => chave(a, F.ativos[a.ticker]?.[tf]);
-      return R.ativos.filter((a) => a.liquido && doMercado(a.ticker) && atende(F.ativos[a.ticker]?.[tf], regras, tf, F))
-        .sort((a, b) => { const x = nota(a), y = nota(b); return typeof x === "string" ? x.localeCompare(y) : x - y; })
-        .map((a) => ({ ticker: a.ticker }));
+      const nota = (a) => chave(a, atual(F.ativos[a.ticker]?.[tf]));
+      const periodos = regrasAtuais().periodos;
+      // k = em qual dos últimos candles a condição aconteceu (0 = último fechado); o mais recente vem primeiro
+      return R.ativos.filter((a) => a.liquido && doMercado(a.ticker))
+        .map((a) => ({ a, k: quandoAtende(F.ativos[a.ticker]?.[tf], regras, tf, F, periodos) }))
+        .filter((x) => x.k != null)
+        .sort((x, y) => { const p = nota(x.a), q = nota(y.a); return x.k - y.k || (typeof p === "string" ? p.localeCompare(q) : p - q); })
+        .map(({ a, k }) => ({ ticker: a.ticker, k, data: F.ativos[a.ticker][tf].datas?.at(-1 - k) }));
     }
     case "compra":
     case "venda":
@@ -144,19 +149,28 @@ function blocoContexto(a) {
 }
 
 /** O que a condição desenha no gráfico deste ativo (null = usar os indicadores do usuário). */
-function sobreposicao(a) {
+function sobreposicao(a, k = 0) {
   if (estado.fonte !== "rastreador" || estado.camadas !== "condicoes" || !F) return null;
   const { tf, regras } = regrasAtuais();
-  return sobreposicaoDasRegras(regras, F.ativos[a.ticker]?.[tf], tf, F);
+  return sobreposicaoDasRegras(regras, F.ativos[a.ticker]?.[tf], tf, F, k);
+}
+
+/** "no último pregão (19/10)" / "há 2 pregões (16/10)" */
+function quandoTexto(k, data, tf) {
+  const quando = k === 0 ? (tf === "W" ? "na última semana" : "no último pregão") : `há ${unid(tf, k)}`;
+  return `${quando}${data ? ` (${tf === "W" ? "semana de " : ""}${fmtData(data)})` : ""}`;
 }
 
 /** Os valores que fizeram o ativo passar nas regras (ex.: "+3,2% da MMS 20 · IFR 14 27"). */
-function blocoRegras(a) {
+function blocoRegras(a, item) {
   if (estado.fonte !== "rastreador" || !F) return null;
   const { tf, regras } = regrasAtuais();
   const s = F.ativos[a.ticker]?.[tf];
-  const valores = [...new Set(regras.map((x) => valorRegra(s, x, tf, F)).filter(Boolean))];
-  return valores.length ? el("p", { class: "valores-regra mono" }, `${TF_FRASE[tf]}: ${valores.join(" · ")}`) : null;
+  const k = item.k ?? 0;
+  const valores = [...new Set(regras.map((x) => valorRegra(s, x, tf, F, k)).filter(Boolean))];
+  return el("p", { class: "valores-regra" },
+    el("span", { class: `quando ${k === 0 ? "hoje" : ""}` }, `Atendeu ${quandoTexto(k, item.data, tf)}`),
+    valores.length ? ` · ${valores.join(" · ")}` : "");
 }
 
 function legenda(sob) {
@@ -167,7 +181,7 @@ function legenda(sob) {
 function celula(item) {
   const a = porTicker.get(item.ticker);
   const corpo = el("div", { class: "mini-grafico" });
-  const sob = sobreposicao(a);
+  const sob = sobreposicao(a, item.k ?? 0);
   const cel = el("article", { class: `celula ${item.familias?.size >= 2 ? "confluencia" : ""}` },
     el("header", {},
       el("div", {},
@@ -181,7 +195,7 @@ function celula(item) {
       chipsFamilias(item.familias, item.lado)) : null,
     item.sinais ? el("ul", { class: "motivos celula-motivos" }, item.sinais.slice(0, 3).map((s) =>
       el("li", {}, el("span", { class: "data" }, fmtData(s.data)), s.texto))) : null,
-    blocoRegras(a),
+    blocoRegras(a, item),
     corpo,
     legenda(sob),
     blocoContexto(a),
@@ -195,7 +209,11 @@ function celula(item) {
     new Desenhos(g, corpo, { compacta: true }).definirAtivo(a.ticker);
     if (Simulacoes.doAtivo(a.ticker).length) new Simulador(g, corpo).definirAtivo(a);
     // ativo sem intraday verificado cai para o diário
-    g.mostrar(a.arquivo, INTRADAY.has(estado.tf) && !a.tem_intraday ? "D" : estado.tf);
+    const tfGrafico = INTRADAY.has(estado.tf) && !a.tem_intraday ? "D" : estado.tf;
+    g.mostrar(a.arquivo, tfGrafico).then((ok) => {
+      // marca o candle em que a condição aconteceu (quando o gráfico está no mesmo tempo das regras)
+      if (ok && item.data && tfGrafico === regrasAtuais().tf && estado.fonte === "rastreador") g.destacar(item.data);
+    });
   };
   return cel;
 }
@@ -284,6 +302,12 @@ function renderRastreador() {
     el("b", {}, r.editado ? `${m?.nome ?? "Regras"} (editado)` : m?.nome ?? "Regras"), ": ",
     r.regras.length ? r.regras.map((x) => textoRegra(x, r.tf, F)).join(" · ") : "nenhuma condição");
   resumo.title = m?.desc ?? "";
+  document.querySelectorAll("#f-periodos button").forEach((b) => {
+    const n = +b.dataset.v;
+    b.textContent = n === 1 ? (r.tf === "W" ? "Última semana" : "Último pregão") : unid(r.tf, n);
+  });
+  const ultimoFechado = Object.values(F.ativos).find((x) => x[r.tf])?.[r.tf]?.d;
+  document.getElementById("f-periodos").title = ultimoFechado ? `Último ${r.tf === "W" ? "candle semanal" : "pregão"} fechado: ${fmtData(ultimoFechado)}` : "";
   const editor = document.getElementById("r-editor");
   editor.hidden = !estado.editando;
   document.getElementById("r-editar").setAttribute("aria-expanded", String(!!estado.editando));
@@ -317,6 +341,8 @@ function ligarRastreador() {
     document.querySelectorAll("#f-tf button").forEach((b) => b.classList.toggle("ativo", b.dataset.v === v));
     estado.pagina = 0; salvar(); renderRastreador(); render();
   }).marcar("v", regrasAtuais().tf);
+  segmento("f-periodos", ({ v }) => { regrasAtuais().periodos = +v; estado.pagina = 0; salvar(); renderRastreador(); render(); })
+    .marcar("v", String(regrasAtuais().periodos));
   document.getElementById("r-editar").addEventListener("click", () => { estado.editando = !estado.editando; salvar(); renderRastreador(); });
   segmento("f-camadas", ({ v }) => { estado.camadas = v; salvar(); renderFontes(); render(); }).marcar("v", estado.camadas);
   document.getElementById("f-ordem").addEventListener("change", (e) => { estado.ordem = e.target.value; estado.pagina = 0; salvar(); render(); });
@@ -349,7 +375,12 @@ function ligarRastreador() {
 }
 
 function descricao(n) {
-  if (estado.fonte === "rastreador") return `${n} ${n === 1 ? "ativo atende" : "ativos atendem"} no ${TF_FRASE[regrasAtuais().tf]}`;
+  if (estado.fonte === "rastreador") {
+    const { tf, periodos } = regrasAtuais();
+    const quando = periodos === 1 ? (tf === "W" ? "na última semana fechada" : "no último pregão fechado")
+      : `${tf === "W" ? "nas últimas" : "nos últimos"} ${unid(tf, periodos)}`;
+    return `${n} ${n === 1 ? "ativo atendeu" : "ativos atenderam"} ${quando}`;
+  }
   if (ehOportunidade()) {
     const fonte = FONTES_OCULTAS.find(([k]) => k === estado.fonte);
     return `${n} ativo(s) · ${fonte[1]} no sinal ${estado.tf === "W" ? "semanal" : "diário"}, ` +
@@ -364,7 +395,7 @@ function render() {
   observador.disconnect();
   abertos.splice(0).forEach((g) => g.remover());
   const lista = listar().filter((i) => porTicker.has(i.ticker));
-  const porPagina = { 2: 4, 3: 9, 4: 12 }[estado.grade];
+  const porPagina = { 1: 1, 2: 4, 3: 9, 4: 12 }[estado.grade] ?? 9;
   const paginas = Math.max(1, Math.ceil(lista.length / porPagina));
   estado.pagina = Math.min(estado.pagina, paginas - 1);
   const pagina = lista.slice(estado.pagina * porPagina, (estado.pagina + 1) * porPagina);
@@ -381,10 +412,22 @@ function render() {
   grade.querySelectorAll(".mini-grafico").forEach((c) => observador.observe(c));
 
   totalPaginas = paginas;
-  document.getElementById("paginacao").replaceChildren(...(paginas > 1
-    ? Array.from({ length: paginas }, (_, i) => el("button", { class: i === estado.pagina ? "ativo" : null,
-        onclick: () => irParaPagina(i, true) }, String(i + 1)))
-    : []));
+  // paginação compacta: primeira, vizinhas da atual e última (com 1 por tela seriam centenas)
+  const mostrar = [...new Set([0, estado.pagina - 2, estado.pagina - 1, estado.pagina, estado.pagina + 1, estado.pagina + 2, paginas - 1])]
+    .filter((i) => i >= 0 && i < paginas).sort((x, y) => x - y);
+  document.getElementById("paginacao").replaceChildren(...(paginas > 1 ? mostrar.flatMap((i, j) => [
+    j && i - mostrar[j - 1] > 1 ? el("span", { class: "reticencias" }, "…") : null,
+    el("button", { class: i === estado.pagina ? "ativo" : null, onclick: () => irParaPagina(i, true) }, String(i + 1)),
+  ]).filter(Boolean) : []));
+  // em 1 tela, setas grandes nas laterais do gráfico
+  if (estado.grade === "1" && pagina.length) {
+    const cel = grade.querySelector(".celula");
+    cel.append(
+      el("button", { class: "seta-tela anterior", disabled: estado.pagina === 0, "aria-label": "Ativo anterior (←)", title: "Anterior (←)",
+        onclick: () => irParaPagina(estado.pagina - 1) }, "‹"),
+      el("button", { class: "seta-tela proxima", disabled: estado.pagina >= paginas - 1, "aria-label": "Próximo ativo (→)", title: "Próximo (→)",
+        onclick: () => irParaPagina(estado.pagina + 1) }, "›"));
+  }
   // atalho no topo: ‹ 1/3 › (e as setas do teclado) para não precisar rolar até o fim
   document.getElementById("paginacao-topo").replaceChildren(...(paginas > 1 ? [
     el("button", { disabled: estado.pagina === 0, title: "Página anterior (←)", onclick: () => irParaPagina(estado.pagina - 1) }, "‹"),

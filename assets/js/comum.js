@@ -9,10 +9,17 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 const fmtUSD = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
 const fmtNum = (v, casas = 2) =>
   v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
-const casasPreco = (v) => (v === 0 || Math.abs(v) >= 1 ? 2 : Math.abs(v) >= 0.01 ? 4 : 6);
-const fmtMoeda = (v, moeda) =>
-  v == null ? "—" : moeda === "USD" && Math.abs(v) < 1
-    ? `US$ ${fmtNum(v, 6)}` : (moeda === "USD" ? fmtUSD : fmtBRL).format(v);
+/** Casas decimais de um preço; cotações de moedas (FX) pedem mais casas (1,08345). */
+const casasPreco = (v, moeda) => (moeda === "FX" ? (Math.abs(v) >= 20 ? 3 : 5)
+  : v === 0 || Math.abs(v) >= 1 ? 2 : Math.abs(v) >= 0.01 ? 4 : 6);
+/** Preço na moeda do ativo. PTS (índices) e FX (cotação de moedas) saem só como número. */
+const fmtMoeda = (v, moeda) => {
+  if (v == null) return "—";
+  if (moeda === "PTS") return fmtNum(v, 2);
+  if (moeda === "FX") return fmtNum(v, casasPreco(v, "FX"));
+  if (moeda === "USD" && Math.abs(v) < 1) return `US$ ${fmtNum(v, 6)}`;
+  return (moeda === "USD" ? fmtUSD : fmtBRL).format(v);
+};
 const fmtPct = (v) => (v == null ? "—" : `${v > 0 ? "+" : ""}${fmtNum(v)}%`);
 const cor = (v) => (v == null ? "" : v >= 0 ? "alta" : "baixa");
 const fmtCompacto = (v) =>
@@ -86,7 +93,7 @@ const fmtDuracao = (ms) => {
  */
 function avisoFormacao(R) {
   const caixa = el("div", { class: "aviso-formacao", hidden: true });
-  const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto" };
+  const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro" };
   const atualizar = () => {
     const grupos = new Map();  // mesmo horário de saída -> mercados
     for (const [m, f] of Object.entries(R.em_formacao ?? {})) {
@@ -370,7 +377,7 @@ class Grafico {
       timeScale: { rightOffset: 3 },
       crosshair: { mode: LWC.CrosshairMode.Normal },
 
-      localization: { locale: "pt-BR", priceFormatter: (p) => fmtNum(p, casasPreco(p)) },
+      localization: { locale: "pt-BR", priceFormatter: (p) => fmtNum(p, casasPreco(p, this.moeda)) },
     });
     this.candles = this.chart.addSeries(LWC.CandlestickSeries, { borderVisible: false });
     const linha = (cor, pane = 0, extra = {}) => this.chart.addSeries(LWC.LineSeries, {
@@ -456,6 +463,8 @@ class Grafico {
     this.tf = tf;
     const intraday = INTRADAY.has(tf);
     const dados = await (intraday ? carregarIntraday(arquivo) : carregarCandles(arquivo));
+    // a moeda define as casas do eixo de preço (o arquivo diário traz; o de 60 min, não)
+    this.moeda = (intraday ? await carregarCandles(arquivo).catch(() => ({})) : dados).moeda;
     if (pedido !== this.pedido || this.removido) return false;
     this.chart.timeScale().applyOptions({ timeVisible: intraday, secondsVisible: false });
     const c = agregar(dados.candles, tf);
@@ -615,6 +624,12 @@ class Grafico {
     const to = Math.min(i + Math.round(vis * 0.6), this.n + 2);
     this.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, to - vis), to });
     this.dataDestaque = this.c[i].time;
+    this.posicionarDestaque();
+  }
+
+  /** Destaca o candle de uma data sem mexer no enquadramento. */
+  destacar(data) {
+    this.dataDestaque = this.c?.find((x) => x.time >= data)?.time ?? null;
     this.posicionarDestaque();
   }
 
@@ -813,8 +828,8 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
         el("span", { class: "mono" }, fmtMoeda(a.ultimo, a.moeda)), " ",
         el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)), " · ",
         `fechamento de ${fmtData(a.data)} `, seloVerificacao(a),
-        a.parcial ? el("span", { class: "selo selo-formacao", title: "Pregão em andamento: o candle de hoje aparece no gráfico, mas só gera sinais depois do fechamento" },
-          `hoje ${fmtData(a.parcial.data)} em formação: ${fmtMoeda(a.parcial.ultimo, a.moeda)} ${fmtPct(a.parcial.var_pct)}`) : null);
+        ...[a.parcial ? el("span", { class: "selo selo-formacao", title: "Pregão em andamento: o candle de hoje aparece no gráfico, mas só gera sinais depois do fechamento" },
+          `hoje ${fmtData(a.parcial.data)} em formação: ${fmtMoeda(a.parcial.ultimo, a.moeda)} ${fmtPct(a.parcial.var_pct)}`) : null].filter(Boolean));
       contexto.replaceChildren(...contextoAtivo(a));
       // 60 min/4h só existem para ações com intraday verificado
       tfs.querySelectorAll("button").forEach((b) => {

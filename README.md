@@ -21,6 +21,9 @@ Painel pessoal com três telas:
     compressão, ATR, variação no período, rompimento, máxima/mínima de 52 semanas, candle e volume. Médias
     simples (MMS) ou exponenciais (MME) de 5 a 200 períodos. As regras valem no **diário ou no semanal**, com
     os indicadores daquele tempo gráfico. Regras editadas podem ser salvas em "Minhas regras" (neste navegador).
+  - **Quando:** último pregão (o padrão: para ver à noite e decidir a entrada no dia seguinte) ou os últimos
+    2, 3 ou 5 candles. O card diz quando a condição aconteceu e o gráfico marca esse candle. No semanal só
+    entram semanas fechadas: o sinal da semana sai depois do pregão de sexta (domingo em cripto).
   - Cada card mostra os valores que fizeram o ativo passar e um **contexto para decidir**: ✓ o que está a favor
     (tendência no outro tempo gráfico e há quanto tempo, perto da máxima de 52 semanas, volume, sinais das
     estratégias), ⚠ o que pede cuidado (IFR/estocástico esticados no diário, semanal ou mensal, longe da média,
@@ -205,3 +208,17 @@ pip install -r requirements.txt
 python scripts/atualizar_dados.py      # leva alguns minutos (~270 ativos)
 python -m http.server 8000             # abra http://localhost:8000
 ```
+
+## Universo de ativos
+
+`config/universo.json`, montado por `python scripts/montar_universo.py` (rodar à mão de vez em quando):
+
+- **Brasil:** ações à vista da B3 com pelo menos R$ 1 milhão/dia de volume médio (arquivo oficial COTAHIST),
+  sem BDRs e fundos.
+- **EUA:** ações com valor de mercado de US$ 10 bilhões ou mais (screener da Nasdaq).
+- **Cripto:** os ~70 pares em dólar mais negociados na Coinbase, sem stablecoins, com o preço do Yahoo
+  conferido com a Coinbase.
+- **Macro:** índices (Ibovespa, S&P 500, Nasdaq, Dow, DAX, Nikkei...), moedas (EUR/USD, GBP/USD, USD/BRL,
+  DXY...) e commodities (ouro, prata, petróleo WTI e Brent, gás, cobre, soja, milho, café...). Não há fonte
+  oficial gratuita para conferir esses fechamentos, então aparecem como "checagem interna".
+

@@ -95,7 +95,7 @@ function renderPosicoes(c) {
     { rotulo: "Ano", num: true, valor: (l) => fmtPct(l.var_ano_pct), classe: (l) => cor(l.var_ano_pct) },
   ], c.posicoes, (l) => selecionar(l.ticker), vazio);
 
-  const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", CAIXA: "Caixa" };
+  const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro", CAIXA: "Caixa" };
   const total = Object.values(c.alocacao_brl).reduce((s, v) => s + v, 0) || 1;
   document.getElementById("alocacao").replaceChildren(...Object.entries(c.alocacao_brl).map(([k, v]) =>
     el("span", {}, `${nomes[k] ?? k} `, el("b", {}, `${fmtNum((v / total) * 100, 1)}%`))));

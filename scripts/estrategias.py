@@ -51,7 +51,8 @@ DISTANCIA_MINIMA = {"D": 0.02, "S": 0.04}  # e nunca menos que isso
 JANELA_DIARIA = 15   # pregões de histórico de sinais
 JANELA_SEMANAL = 8   # semanas de histórico de sinais
 
-LIQUIDEZ_MINIMA = {"BR": 10e6, "US": 100e6, "CRIPTO": 30e6}
+# volume financeiro médio de 20 dias para o ativo aparecer nas listas (índices, moedas e commodities não têm)
+LIQUIDEZ_MINIMA = {"BR": 1e6, "US": 20e6, "CRIPTO": 5e6, "MACRO": 0}
 
 FAMILIAS = {
     "pullback": {"nome": "Pullback nas médias", "modalidade": "tendencia"},
@@ -326,7 +327,7 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
     # o estado "agora" do 60 min só vale se o intraday tiver o mesmo pregão do diário
     h_atual = h is not None and h.index[-1].normalize() == d.index[-1]
     estado = {
-        "ultimo": _num(u["Close"], 4),
+        "ultimo": _num(u["Close"], 6),
         "data": d.index[-1].strftime("%Y-%m-%d"),
         "var_dia_pct": _num((u["Close"] / d["Close"].iloc[-2] - 1) * 100),
         "var_mes_pct": _var(d["Close"], d.index[-1].replace(day=1)),

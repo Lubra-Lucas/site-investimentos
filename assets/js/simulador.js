@@ -149,7 +149,7 @@ class Simulador {
     this.g.chart.timeScale().applyOptions({ rightOffset: this.visiveis().length ? 14 : 3 });
     for (const l of this.linhas) this.g.candles.removePriceLine(l.linha);
     this.linhas = [];
-    const casas = casasPreco(this.ativo?.ultimo ?? 1);
+    const casas = casasPreco(this.ativo?.ultimo ?? 1, this.ativo?.moeda);
     for (const p of this.visiveis()) {
       const ativa = p === this.emEdicao();
       const c = contasSimulacao(p);
@@ -269,7 +269,7 @@ class Simulador {
       return;
     }
     this.boleta.hidden = false;
-    const casas = casasPreco(a.ultimo);
+    const casas = casasPreco(a.ultimo, a.moeda);
     const c = p ? contasSimulacao(p) : null;
     const resumo = p && el("div", { class: "boleta-resumo" },
       el("span", {}, "Qtd ", el("b", {}, fmtNum(c.qtd, a.mercado === "CRIPTO" ? 6 : 0))),
@@ -315,7 +315,7 @@ class Simulador {
             this.alterado(p); this.renderBoleta();
           } }, l === "compra" ? "▲ Compra" : "▼ Venda"))),
         campo("Entrada", "entrada", passo), campo("Stop", "stop", passo), campo("Alvo", "alvo", passo),
-        campo(`Capital (${a.moeda === "USD" ? "US$" : "R$"})`, "capital", "100"),
+        campo(`Capital (${a.moeda === "BRL" ? "R$" : "US$"})`, "capital", "100"),
         el("div", { class: "boleta-acoes" },
           p === this.rascunho
             ? [el("button", { class: "botao primario", disabled: !c.valido, onclick: () => {
