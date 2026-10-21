@@ -1348,6 +1348,10 @@ body.com-gaveta { overflow: hidden; }
 
 /* fontes: o que pode ser segurado */
 .celula > header { cursor: grab; }
+/* segurando o card (antes de levantar): ele afunda um pouco, como no iPhone */
+:is(.celula, #lista-ativos .item, tbody tr, #cab-ativo-id)[data-tk].segurando {
+  transform: scale(0.985); transition: transform 0.35s ease-out; box-shadow: 0 0 0 2px color-mix(in srgb, var(--acento) 55%, transparent);
+}
 .celula > header :is(button, a) { cursor: pointer; }
 .ticker-cel { cursor: grab; }
 .ticker-cel-acoes { display: inline-flex; align-items: center; gap: 6px; }

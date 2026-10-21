@@ -1,5 +1,5 @@
-/* Arrastar um ativo até uma bandeja, como no iPhone: segure o card (no toque, 400 ms parado; no mouse,
- * arraste pelo cabeçalho) e os alvos aparecem nas bordas da tela: Comparar (no alto), Plano de amanhã
+/* Arrastar um ativo até uma bandeja, como no iPhone: segure o card parado (no toque, 400 ms; no mouse,
+ * 350 ms em qualquer ponto, até em cima do gráfico; ou arraste direto pelo cabeçalho) e os alvos aparecem nas bordas da tela: Comparar (no alto), Plano de amanhã
  * (à direita) e Anotar (canto de baixo). Soltar fora ou Esc cancela. Também aqui: o menu "⋯" de cada
  * ativo (a alternativa por teclado/mouse) e a doca no topo com o que já está nas bandejas.
  * Plano e Notas são de plano.js e notas.js; sem eles na página, os alvos deles somem. */
@@ -13,7 +13,7 @@ window.Arrastar = (() => {
     { sel: "tbody tr[data-tk]:not(.sem-clique)", alca: ".ticker-cel" },  // tabelas da Carteira
   ];
   const IGNORAR = "button, input, select, textarea, label, summary, .abrir-radar, .menu-acoes, .seta-tela, .contexto-painel";
-  const LIMIAR_MOUSE = 6, LIMIAR_TOQUE = 10, ESPERA_TOQUE = 400, IMA = 28;
+  const LIMIAR_MOUSE = 6, LIMIAR_TOQUE = 10, ESPERA_TOQUE = 400, ESPERA_MOUSE = 350, IMA = 28;
   const reduzir = matchMedia("(prefers-reduced-motion: reduce)");
   const naPagina = (nome) => location.pathname.endsWith(nome);
 
@@ -90,6 +90,7 @@ window.Arrastar = (() => {
     for (const f of FONTES) {
       const no = alvo.closest(f.sel);
       if (!no) continue;
+      // no mouse, arrastar direto só pela alça; segurar parado ("segurar") vale no card todo
       if (modo === "mouse" && f.alca && !alvo.closest(f.alca)?.closest(f.sel)) return null;
       return no.dataset.tk ? { no, tk: no.dataset.tk } : null;
     }
@@ -211,22 +212,53 @@ window.Arrastar = (() => {
     desmontar(280);
   }
 
-  // mouse e caneta: arrastar pelo cabeçalho (mais de 6 px)
+  /** O gráfico do card recebeu o clique: encerra o "arrastar o gráfico" dele antes de o card levantar. */
+  function soltarGrafico(alvo) {
+    for (const tipo of ["pointerup", "mouseup"]) {
+      const ev = tipo === "pointerup" ? new PointerEvent(tipo, { bubbles: true, pointerType: "mouse" }) : new MouseEvent(tipo, { bubbles: true });
+      alvo.dispatchEvent(ev);
+    }
+  }
+  const pararEspera = () => { if (pend?.espera) { clearTimeout(pend.espera); pend.no.classList.remove("segurando"); } };
+
+  // mouse e caneta: arrastar direto pelo cabeçalho (mais de 6 px) ou segurar parado 350 ms em qualquer ponto do card
   document.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "touch" || e.button !== 0 || arr) return;
-    const fonte = fonteDe(e.target, "mouse");
-    pend = fonte ? { ...fonte, x: e.clientX, y: e.clientY, mouse: true } : null;
+    pararEspera();
+    // com uma ferramenta de desenho ligada, segurar no gráfico é desenhar (não levanta o card)
+    const desenhando = e.target instanceof Element && e.target.closest(".desenhando, .ferramentas");
+    const direto = fonteDe(e.target, "mouse"), fonte = direto ?? (desenhando ? null : fonteDe(e.target, "segurar"));
+    if (!fonte) { pend = null; return; }
+    pend = { ...fonte, x: e.clientX, y: e.clientY, mouse: true, direto: !!direto, alvo: e.target };
+    fonte.no.classList.add("segurando");
+    pend.espera = setTimeout(() => {
+      if (!pend?.mouse || arr) return;
+      const p = pend;
+      p.no.classList.remove("segurando");
+      if (!p.direto) soltarGrafico(p.alvo);
+      iniciar(p, p.x, p.y, false);
+      mover(p.x, p.y);
+    }, ESPERA_MOUSE);
   });
   document.addEventListener("pointermove", (e) => {
     if (e.pointerType === "touch") return;
     if (arr && !arr.toque) { mover(e.clientX, e.clientY); return; }
-    if (pend?.mouse && Math.hypot(e.clientX - pend.x, e.clientY - pend.y) > LIMIAR_MOUSE) {
-      iniciar(pend, e.clientX, e.clientY, false);
-      mover(e.clientX, e.clientY);
-    }
+    if (!pend?.mouse || Math.hypot(e.clientX - pend.x, e.clientY - pend.y) <= LIMIAR_MOUSE) return;
+    pararEspera();
+    // mexeu antes do tempo: pela alça vira o arrasto; no gráfico continua sendo mexer no gráfico
+    if (pend.direto) { iniciar(pend, e.clientX, e.clientY, false); mover(e.clientX, e.clientY); }
+    else pend = null;
   });
+  // com o card levantado, o movimento não chega ao gráfico de baixo (senão ele andaria junto)
+  for (const tipo of ["pointermove", "mousemove"])
+    window.addEventListener(tipo, (e) => {
+      if (!arr || arr.toque || e.pointerType === "touch") return;
+      if (tipo === "pointermove") mover(e.clientX, e.clientY);
+      e.stopPropagation();
+    }, true);
   document.addEventListener("pointerup", (e) => {
     if (e.pointerType === "touch") return;
+    pararEspera();
     pend = null;
     if (arr && !arr.toque) soltar();
   });
