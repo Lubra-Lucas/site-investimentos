@@ -3,7 +3,10 @@
  * mostra todos os ativos que atendem a TODAS as regras. Os indicadores vêm prontos de
  * data/rastreador.json (scripts/rastreador.py), sempre com candles fechados.
  *
- * Séries: preço e osciladores = [2 atrás, 1 atrás, atual]; médias = [5 atrás, 2 atrás, 1 atrás, atual]. */
+ * Séries (preço, médias, osciladores) vêm com os últimos 10 valores, do mais antigo para o mais
+ * recente; volume relativo, variação, máximas anteriores e percentil da Bollinger vêm como lista
+ * dos últimos 5 candles. Assim dá para avaliar as regras em cada um dos 5 últimos candles
+ * ("aconteceu no último pregão" ou "nos últimos N"). */
 
 const carregarRastreador = () => buscarJSON("data/rastreador.json");
 
@@ -68,11 +71,11 @@ const CONDICOES = {
     padrao: { media: "sma50", dir: "sobe" },
     avaliar(s, p) {
       const m = serieMedia(s, p.media);
-      if (!m || m[0] == null || ult(m) == null) return null;
-      return p.dir === "sobe" ? ult(m) > m[0] : ult(m) < m[0];
+      if (!m || ult(m, 5) == null || ult(m) == null) return null;
+      return p.dir === "sobe" ? ult(m) > ult(m, 5) : ult(m) < ult(m, 5);
     },
     texto: (p, tf) => `${nomeMedia(p.media)} ${p.dir === "sobe" ? "subindo" : "caindo"} (vs. ${unid(tf, 5)} atrás)`,
-    valor: (s, p, tf) => `${nomeMedia(p.media)} ${fmtPct(pct(ult(serieMedia(s, p.media)), serieMedia(s, p.media)?.[0]))} em ${unid(tf, 5)}`,
+    valor: (s, p, tf) => `${nomeMedia(p.media)} ${fmtPct(pct(ult(serieMedia(s, p.media)), ult(serieMedia(s, p.media), 5)))} em ${unid(tf, 5)}`,
   },
   pullback: {
     nome: "Pullback na média", grupo: "Médias",
@@ -366,13 +369,42 @@ const MODELO_POR_ID = new Map(MODELOS.flatMap((g) => g.itens).map((m) => [m.id, 
 
 // ------------------------------------------------------------- avaliação
 
-function atende(s, regras, tf, F) {
-  if (!s) return false;
-  return regras.every((x) => CONDICOES[x.t]?.avaliar(s, x, tf, F) === true);
+/** A foto vista k candles atrás (k = 0 é o último candle fechado). */
+function deslocar(s, k) {
+  if (!s || !k) return s;
+  const corta = (a) => (Array.isArray(a) ? a.slice(0, a.length - k) : a);
+  const pega = (a) => (Array.isArray(a) ? a[a.length - 1 - k] ?? null : a);
+  const mapa = (o, f) => o && Object.fromEntries(Object.entries(o).map(([n, a]) => [n, f(a)]));
+  return {
+    ...s, d: s.datas?.[s.datas.length - 1 - k] ?? s.d,
+    o: corta(s.o), h: corta(s.h), l: corta(s.l), c: corta(s.c), sma: mapa(s.sma, corta), ema: mapa(s.ema, corta),
+    ifr: mapa(s.ifr, corta), k: corta(s.k), kd: corta(s.kd), bbs: corta(s.bbs), bbi: corta(s.bbi),
+    vr: pega(s.vr), bbp: pega(s.bbp), bbl: pega(s.bbl), var: mapa(s.var, pega), max: mapa(s.max, pega), min: mapa(s.min, pega),
+  };
 }
+/** O mesmo, mas a foto do último candle (listas por candle viram o valor de hoje). */
+const atual = (s) => (s && Array.isArray(s.vr) ? { ...s, ...deslocar(s, 0), vr: ult(s.vr), bbp: ult(s.bbp), bbl: ult(s.bbl),
+  var: s.var && Object.fromEntries(Object.entries(s.var).map(([n, a]) => [n, ult(a)])),
+  max: s.max && Object.fromEntries(Object.entries(s.max).map(([n, a]) => [n, ult(a)])),
+  min: s.min && Object.fromEntries(Object.entries(s.min).map(([n, a]) => [n, ult(a)])) } : s);
+
+/**
+ * Em qual dos últimos `periodos` candles TODAS as regras foram atendidas: devolve k (0 = último
+ * candle fechado, 1 = o anterior...) do mais recente, ou null.
+ */
+function quandoAtende(s, regras, tf, F, periodos = 1) {
+  if (!s) return null;
+  const n = Math.min(periodos, s.datas?.length ?? 1);
+  for (let k = 0; k < n; k++) {
+    const x = k ? deslocar(s, k) : atual(s);
+    if (regras.every((r) => CONDICOES[r.t]?.avaliar(x, r, tf, F) === true)) return k;
+  }
+  return null;
+}
+const atende = (s, regras, tf, F) => quandoAtende(s, regras, tf, F) != null;
 
 const textoRegra = (x, tf, F) => CONDICOES[x.t].texto(x, tf, F);
-const valorRegra = (s, x, tf, F) => (s && CONDICOES[x.t].valor ? CONDICOES[x.t].valor(s, x, tf, F) : null);
+const valorRegra = (s, x, tf, F, k = 0) => (s && CONDICOES[x.t].valor ? CONDICOES[x.t].valor(k ? deslocar(s, k) : atual(s), x, tf, F) : null);
 
 /**
  * O que desenhar no gráfico para o usuário ver a condição: as médias citadas nas regras
@@ -380,7 +412,8 @@ const valorRegra = (s, x, tf, F) => (s && CONDICOES[x.t].valor ? CONDICOES[x.t].
  * e os níveis de rompimento ou de 52 semanas. null = a regra não tem nada para desenhar.
  */
 const CORES_EXTRAS = ["#e879f9", "#22d3ee", "#fb923c", "#a3e635", "#f472b6"];
-function sobreposicaoDasRegras(regras, s, tf, F) {
+function sobreposicaoDasRegras(regras, s0, tf, F, k = 0) {
+  const s = k ? deslocar(s0, k) : atual(s0);
   const cores = { sma20: css("--mm20"), sma50: css("--mm50"), sma200: css("--mm200") };
   const ids = [...new Set(regras.flatMap((x) => [x.media, x.a, x.b]).filter(Boolean))];
   let extra = 0;
@@ -427,8 +460,9 @@ function legendaSobreposicao(sob) {
  * estratégias) e o que pede cuidado (IFR/estocástico esticados, longe da média, fora da
  * Bollinger, contra o tempo maior, volume fraco, dado não conferido).
  */
-function contextoDecisao(a, fotos, tf, vies, sinais) {
+function contextoDecisao(a, fotos0, tf, vies, sinais) {
   const favor = [], cuidado = [], info = [];
+  const fotos = fotos0 && { D: atual(fotos0.D), W: atual(fotos0.W) };
   const s = fotos?.[tf], outroTf = tf === "D" ? "W" : "D", o = fotos?.[outroTf];
   const compra = vies === "compra", venda = vies === "venda";
   const nomeTf = (t) => (t === "D" ? "Diário" : "Semanal");

@@ -2,12 +2,15 @@
 
 O rastreador roda no navegador, com regras que o usuário monta (fechamento acima da MME 9,
 IFR abaixo de 30, pullback na MMS 20...). Para isso o site precisa dos indicadores já
-calculados, no diário e no semanal, sempre com candles FECHADOS (o pregão em andamento fica
-de fora, como nos sinais).
+calculados, no diário e no semanal, sempre com candles FECHADOS: o pregão em andamento fica
+de fora, e no semanal só entram semanas completas (o sinal da semana sai depois de sexta).
 
-Séries de preço e osciladores trazem os 3 últimos valores (do mais antigo para o mais
-recente), o bastante para cruzamentos e pullbacks com violação e retomada. As médias trazem
-[5 candles atrás, 2 atrás, 1 atrás, atual]: o primeiro serve para a inclinação.
+Para o usuário escolher "aconteceu no último pregão" ou "nos últimos N", as regras são
+avaliadas em cada um dos PERIODOS últimos candles. Por isso:
+  - preço, médias e osciladores trazem os ULTIMOS valores (do mais antigo para o mais recente),
+    o bastante para olhar 2 candles antes e a inclinação de 5 candles em qualquer um deles;
+  - o que é um número por candle (volume relativo, variação, máximas anteriores, percentil da
+    Bollinger) vem como lista dos PERIODOS últimos candles.
 """
 
 from __future__ import annotations
@@ -20,7 +23,8 @@ from estrategias import BB_DESVIOS, BB_JANELA_COMPRESSAO, BB_PERIODO, estocastic
 
 PERIODOS_MM = [5, 9, 10, 20, 21, 25, 50, 100, 200]
 PERIODOS_IFR = [2, 9, 14]
-ULTIMOS = 3
+PERIODOS = 5          # o rastreador olha até 5 candles para trás
+ULTIMOS = PERIODOS + 5
 # janelas em candles: variação e máximas/mínimas anteriores
 JANELAS = {
     "D": {"var": [1, 5, 21, 63, 126, 252], "ext": [10, 20, 55, 252]},
@@ -41,8 +45,9 @@ def _serie(s: pd.Series, casas: int) -> list:
     return [_r(x, casas) for x in s.iloc[-ULTIMOS:]]
 
 
-def _media(s: pd.Series, casas: int) -> list:
-    return [_r(s.iloc[-6], casas) if len(s) >= 6 else None, *_serie(s, casas)]
+def _por_candle(s: pd.Series, casas: int) -> list:
+    """Um valor por candle, nos PERIODOS últimos."""
+    return [_r(x, casas) for x in s.iloc[-PERIODOS:]]
 
 
 def _sequencia(cond: pd.Series) -> int:
@@ -55,25 +60,24 @@ def _sequencia(cond: pd.Series) -> int:
     return n
 
 
-def foto(f: pd.DataFrame, tf: str, fracao: float = 1.0, casas: int | None = None) -> dict | None:
-    """fracao: quanto do último candle já passou (semana em andamento com 2 de 5 pregões = 0,4),
-    para o volume relativo não parecer fraco só porque a semana não acabou."""
+def foto(f: pd.DataFrame, tf: str, casas: int | None = None) -> dict | None:
     if len(f) < 30:
         return None
     casas = casas if casas is not None else 2 if f["Close"].min() >= 1 else 6
     c, h, l = f["Close"], f["High"], f["Low"]
     out: dict = {
         "d": f.index[-1].strftime("%Y-%m-%d"),
+        "datas": [d.strftime("%Y-%m-%d") for d in f.index[-PERIODOS:]],
         "o": _serie(f["Open"], casas), "h": _serie(h, casas), "l": _serie(l, casas), "c": _serie(c, casas),
     }
     vol = f["Volume"].fillna(0)
-    media_vol = vol.shift(1).rolling(20).mean().iloc[-1]
-    out["vr"] = _r(vol.iloc[-1] / (media_vol * fracao), 2) if media_vol and media_vol > 0 else None
+    media_vol = vol.shift(1).rolling(20).mean()
+    out["vr"] = _por_candle((vol / media_vol.where(media_vol > 0)), 2)
 
     sma = {n: c.rolling(n).mean() for n in PERIODOS_MM}
     ema = {n: c.ewm(span=n, adjust=False, min_periods=n).mean() for n in PERIODOS_MM}
-    out["sma"] = {n: _media(s, casas) for n, s in sma.items() if not math.isnan(s.iloc[-1])}
-    out["ema"] = {n: _media(s, casas) for n, s in ema.items() if not math.isnan(s.iloc[-1])}
+    out["sma"] = {n: _serie(s, casas) for n, s in sma.items() if not math.isnan(s.iloc[-1])}
+    out["ema"] = {n: _serie(s, casas) for n, s in ema.items() if not math.isnan(s.iloc[-1])}
 
     out["ifr"] = {n: _serie(ifr(c, n), 1) for n in PERIODOS_IFR}
     k, d = estocastico_lento(f)
@@ -84,10 +88,10 @@ def foto(f: pd.DataFrame, tf: str, fracao: float = 1.0, casas: int | None = None
     sup, inf = media + BB_DESVIOS * desvio, media - BB_DESVIOS * desvio
     larg = (sup - inf) / media
     out["bbs"], out["bbi"] = _serie(sup, casas), _serie(inf, casas)
-    out["bbl"] = _r(larg.iloc[-1] * 100, 2)
-    # percentil da largura atual nos últimos 120 candles (0 = a mais estreita)
-    janela = larg.iloc[-BB_JANELA_COMPRESSAO:].dropna()
-    out["bbp"] = _r((janela < larg.iloc[-1]).mean() * 100, 0) if len(janela) >= 60 else None
+    out["bbl"] = _por_candle(larg * 100, 2)
+    # percentil da largura de cada candle nos 120 anteriores a ele (0 = a mais estreita)
+    pctl = larg.rolling(BB_JANELA_COMPRESSAO, min_periods=60).apply(lambda x: (x[:-1] < x[-1]).mean() * 100, raw=True)
+    out["bbp"] = _por_candle(pctl, 0)
 
     # distância "normal" do fechamento a cada média: média da distância absoluta em ~1 ano
     out["dn"] = {}
@@ -96,10 +100,10 @@ def foto(f: pd.DataFrame, tf: str, fracao: float = 1.0, casas: int | None = None
         if len(dist) >= 20:
             out["dn"][n] = _r(dist.mean() * 100, 2)
 
-    out["var"] = {n: _r((c.iloc[-1] / c.iloc[-1 - n] - 1) * 100, 2) for n in JANELAS[tf]["var"] if len(c) > n}
-    # máxima/mínima dos N candles ANTERIORES (rompimento = fechar além delas)
-    out["max"] = {n: _r(h.iloc[-1 - n:-1].max(), casas) for n in JANELAS[tf]["ext"] if len(h) > n}
-    out["min"] = {n: _r(l.iloc[-1 - n:-1].min(), casas) for n in JANELAS[tf]["ext"] if len(l) > n}
+    out["var"] = {n: _por_candle((c / c.shift(n) - 1) * 100, 2) for n in JANELAS[tf]["var"] if len(c) > n + PERIODOS}
+    # máxima/mínima dos N candles ANTERIORES a cada candle (rompimento = fechar além delas)
+    out["max"] = {n: _por_candle(h.shift(1).rolling(n).max(), casas) for n in JANELAS[tf]["ext"] if len(h) > n + PERIODOS}
+    out["min"] = {n: _por_candle(l.shift(1).rolling(n).min(), casas) for n in JANELAS[tf]["ext"] if len(l) > n + PERIODOS}
 
     tr = pd.concat([h - l, (h - c.shift(1)).abs(), (l - c.shift(1)).abs()], axis=1).max(axis=1)
     out["atr"] = _r(tr.ewm(alpha=1 / 14, adjust=False).mean().iloc[-1] / c.iloc[-1] * 100, 2)
@@ -115,10 +119,12 @@ def foto(f: pd.DataFrame, tf: str, fracao: float = 1.0, casas: int | None = None
 
 
 def fotos(df: pd.DataFrame, mercado: str, casas: int | None = None) -> dict:
-    """Diário e semanal (a semana em andamento entra só com os dias já fechados)."""
+    """Diário e semanal. No semanal só entram semanas completas: a semana em andamento só vira
+    candle depois do último pregão dela (sexta; domingo em cripto) ou quando ela já passou."""
     cripto = mercado == "CRIPTO"
     semanal = reamostrar(df, "W-SUN" if cripto else "W-FRI")
+    fim_semana = semanal.index[-1]  # o rótulo do resample é o último dia da semana
+    if df.index[-1] < fim_semana and pd.Timestamp.today().normalize() <= fim_semana:
+        semanal = semanal.iloc[:-1]
     semanal.index = semanal.index - pd.Timedelta(days=6 if cripto else 4)  # semana pela segunda-feira
-    dias = int((df.index >= semanal.index[-1]).sum())
-    fracao = min(1.0, dias / (7 if cripto else 5))
-    return {tf: x for tf, x in (("D", foto(df, "D", casas=casas)), ("W", foto(semanal, "W", fracao, casas))) if x}
+    return {tf: x for tf, x in (("D", foto(df, "D", casas)), ("W", foto(semanal, "W", casas))) if x}

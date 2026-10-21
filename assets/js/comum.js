@@ -627,6 +627,12 @@ class Grafico {
     this.posicionarDestaque();
   }
 
+  /** Destaca o candle de uma data sem mexer no enquadramento. */
+  destacar(data) {
+    this.dataDestaque = this.c?.find((x) => x.time >= data)?.time ?? null;
+    this.posicionarDestaque();
+  }
+
   posicionarDestaque() {
     if (!this.dataDestaque) return;
     const ts = this.chart.timeScale();
