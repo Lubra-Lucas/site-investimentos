@@ -55,12 +55,12 @@ def _sequencia(cond: pd.Series) -> int:
     return n
 
 
-def foto(f: pd.DataFrame, tf: str, fracao: float = 1.0) -> dict | None:
+def foto(f: pd.DataFrame, tf: str, fracao: float = 1.0, casas: int | None = None) -> dict | None:
     """fracao: quanto do último candle já passou (semana em andamento com 2 de 5 pregões = 0,4),
     para o volume relativo não parecer fraco só porque a semana não acabou."""
     if len(f) < 30:
         return None
-    casas = 2 if f["Close"].min() >= 1 else 6
+    casas = casas if casas is not None else 2 if f["Close"].min() >= 1 else 6
     c, h, l = f["Close"], f["High"], f["Low"]
     out: dict = {
         "d": f.index[-1].strftime("%Y-%m-%d"),
@@ -114,11 +114,11 @@ def foto(f: pd.DataFrame, tf: str, fracao: float = 1.0) -> dict | None:
     return out
 
 
-def fotos(df: pd.DataFrame, mercado: str) -> dict:
+def fotos(df: pd.DataFrame, mercado: str, casas: int | None = None) -> dict:
     """Diário e semanal (a semana em andamento entra só com os dias já fechados)."""
     cripto = mercado == "CRIPTO"
     semanal = reamostrar(df, "W-SUN" if cripto else "W-FRI")
     semanal.index = semanal.index - pd.Timedelta(days=6 if cripto else 4)  # semana pela segunda-feira
     dias = int((df.index >= semanal.index[-1]).sum())
     fracao = min(1.0, dias / (7 if cripto else 5))
-    return {tf: x for tf, x in (("D", foto(df, "D")), ("W", foto(semanal, "W", fracao))) if x}
+    return {tf: x for tf, x in (("D", foto(df, "D", casas=casas)), ("W", foto(semanal, "W", fracao, casas))) if x}

@@ -32,14 +32,16 @@ SAIDA = RAIZ / "data"
 SAIDA_ATIVOS = SAIDA / "ativos"
 SAIDA_INTRADAY = SAIDA / "intraday"
 TICKER_CAMBIO = "USDBRL=X"
-MOEDA = {"BR": "BRL", "US": "USD", "CRIPTO": "USD"}
+MOEDA = {"BR": "BRL", "US": "USD", "CRIPTO": "USD", "MACRO": "USD"}  # MACRO: cada ativo diz a sua (USD, PTS, FX)
 
 # O candle diário só vale para sinais depois que o pregão fecha. Antes disso ele aparece no
 # gráfico como "em formação", mas não entra em estratégia, estado, backtest nem carteira.
 # B3: fecha às 17h/18h (conforme o horário de verão dos EUA); o fechamento oficial chega ao
 # Yahoo por volta das 18h30. EUA: fecha às 16h de Nova York. Cripto: dia UTC.
 FECHAMENTO = {"BR": ("America/Sao_Paulo", time(18, 30)), "US": ("America/New_York", time(16, 30)),
-              "CRIPTO": ("UTC", None)}
+              "CRIPTO": ("UTC", None),
+              # índices, moedas e commodities: o dia de moedas e futuros vira às 17h de Nova York
+              "MACRO": ("America/New_York", time(17, 15))}
 # Mesmos horários do cron em .github/workflows/atualizar.yml (UTC); a rodada leva ~10 min
 PUBLICACOES_UTC = (time(10, 17), time(22, 30))
 DURACAO_RODADA = timedelta(minutes=10)
@@ -63,9 +65,16 @@ def proxima_publicacao(depois: datetime) -> datetime:
     return min(t for t in opcoes if t >= depois) + DURACAO_RODADA
 
 
-def intraday_compacto(h: pd.DataFrame) -> list[list]:
+def casas_preco(close: pd.Series, moeda: str = "") -> int:
+    """Casas decimais para gravar: cotações de moedas pedem mais (1,08345)."""
+    if moeda == "FX":
+        return 3 if close.min() >= 20 else 5
+    return 2 if close.min() >= 1 else 6
+
+
+def intraday_compacto(h: pd.DataFrame, moeda: str = "") -> list[list]:
     """Horário local da bolsa como se fosse UTC: o gráfico mostra a hora do pregão."""
-    casas = 2 if h["Close"].min() >= 1 else 6
+    casas = casas_preco(h["Close"], moeda)
     epoch = (h.index - pd.Timestamp("1970-01-01")) // pd.Timedelta(seconds=1)
     return [[int(t), round(r.Open, casas), round(r.High, casas), round(r.Low, casas), round(r.Close, casas)]
             for t, r in zip(epoch, h.itertuples())]
@@ -86,8 +95,8 @@ def separar_parcial(bruto: pd.DataFrame, formacao: tuple[date, datetime] | None,
     return fechados, (c if ok else None)
 
 
-def candles_compactos(df: pd.DataFrame) -> list[list]:
-    casas = 2 if df["Close"].min() >= 1 else 6
+def candles_compactos(df: pd.DataFrame, moeda: str = "") -> list[list]:
+    casas = casas_preco(df["Close"], moeda)
     return [[d.strftime("%Y-%m-%d"), round(r.Open, casas), round(r.High, casas),
              round(r.Low, casas), round(r.Close, casas)] for d, r in df.iterrows()]
 
@@ -211,7 +220,7 @@ def historico_patrimonio(cfg, transacoes, precos, cambio, moedas) -> list[dict]:
 
 # -------------------------------------------------------------- maiores quedas
 
-NOME_MERCADO = {"BR": "do Brasil", "US": "dos EUA", "CRIPTO": "de cripto"}
+NOME_MERCADO = {"BR": "do Brasil", "US": "dos EUA", "CRIPTO": "de cripto", "MACRO": "de índices, moedas e commodities"}
 FATIA_EXTREMOS = 0.08                       # 8% piores (e melhores) de cada mercado
 MOVIMENTO_MINIMO = {"D": 8.0, "S": 12.0}    # e só se o movimento for relevante (%)
 
@@ -251,7 +260,7 @@ def montar_lista(cfg: dict) -> dict[str, dict]:
     universo = json.loads(UNIVERSO.read_text(encoding="utf-8"))
     for mercado, lista in universo.items():
         for a in lista:
-            ativos[a["ticker"]] = {**a, "mercado": mercado, "moeda": MOEDA[mercado], "carteira": False}
+            ativos[a["ticker"]] = {**a, "mercado": mercado, "moeda": a.get("moeda", MOEDA[mercado]), "carteira": False}
     for a in cfg["ativos"]:
         ativos[a["ticker"]] = {**ativos.get(a["ticker"], {}), **a, "carteira": True}
     for t in cfg.get("transacoes", []):
@@ -270,12 +279,13 @@ def main() -> None:
     hoje = pd.Timestamp.today().normalize()
 
     print(f"Baixando {len(ativos)} ativos do Yahoo...")
-    brutos = fontes.baixar_yahoo([*ativos, TICKER_CAMBIO])
+    brutos = fontes.baixar_yahoo(list(dict.fromkeys([*ativos, TICKER_CAMBIO])))
     print("Buscando fechamentos de referência...")
     refs = fontes.referencias(list(ativos.values()))
     print("Baixando candles de 60 min...")
     intraday = {}
-    for mercado, fuso in (("BR", "America/Sao_Paulo"), ("US", "America/New_York"), ("CRIPTO", "UTC")):
+    for mercado, fuso in (("BR", "America/Sao_Paulo"), ("US", "America/New_York"), ("CRIPTO", "UTC"),
+                          ("MACRO", "America/New_York")):
         intraday.update(fontes.baixar_yahoo_60min([t for t, a in ativos.items() if a["mercado"] == mercado], fuso))
 
     agora_utc = datetime.now(timezone.utc)
@@ -317,7 +327,7 @@ def main() -> None:
             h_fechado = h[h.index.normalize() < pd.Timestamp(form[0])]
             h_fechado = h_fechado if len(h_fechado) >= 60 else None
         estado, sinais_tk, historico = estrategias.analisar(df, meta["mercado"], h_fechado)
-        fotos[tk] = rastreador.fotos(df, meta["mercado"])
+        fotos[tk] = rastreador.fotos(df, meta["mercado"], casas_preco(df["Close"], meta["moeda"]))
         if parcial is not None:
             estado["parcial"] = {"data": form[0].isoformat(), "ultimo": _num(parcial["Close"], 4),
                                  "var_pct": _num((parcial["Close"] / df["Close"].iloc[-1] - 1) * 100)}
@@ -328,12 +338,12 @@ def main() -> None:
             teste.adicionar(tk, meta["mercado"], historico)
         arquivo = tk.replace("=", "_")
         (SAIDA_ATIVOS / f"{arquivo}.json").write_text(json.dumps(
-            {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(grafico),
+            {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(grafico, meta["moeda"]),
              "parcial": estado.get("parcial", {}).get("data")},
             separators=(",", ":")), encoding="utf-8")
         if h is not None:
             (SAIDA_INTRADAY / f"{arquivo}.json").write_text(json.dumps(
-                {"ticker": tk, "h": intraday_compacto(h)}, separators=(",", ":")), encoding="utf-8")
+                {"ticker": tk, "h": intraday_compacto(h, meta["moeda"])}, separators=(",", ":")), encoding="utf-8")
 
         conf = laudo.get("conferencia", {})
         publicados.append({

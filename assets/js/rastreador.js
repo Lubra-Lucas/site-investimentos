@@ -507,6 +507,7 @@ function contextoDecisao(a, fotos, tf, vies, sinais) {
   }
 
   if (!a.liquido) cuidado.push("Pouca liquidez");
-  if (a.verificacao?.status !== "conferido") cuidado.push("Último fechamento não conferido com fonte oficial");
+  // índices, moedas e commodities não têm fonte oficial gratuita para conferir: não é alerta
+  if (a.verificacao?.status !== "conferido" && a.mercado !== "MACRO") cuidado.push("Último fechamento não conferido com fonte oficial");
   return { favor, cuidado, info };
 }

@@ -427,7 +427,7 @@ class Desenhos {
     const r = this.telaRR(d);
     if (!r) return;
     const x = Math.min(r.x1, r.x2), w = Math.max(2, Math.abs(r.x2 - r.x1));
-    const casas = casasPreco(d.entrada);
+    const casas = casasPreco(d.entrada, this.g.moeda);
     const pctDe = (p) => Math.abs(p / d.entrada - 1) * 100;
     const rr = Math.abs(d.entrada - d.stop) ? Math.abs(d.alvo - d.entrada) / Math.abs(d.entrada - d.stop) : 0;
     const caixa = (y1, y2, cor) => novo("rect", { x, y: Math.min(y1, y2), width: w, height: Math.abs(y2 - y1),

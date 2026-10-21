@@ -119,7 +119,7 @@ function calcularOportunidades() {
   const g = agruparSinais(sinais, { tf: estado.tf });
   grupos = { compra: g.compra.filter((i) => visivel(i.ticker)), venda: g.venda.filter((i) => visivel(i.ticker)) };
 
-  const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto" };
+  const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro" };
   const mercados = [...ultima.keys()].filter((m) => !estado.mercado || m === estado.mercado);
   const rot = estado.tf === "D" ? "pregão" : "semana";
   // rótulos do período conforme o tempo do sinal (pregões ou semanas)
