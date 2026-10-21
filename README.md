@@ -1,7 +1,7 @@
 # Carteira Terminal
 
 Terminal pessoal de análise técnica, feito para a rotina **depois do fechamento**: ver quais setups se formaram,
-comparar os gráficos dos ativos na mesma condição e decidir as entradas do dia seguinte. Quatro páginas:
+comparar os gráficos dos ativos na mesma condição e decidir as entradas do dia seguinte. Cinco páginas:
 
 - **Carteira** (`index.html`): o que você tem e acompanha. Patrimônio em BRL, posições, **Minha lista** (os
   ativos que você acompanha, salva neste navegador), **Minhas simulações** e os setups que dispararam nesses ativos.
@@ -14,6 +14,11 @@ comparar os gráficos dos ativos na mesma condição e decidir as entradas do di
 
   "Só com 2+ setups" mostra os ativos com vários setups ao mesmo tempo; dá para ordenar por melhor histórico,
   mais setups juntos, variação etc. As setas no gráfico marcam os candles em que o setup disparou.
+- **Triagem** (`triagem.html`): um "Tinder" de ativos. Um card por ativo que deu sinal de **compra** (ou de
+  **venda**) no último pregão fechado do mercado dele, com gráfico, setups, histórico e contexto. Arraste para a
+  direita (♥ gostei), para a esquerda (✗ descartar, só por hoje) ou para cima (★ super); <kbd>←</kbd> <kbd>↑</kbd>
+  <kbd>→</kbd> e <kbd>Backspace</kbd> (desfazer) também servem. Em **Hoje**, as três colunas, com atalhos para
+  Comparar e Plano de amanhã; em **Dias anteriores**, quanto o preço andou desde a triagem. Salvo neste navegador.
 - **Ativo** (`ativo.html#PETR4`): tudo sobre um papel. Gráfico completo, setups recentes (clique para ir à data),
   contexto, simulações e **como cada setup se saiu nesse ativo**. A busca no topo de qualquer página abre aqui
   (atalho <kbd>/</kbd>).

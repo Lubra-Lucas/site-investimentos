@@ -59,6 +59,9 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
   aparece numa **grade** de gráficos (1, 2×2, 3×3, 4×3). Cada ativo mostra os
   setups que disparou, o selo do histórico e o contexto a favor/cuidado. `radar.html` e `multitela.html`
   redirecionam para cá.
+- **Triagem** (`triagem.html`): um "Tinder" dos setups do dia. Baralho de compra ou de venda com os ativos que
+  deram sinal no último pregão do seu mercado; → gostei, ↑ super, ← descartar (só naquele pregão). As decisões
+  ficam no navegador (`triagem-v1`, por data do pregão e lado), com o resultado do dia e os dias anteriores.
 - **Carteira** (`index.html`): posições, simulações e a minha lista (o que eu tenho e acompanho).
 - **Ativo** (`ativo.html#TICKER`): tudo sobre um papel. Gráfico, setups recentes, simulações, como cada
   setup se saiu nele e contexto. Clicar num ticker em qualquer página abre aqui.
