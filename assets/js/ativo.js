@@ -51,6 +51,7 @@ function renderCabecalho(a) {
   const variacao = (rot, v) => el("span", { class: "cab-ativo-var" }, rot, " ", el("b", { class: cor(v) }, fmtPct(v)));
   const tend = (rot, t) => el("span", { class: `tend-pilula ${t}` }, rot, " ",
     el("b", {}, t === "alta" ? "▲ alta" : t === "baixa" ? "▼ baixa" : "▬ lateral"));
+  document.getElementById("cab-ativo-id").dataset.tk = a.ticker;  // arrastar.js: segurar o cabeçalho leva o ativo
   document.getElementById("cab-ativo-id").replaceChildren(
     el("div", { class: "cab-ativo-nome" },
       el("h1", { class: "mono" }, semSufixo(a.ticker)), el("span", {}, a.nome), el("span", { class: "tag" }, a.mercado), selosBandeja(a.ticker)),
@@ -65,7 +66,8 @@ function renderCabecalho(a) {
   document.getElementById("cab-ativo-links").replaceChildren(
     Plano.botao(() => ctxBandeja(a)), Notas.botao(() => ctxBandeja(a)),
     el("a", { class: "botao", href: `setups.html#${encodeURIComponent(a.ticker)}`, title: "Abrir este ativo na página de setups" }, "Ver nos setups →"),
-    el("a", { class: "botao", href: "index.html", title: "Posições, simulações e a minha lista" }, "Carteira"));
+    el("a", { class: "botao", href: "index.html", title: "Posições, simulações e a minha lista" }, "Carteira"),
+    window.Arrastar?.menu(a.ticker));
 }
 
 /** O ativo aberto no formato do plano e das anotações: lado e setup dos eventos mais recentes, tempo do gráfico. */

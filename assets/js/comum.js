@@ -671,6 +671,7 @@ const AJUDA = {
     "Clique em um ativo para abrir a página dele (gráfico, setups recentes, contexto e histórico).",
     "Na Minha lista, digite um ticker e clique em Adicionar; o × tira da lista. Ela fica salva neste navegador.",
     "Plano de amanhã: o que você vai operar no próximo pregão (entrada, stop, alvo, quantidade pelo risco); Minhas anotações: o que viu em cada ativo e o que o preço fez depois. Exportar/Importar leva os dois.",
+    "Arraste um ativo pelo ticker (no celular, segure a linha) até Comparar, ou use o ⋯ ao lado dele.",
   ]],
   ativo: ["Ativo", [
     "Tudo de um ativo: gráfico, setups recentes, contexto, suas simulações e como cada setup se saiu nele.",
@@ -683,6 +684,7 @@ const AJUDA = {
     "\"Minhas regras\" monta um filtro próprio (médias, IFR, Bollinger...), salvo neste navegador.",
     "Lista + gráfico: ↑ ↓ passam pelos ativos e o contexto (✓ a favor, ⚠ cuidado) aparece no item aberto. Grade: vários gráficos para comparar; passe o mouse no gráfico para ver o contexto e use ← → para trocar de página.",
     "As setas no gráfico são os setups escolhidos neste ativo; a faixa azul marca o candle do sinal. Os sinais só saem com o pregão fechado.",
+    "Segure um card (no celular) ou arraste pelo cabeçalho (no mouse) e solte em Comparar, Plano de amanhã ou Anotar, que aparecem nas bordas. O ⋯ do card faz o mesmo.",
   ]],
   backtest: ["Backtest", ["Como cada setup se saiu nos últimos 6 anos, por mercado, lado e prazo."]],
 };

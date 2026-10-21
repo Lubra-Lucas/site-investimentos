@@ -44,8 +44,8 @@ function tabela(id, colunas, linhas, vazio) {
 }
 
 const celTicker = (l) => (porTicker.has(l.ticker)
-  ? el("a", { class: "ticker-cel", href: urlAtivo(l.ticker), title: "Abrir a página do ativo" },
-    el("b", {}, semSufixo(l.ticker)), el("span", {}, porTicker.get(l.ticker).nome))
+  ? el("span", { class: "ticker-cel-acoes" }, el("a", { class: "ticker-cel", href: urlAtivo(l.ticker), title: "Abrir a página do ativo (arraste para Comparar)" },
+    el("b", {}, semSufixo(l.ticker)), el("span", {}, porTicker.get(l.ticker).nome)), window.Arrastar?.menu(l.ticker))
   : el("span", { class: "ticker-cel" }, el("b", {}, semSufixo(l.ticker)), el("span", {}, l.nome ?? "")));
 
 const tendencia = (l) => {
