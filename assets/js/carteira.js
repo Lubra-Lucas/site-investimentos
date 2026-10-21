@@ -245,6 +245,7 @@ async function iniciar() {
     if (e.target.files[0]) importarSimulacoes(e.target.files[0], listarSimulacoes);
   });
   listarSimulacoes();
+  document.addEventListener("simulacoes", listarSimulacoes);  // ex.: "Virar simulação" no plano de amanhã
   // vindo de outra página com #secao-simulacoes: a seção só tem altura depois de montada
   if (location.hash) document.querySelector(location.hash.replace(/[^#\w-]/g, ""))?.scrollIntoView();
 }
