@@ -1,39 +1,12 @@
-"""Indicadores e estratégias do radar.
+"""Indicadores básicos e o ESTADO de cada ativo (a foto de hoje, para os filtros e o card).
 
-Cada sinal tem um LADO (compra ou venda), uma FAMÍLIA de estratégia e uma MODALIDADE:
+Os sinais (setups) não estão mais aqui: o catálogo único (config/setups.json) é avaliado em
+scripts/setups.py, que usa estes indicadores (IFR de Wilder, estocástico lento, Bollinger,
+ATR, reamostragem semanal, 60 min -> 4 horas).
 
-A favor da tendência (comprar alta que continua / vender baixa que continua):
-  pullback   Pullback nas médias (MM20, MM50 ou MM200), com as médias alinhadas a favor:
-             - rejeição: a mínima fura a média e o candle fecha acima dela;
-             - violação e retomada: fecha abaixo da média por 1 ou 2 candles (até 1 ATR abaixo,
-               vindo de cima) e volta a fechar acima.
-             Nos dois casos o candle do sinal precisa estar NA média: a mínima chega até ela (folga
-             de 1/4 de ATR) e o fechamento fica a até 1 ATR dela; um gap que se afasta não conta.
-             Se o candle também fecha em alta sobre o anterior, ganha "+ fechamento positivo"
-             (sinal mais forte). Venda: o espelho (máxima fura e fecha abaixo; ou fecha acima 1-2 candles e perde de novo).
-  boca       Boca de jacaré: bandas de Bollinger comprimidas que abrem (superior sobe, inferior
-             desce) com fechamento fora delas.
-  mtf        Multitempo: tendência no tempo do sinal + exaustão no tempo menor.
-             Sinal diário: diário acima da MM20 e da MM50 + 60 min com estocástico lento < 20
-             e/ou IFR < 30. Sinal semanal: semanal acima das médias + a mesma exaustão no diário
-             ou no 4 horas.
-
-Contra a tendência (comprar a faca caindo / vender o que esticou demais):
-  ifr        IFR 14 cruza abaixo de 20 (venda: acima de 80).
-  bb_fora    Fecha abaixo da banda inferior de Bollinger (venda: acima da superior), fora de uma
-             abertura de boca de jacaré.
-  distancia  Preço anormalmente longe da MM20: distância pelo menos 2,5x a distância média
-             do próprio ativo no último ano.
-  quedas     Maiores quedas do período no mercado (venda: maiores altas). Calculado em
-             atualizar_dados.py, porque compara os ativos entre si.
-
-Estados (a foto de hoje, para os filtros de estado):
+Estados:
   tendência forte  preço acima (abaixo) das duas médias no diário E no semanal.
   compressão       largura da Bollinger entre as 10% menores dos últimos 120 candles.
-
-Os eventos são calculados para cada pregão (e cada semana), então o radar mostra em que dia
-cada oportunidade apareceu. Filtros de prazo maior usam só o que já estava fechado naquele
-dia, sem olhar o futuro.
 """
 
 from __future__ import annotations
@@ -43,34 +16,16 @@ import math
 import pandas as pd
 
 MM_RAPIDA, MM_LENTA, MM_LONGA = 20, 50, 200
-IFR_PERIODO, IFR_SOBREVENDIDO, IFR_SOBRECOMPRADO = 14, 20, 80
+IFR_PERIODO = 14
 ESTOC_K, ESTOC_SUAVE, ESTOC_D = 14, 3, 3
 ESTOC_SOBREVENDIDO, ESTOC_SOBRECOMPRADO = 20, 80
-IFR_60_COMPRA, IFR_60_VENDA = 30, 70
+IFR_60_COMPRA, IFR_60_VENDA = 30, 70   # exaustão do multitempo (setups.multitempo)
 BB_PERIODO, BB_DESVIOS = 20, 2.0
 BB_JANELA_COMPRESSAO, BB_PERCENTIL_COMPRESSAO = 120, 0.10
-DISTANCIA_FATOR = 2.5                  # distância da MM20 x a distância média do ativo
-DISTANCIA_MINIMA = {"D": 0.02, "S": 0.04}  # e nunca menos que isso
 ATR_PERIODO = 14
-# pullback: o quanto o candle pode ficar da média, em ATR (iguais aos de assets/js/rastreador.js)
-PB_TOQUE_ATR = 0.25      # a sombra precisa chegar até a média (com esta folga)
-PB_FECHAMENTO_ATR = 1.0  # e o fechamento ficar perto dela
-PB_VIOLACAO_ATR = 1.0    # na violação, o fechamento do outro lado não pode ir além disso
-JANELA_DIARIA = 15   # pregões de histórico de sinais
-JANELA_SEMANAL = 8   # semanas de histórico de sinais
 
 # volume financeiro médio de 20 dias para o ativo aparecer nas listas (índices, moedas e commodities não têm)
 LIQUIDEZ_MINIMA = {"BR": 1e6, "US": 20e6, "CRIPTO": 5e6, "MACRO": 0}
-
-FAMILIAS = {
-    "pullback": {"nome": "Pullback nas médias", "modalidade": "tendencia"},
-    "boca": {"nome": "Boca de jacaré", "modalidade": "tendencia"},
-    "mtf": {"nome": "Multitempo", "modalidade": "tendencia"},
-    "ifr": {"nome": "IFR extremo", "modalidade": "contra"},
-    "bb_fora": {"nome": "Fora da Bollinger", "modalidade": "contra"},
-    "distancia": {"nome": "Distância da MM20", "modalidade": "contra"},
-    "quedas": {"nome": "Maiores quedas", "nome_venda": "Maiores altas", "modalidade": "contra"},
-}
 
 
 # ------------------------------------------------------------- indicadores
@@ -139,153 +94,16 @@ def _tendencia(f: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     return alta, baixa
 
 
-def _br(v: float, casas: int = 1) -> str:
-    """Número no formato brasileiro (vírgula decimal)."""
-    return f"{v:.{casas}f}".replace(".", ",")
-
-
 def _inicio(cond: pd.Series) -> pd.Series:
     """True só no primeiro candle de cada sequência em que a condição vale."""
     cond = cond.fillna(False).astype(bool)
     return cond & ~cond.shift(1, fill_value=False)
 
 
-def _antes(cond: pd.Series, n: int) -> pd.Series:
-    return cond.shift(n, fill_value=False).astype(bool)
-
-
-# ------------------------------------------------------------- a favor da tendência
-
-def _pullbacks(f: pd.DataFrame) -> list[tuple]:
-    """Rejeição ou violação-e-retomada da MM20, MM50 ou MM200 com as médias alinhadas."""
-    c, h, l = f["Close"], f["High"], f["Low"]
-    m20, m50, m200 = f[f"MM{MM_RAPIDA}"], f[f"MM{MM_LENTA}"], f[f"MM{MM_LONGA}"]
-    contexto = {  # média: (alinhamento de alta, alinhamento de baixa)
-        MM_LONGA: (m200 > m200.shift(20), m200 < m200.shift(20)),
-        MM_LENTA: (m50 > m200, m50 < m200),
-        MM_RAPIDA: ((m20 > m50) & (m50 > m200), (m20 < m50) & (m50 < m200)),
-    }
-    atr = f["ATR"]
-    vistos, out = set(), []
-    for n in (MM_LONGA, MM_LENTA, MM_RAPIDA):  # a média mais longa é a mais relevante
-        mm = f[f"MM{n}"]
-        alta_ok, baixa_ok = (x.fillna(False) for x in contexto[n])
-        abaixo, acima = (c < mm).fillna(False), (c > mm).fillna(False)
-        # o candle precisa estar NA média: a sombra encosta nela e o fechamento fica perto.
-        # Sem isso, um gap que se afasta da média passaria como "retomada".
-        na_media_compra = ((l - mm <= PB_TOQUE_ATR * atr) & (c - mm <= PB_FECHAMENTO_ATR * atr)).fillna(False)
-        na_media_venda = ((mm - h <= PB_TOQUE_ATR * atr) & (mm - c <= PB_FECHAMENTO_ATR * atr)).fillna(False)
-        # violação rasa: o fechamento do outro lado ficou a até 1 ATR da média (mais fundo é virada)
-        abaixo_raso = abaixo & (mm - c <= PB_VIOLACAO_ATR * atr).fillna(False)
-        acima_raso = acima & (c - mm <= PB_VIOLACAO_ATR * atr).fillna(False)
-        sobe, desce = (c > c.shift(1)).fillna(False), (c < c.shift(1)).fillna(False)
-        casos = {
-            "compra": [
-                (alta_ok & na_media_compra & (l < mm) & acima & _antes(acima, 1), f"Rejeição da MM{n}", sobe),
-                (alta_ok & na_media_compra & acima & _antes(abaixo_raso, 1) & _antes(acima, 2),
-                 f"Violação e retomada da MM{n} (1 candle)", sobe),
-                (alta_ok & na_media_compra & acima & _antes(abaixo_raso, 1) & _antes(abaixo_raso, 2) & _antes(acima, 3),
-                 f"Violação e retomada da MM{n} (2 candles)", sobe),
-            ],
-            "venda": [
-                (baixa_ok & na_media_venda & (h > mm) & abaixo & _antes(abaixo, 1), f"Rejeição da MM{n}", desce),
-                (baixa_ok & na_media_venda & abaixo & _antes(acima_raso, 1) & _antes(abaixo, 2),
-                 f"Violação e perda da MM{n} (1 candle)", desce),
-                (baixa_ok & na_media_venda & abaixo & _antes(acima_raso, 1) & _antes(acima_raso, 2) & _antes(abaixo, 3),
-                 f"Violação e perda da MM{n} (2 candles)", desce),
-            ],
-        }
-        for lado, regras in casos.items():
-            fechamento = "positivo" if lado == "compra" else "negativo"
-            for cond, texto, forte in regras:
-                for d in f.index[cond.fillna(False)]:
-                    if (d, lado) not in vistos:
-                        vistos.add((d, lado))
-                        # sinal mais forte: além de defender a média, o candle fechou a favor
-                        out.append((d, lado, "pullback", f"{texto} + fechamento {fechamento}" if forte[d] else texto))
-    return out
-
-
-def _boca(f: pd.DataFrame) -> list[tuple]:
-    c = f["Close"]
-    abrindo = ((f["BBsup"] > f["BBsup"].shift(1)) & (f["BBinf"] < f["BBinf"].shift(1))
-               & (f["BBlarg"] > f["BBlarg"].shift(1) * 1.05)
-               & f["BBcomprimida"].shift(1).rolling(10, min_periods=1).max().fillna(0).astype(bool))
-    out = [(x, "compra", "boca", "Bandas abrindo após compressão, fechou acima da banda superior")
-           for x in f.index[_inicio(abrindo & (c > f["BBsup"]))]]
-    out += [(x, "venda", "boca", "Bandas abrindo após compressão, fechou abaixo da banda inferior")
-            for x in f.index[_inicio(abrindo & (c < f["BBinf"]))]]
-    return out
-
-
 def _exaustao(f: pd.DataFrame, lado: str) -> pd.Series:
     if lado == "compra":
         return (f["EstK"] < ESTOC_SOBREVENDIDO) | (f["IFR"] < IFR_60_COMPRA)
     return (f["EstK"] > ESTOC_SOBRECOMPRADO) | (f["IFR"] > IFR_60_VENDA)
-
-
-def _descreve_exaustao(f: pd.DataFrame, t, lado: str) -> str:
-    est, r = f.loc[t, "EstK"], f.loc[t, "IFR"]
-    partes = []
-    if (est < ESTOC_SOBREVENDIDO) if lado == "compra" else (est > ESTOC_SOBRECOMPRADO):
-        partes.append(f"estocástico {est:.0f}")
-    if (r < IFR_60_COMPRA) if lado == "compra" else (r > IFR_60_VENDA):
-        partes.append(f"IFR {r:.0f}")
-    return " e ".join(partes) + (" (os dois)" if len(partes) == 2 else "")
-
-
-def _mtf(menor: pd.DataFrame, filtro_alta: pd.Series, filtro_baixa: pd.Series, nome_maior: str,
-         nome_menor: str, chave_evento, com_hora: bool) -> list[tuple]:
-    """Tendência no tempo maior (filtro por dia, já conhecido) + exaustão no tempo menor."""
-    dia = menor.index.normalize()
-    fa = pd.Series(filtro_alta.reindex(dia).fillna(False).to_numpy(), index=menor.index)
-    fb = pd.Series(filtro_baixa.reindex(dia).fillna(False).to_numpy(), index=menor.index)
-    out, vistos = [], set()
-    for lado, filtro, tend, exaustao in (("compra", fa, "em alta", "exaustão de queda"),
-                                         ("venda", fb, "em baixa", "exaustão de alta")):
-        for t in menor.index[_inicio(filtro & _exaustao(menor, lado))]:
-            chave = (chave_evento(t), lado)
-            if chave in vistos:
-                continue
-            vistos.add(chave)
-            quando = f"{t:%d/%m %H:%M}" if com_hora else f"{t:%d/%m}"
-            out.append((chave_evento(t), lado, "mtf",
-                        f"{nome_maior} {tend} + {exaustao} no {nome_menor} em {quando}: "
-                        f"{_descreve_exaustao(menor, t, lado)}"))
-    return out
-
-
-# ------------------------------------------------------------- contra a tendência
-
-def _ifr_extremo(f: pd.DataFrame) -> list[tuple]:
-    r = f["IFR"]
-    out = [(d, "compra", "ifr", f"IFR em {r[d]:.0f}: sobrevendido (abaixo de {IFR_SOBREVENDIDO})")
-           for d in f.index[_inicio(r < IFR_SOBREVENDIDO)]]
-    out += [(d, "venda", "ifr", f"IFR em {r[d]:.0f}: sobrecomprado (acima de {IFR_SOBRECOMPRADO})")
-            for d in f.index[_inicio(r > IFR_SOBRECOMPRADO)]]
-    return out
-
-
-def _fora_bollinger(f: pd.DataFrame, bocas: set) -> list[tuple]:
-    c = f["Close"]
-    out = [(x, "compra", "bb_fora", "Fechou abaixo da banda inferior: esticado para baixo")
-           for x in f.index[_inicio(c < f["BBinf"])] if (x, "venda") not in bocas]
-    out += [(x, "venda", "bb_fora", "Fechou acima da banda superior: esticado para cima")
-            for x in f.index[_inicio(c > f["BBsup"])] if (x, "compra") not in bocas]
-    return out
-
-
-def _distancia(f: pd.DataFrame, tf: str) -> list[tuple]:
-    dist = f["Close"] / f[f"MM{MM_RAPIDA}"] - 1
-    janela = 250 if tf == "D" else 104
-    normal = dist.abs().rolling(janela, min_periods=janela // 2).mean().shift(1)
-    longe = (dist.abs() >= normal * DISTANCIA_FATOR) & (dist.abs() >= DISTANCIA_MINIMA[tf])
-    out = []
-    for lado, cond, sentido in (("compra", longe & (dist < 0), "abaixo"), ("venda", longe & (dist > 0), "acima")):
-        for x in f.index[_inicio(cond)]:
-            out.append((x, lado, "distancia",
-                        f"{_br(abs(dist[x]) * 100)}% {sentido} da MM20 (o normal deste ativo é {_br(normal[x] * 100)}%)"))
-    return out
 
 
 # ------------------------------------------------------------- utilidades
@@ -320,10 +138,8 @@ def _desde(serie: pd.Series) -> str | None:
 
 # ------------------------------------------------------------- análise
 
-def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -> tuple[dict, list[dict], dict | None]:
-    """Retorna (estado atual do ativo, sinais recentes datados, histórico para o backtest).
-
-    O histórico traz todos os eventos de todo o período e os candles diário/semanal usados.
+def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -> dict:
+    """Estado atual do ativo (tendência, IFR, compressão, liquidez...).
 
     df60 já vem verificado contra o diário (validacao.limpar_intraday)."""
     d = indicadores(df)
@@ -335,9 +151,6 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
 
     alta_d, baixa_d = _tendencia(d)
     alta_s, baixa_s = _tendencia(s)
-    # Para sinais diários, o filtro semanal usa a última semana já FECHADA
-    fechada = lambda x: x.shift(1).reindex(d.index, method="ffill").fillna(False).astype(bool)
-    alta_s_f, baixa_s_f = fechada(alta_s), fechada(baixa_s)
 
     u = d.iloc[-1]
     vol_fin = (df["Volume"] if mercado == "CRIPTO" else df["Close"] * df["Volume"]).tail(20).mean()
@@ -379,40 +192,4 @@ def analisar(df: pd.DataFrame, mercado: str, df60: pd.DataFrame | None = None) -
         "liquido": liquido,
         "intraday_ok": bool(h_atual),
     }
-    if not liquido:
-        return estado, [], None
-
-    eventos = []  # (data, tf, lado, familia, texto)
-    for tf, f in (("D", d), ("S", s)):
-        bocas = _boca(f)
-        eventos += [(x, tf, *e) for x, *e in _pullbacks(f)]
-        eventos += [(x, tf, *e) for x, *e in bocas]
-        eventos += [(x, tf, *e) for x, *e in _ifr_extremo(f)]
-        eventos += [(x, tf, *e) for x, *e in _fora_bollinger(f, {(x, lado) for x, lado, *_ in bocas})]
-        eventos += [(x, tf, *e) for x, *e in _distancia(f, tf)]
-
-    # Multitempo. Sinal diário: tendência do diário (fechamento de ontem, já conhecido) + exaustão no 60 min.
-    if h is not None:
-        ontem = lambda x: x.shift(1, fill_value=False).astype(bool)
-        eventos += [(x, "D", *e) for x, *e in _mtf(h, ontem(alta_d), ontem(baixa_d), "Diário", "60 min",
-                                                    lambda t: t.normalize(), com_hora=True)]
-    # Sinal semanal: semanal em tendência (última semana fechada) + exaustão no diário ou no 4 horas.
-    segunda = lambda t: t.normalize() - pd.Timedelta(days=t.weekday())
-    eventos += [(x, "S", *e) for x, *e in _mtf(d, alta_s_f, baixa_s_f, "Semanal", "diário", segunda, com_hora=False)]
-    if h is not None:
-        h4 = indicadores(para_4h(df60))
-        eventos += [(x, "S", *e) for x, *e in _mtf(h4, alta_s_f, baixa_s_f, "Semanal", "4 horas", segunda, com_hora=True)]
-
-    corte = {"D": d.index[-min(JANELA_DIARIA, len(d))], "S": s.index[-min(JANELA_SEMANAL, len(s))]}
-    frames = {"D": d, "S": s}
-    sinais, vistos = [], set()
-    for data, tf, lado, familia, texto in eventos:
-        f = frames[tf]
-        chave = (data, tf, lado, familia)
-        if data < corte[tf] or data not in f.index or chave in vistos:
-            continue
-        vistos.add(chave)
-        sinais.append({"data": data.strftime("%Y-%m-%d"), "tf": tf, "lado": lado, "familia": familia,
-                       "modalidade": FAMILIAS[familia]["modalidade"], "texto": texto,
-                       "preco": _num(f.loc[data, "Close"], 4)})
-    return estado, sinais, {"eventos": eventos, "frames": frames}
+    return estado

@@ -1,0 +1,43 @@
+name: Testes (pipeline offline e paridade dos setups)
+
+# Roda o pipeline inteiro SEM rede, com dados sintéticos (scripts/rodar_offline.py), e confere
+# que Python e JS dão o mesmo resultado para cada setup do catálogo (scripts/testar_paridade.py).
+# Não publica nada: a publicação é só do workflow atualizar.yml.
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: pip install -r requirements.txt
+
+      - name: Pipeline offline (dados sintéticos)
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python scripts/rodar_offline.py
+
+      - name: Sintaxe do JS
+        run: for f in assets/js/*.js scripts/*.js; do node --check "$f"; done
+
+      - name: Paridade Python x JS
+        run: python scripts/testar_paridade.py

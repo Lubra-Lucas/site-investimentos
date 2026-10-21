@@ -1,9 +1,15 @@
-"""Atualização diária: baixa cotações, verifica a integridade, roda as
-estratégias do radar e consolida a carteira em BRL.
+"""Atualização diária: baixa cotações, verifica a integridade, avalia os setups do catálogo
+(config/setups.json, scripts/setups.py) e consolida a carteira em BRL.
 
 Saída (lida pelo front-end estático):
   data/ativos/<TICKER>.json  -> candles diários verificados (só ativos aprovados)
-  data/radar.json            -> estado de cada ativo, sinais datados e dados retidos
+  data/intraday/<TICKER>.json -> candles de 60 min
+  data/radar.json            -> estado de cada ativo, eventos dos setups e dados retidos
+  data/rastreador.json       -> fotos dos indicadores para as regras personalizadas
+  data/setups.json           -> o catálogo com o resumo do backtest de cada setup
+  data/backtest.json         -> backtest por setup, mercado e prazo
+  data/paridade.json         -> setups do catálogo no último candle, segundo o Python
+                                (conferido com o JS por scripts/testar_paridade.py)
   data/resumo.json           -> carteira consolidada
 
 Uso:  python scripts/atualizar_dados.py
@@ -25,6 +31,7 @@ import backtest
 import estrategias
 import fontes
 import rastreador
+import setups
 import validacao
 from estrategias import _num, _var
 
@@ -100,8 +107,8 @@ def separar_parcial(bruto: pd.DataFrame, formacao: tuple[date, datetime] | None,
 
 def candles_compactos(df: pd.DataFrame, moeda: str = "") -> list[list]:
     casas = casas_preco(df["Close"], moeda)
-    return [[d.strftime("%Y-%m-%d"), round(r.Open, casas), round(r.High, casas),
-             round(r.Low, casas), round(r.Close, casas)] for d, r in df.iterrows()]
+    ohlc = df[["Open", "High", "Low", "Close"]].astype(float).round(casas).to_numpy().tolist()
+    return [[d, *v] for d, v in zip(df.index.strftime("%Y-%m-%d"), ohlc)]
 
 
 # ------------------------------------------------------------------- carteira
@@ -221,41 +228,6 @@ def historico_patrimonio(cfg, transacoes, precos, cambio, moedas) -> list[dict]:
     return [{"time": d.strftime("%Y-%m-%d"), "value": _num(v, 2)} for d, v in total.items()]
 
 
-# -------------------------------------------------------------- maiores quedas
-
-NOME_MERCADO = {"BR": "do Brasil", "US": "dos EUA", "CRIPTO": "de cripto", "MACRO": "de índices, moedas e commodities"}
-FATIA_EXTREMOS = 0.08                       # 8% piores (e melhores) de cada mercado
-MOVIMENTO_MINIMO = {"D": 8.0, "S": 12.0}    # e só se o movimento for relevante (%)
-
-
-def maiores_movimentos(publicados: list[dict]) -> list[dict]:
-    """Maiores quedas (compra, contra a tendência) e maiores altas (venda) de cada mercado.
-
-    Sinal diário: variação em 21 pregões. Sinal semanal: variação em 13 semanas.
-    """
-    sinais = []
-    for tf, campo, periodo in (("D", "var_21_pct", "21 pregões"), ("S", "var_13s_pct", "13 semanas")):
-        for mercado in {a["mercado"] for a in publicados}:
-            grupo = [a for a in publicados if a["mercado"] == mercado and a["liquido"] and a.get(campo) is not None]
-            n = min(25, max(3, round(len(grupo) * FATIA_EXTREMOS)))
-            ordem = sorted(grupo, key=lambda a: a[campo])
-            for lado, lista in (("compra", ordem[:n]), ("venda", ordem[::-1][:n])):
-                for a in lista:
-                    v = a[campo]
-                    if (lado == "compra" and v > -MOVIMENTO_MINIMO[tf]) or (lado == "venda" and v < MOVIMENTO_MINIMO[tf]):
-                        continue
-                    data = pd.Timestamp(a["data"])
-                    if tf == "S":
-                        data -= pd.Timedelta(days=data.weekday())  # semana identificada pela segunda-feira
-                    verbo, extremo = ("Caiu", "quedas") if lado == "compra" else ("Subiu", "altas")
-                    sinais.append({
-                        "ticker": a["ticker"], "data": data.strftime("%Y-%m-%d"), "tf": tf, "lado": lado,
-                        "familia": "quedas", "modalidade": "contra", "preco": a["ultimo"],
-                        "texto": f"{verbo} {abs(v):.1f}% em {periodo}: entre as maiores {extremo} {NOME_MERCADO[mercado]}".replace(".", ","),
-                    })
-    return sinais
-
-
 # ----------------------------------------------------------------------- main
 
 _INICIO = perf_counter()
@@ -268,9 +240,10 @@ def etapa(msg: str) -> None:
 
 
 def processar_ativo(tarefa: tuple) -> dict:
-    """Valida, calcula estratégias e indicadores e grava os JSONs de um ativo. Roda em paralelo
-    (um processo por núcleo), então só lê os argumentos e devolve o resultado para o main juntar."""
-    tk, meta, bruto, ref, intra, form, hoje = tarefa
+    """Valida, avalia os setups (todo o histórico, com backtest) e grava os JSONs de um ativo. Roda
+    em paralelo (um processo por núcleo), então só lê os argumentos e devolve o resultado para o
+    main juntar."""
+    tk, meta, bruto, ref, intra, form, hoje, catalogo = tarefa
     rotulo = meta.get("simbolo") or tk.removesuffix(".SA")
     base = {"ticker": tk, "rotulo": rotulo, "nome": meta["nome"], "mercado": meta["mercado"]}
     if bruto is None:
@@ -287,14 +260,15 @@ def processar_ativo(tarefa: tuple) -> dict:
         return {"tk": tk, "df": df, "retido": {**base, "motivo": laudo["motivo"]}}
 
     grafico = df if parcial is None else pd.concat([df, parcial.to_frame().T.astype(float)])
-    # o 60 min de hoje aparece no gráfico, mas a estratégia multitempo só vê pregões fechados
+    # o 60 min de hoje aparece no gráfico, mas o setup multitempo só vê pregões fechados
     h, dias_60_descartados = (validacao.limpar_intraday(intra, grafico) if intra is not None else (None, 0))
     h_fechado = h
     if h is not None and form:
         h_fechado = h[h.index.normalize() < pd.Timestamp(form[0])]
         h_fechado = h_fechado if len(h_fechado) >= 60 else None
-    estado, sinais_tk, historico = estrategias.analisar(df, meta["mercado"], h_fechado)
-    foto = rastreador.fotos(df, meta["mercado"], casas_preco(df["Close"], meta["moeda"]))
+    estado = estrategias.analisar(df, meta["mercado"], h_fechado)
+    res = setups.analisar(df, meta["mercado"], casas_preco(df["Close"], meta["moeda"]), h_fechado,
+                          estado["liquido"], tk, catalogo)
     if parcial is not None:
         estado["parcial"] = {"data": form[0].isoformat(), "ultimo": _num(parcial["Close"], 4),
                              "var_pct": _num((parcial["Close"] / df["Close"].iloc[-1] - 1) * 100)}
@@ -321,8 +295,7 @@ def processar_ativo(tarefa: tuple) -> dict:
         "tem_intraday": h is not None,
         **estado,
     }
-    return {"tk": tk, "df": df, "publicado": publicado, "sinais": [{"ticker": tk, **x} for x in sinais_tk],
-            "historico": historico, "foto": foto, "parcial": parcial is not None}
+    return {"tk": tk, "df": df, "publicado": publicado, "setups": res, "parcial": parcial is not None}
 
 
 def montar_lista(cfg: dict) -> dict[str, dict]:
@@ -364,14 +337,18 @@ def main() -> None:
     cambio_df, laudo_fx = validacao.avaliar(brutos[TICKER_CAMBIO], "CRIPTO", None, hoje)
     cambio = cambio_df["Close"]
 
-    teste = backtest.Backtest()
+    catalogo = setups.carregar_catalogo()
+    itens = setups.itens(catalogo)
+    teste = backtest.Backtest({s["id"]: s["vies"] for s in itens})
     publicados, retidos, sinais = [], [], []
-    fotos: dict[str, dict] = {}  # indicadores para o rastreador da Multitela
+    fotos: dict[str, dict] = {}  # indicadores para as regras personalizadas (assets/js/rastreador.js)
+    paridade: dict[str, dict] = {}
+    para_ranking: list[dict] = []
     precos: dict[str, pd.DataFrame] = {}
-    tarefas = [(tk, meta, brutos.get(tk), refs.get(tk), intraday.get(tk), formacao[meta["mercado"]], hoje)
+    tarefas = [(tk, meta, brutos.get(tk), refs.get(tk), intraday.get(tk), formacao[meta["mercado"]], hoje, catalogo)
                for tk, meta in ativos.items()]
     nucleos = os.cpu_count() or 1
-    etapa(f"Calculando estratégias e indicadores ({nucleos} processos)...")
+    etapa(f"Avaliando os setups em todo o histórico, com backtest ({nucleos} processos)...")
     with ProcessPoolExecutor(nucleos) as ex:
         resultados = list(ex.map(processar_ativo, tarefas, chunksize=8))
     for r in resultados:  # na ordem do universo, como antes
@@ -384,25 +361,32 @@ def main() -> None:
                 print(f"[retido] {tk:10s} {r['retido']['motivo']}")
             continue
         publicados.append(r["publicado"])
-        sinais += r["sinais"]
-        fotos[tk] = r["foto"]
-        if r["historico"]:
-            teste.adicionar(tk, meta["mercado"], r["historico"])
+        res = r["setups"]
+        sinais += res["eventos"]
+        fotos[tk] = res["fotos"]
+        paridade[tk] = res["paridade"]
+        para_ranking.append({"ticker": tk, "mercado": meta["mercado"], "liquido": r["publicado"]["liquido"], **res})
+        if res["bt"]:
+            teste.adicionar(tk, meta["mercado"], res["bt"])
         if r["parcial"]:
             form = formacao[meta["mercado"]]
             em_formacao.setdefault(meta["mercado"], {
                 "data": form[0].isoformat(), "fecha_em": form[1].astimezone(timezone.utc).isoformat(timespec="minutes"),
                 "sinais_em": proxima_publicacao(form[1]).isoformat(timespec="minutes")})
 
-    etapa("Backtest e arquivos finais...")
-    sinais += maiores_movimentos(publicados)
-    # histórico de cada estratégia neste ativo: [casos, acerto %, retorno médio %, vantagem %]
-    for x in sinais:
-        x["bt"] = teste.do_sinal(x["ticker"], x["tf"], x["familia"], x["lado"])
+    etapa("Ranking dos mercados, backtest e arquivos finais...")
+    # maiores quedas/altas: compara os ativos entre si, então só fecha depois de todos
+    sinais += setups.aplicar_ranking(para_ranking, catalogo)
     resultado_bt = teste.resultado()
     resultado_bt["gerado_em"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     (SAIDA / "backtest.json").write_text(json.dumps(resultado_bt, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    sinais.sort(key=lambda x: (x["data"], x["ticker"]), reverse=True)
+    # o catálogo publicado: o mesmo de config/setups.json, com o resumo do backtest de cada setup
+    bt_setup = teste.por_setup()
+    publicado_catalogo = {"grupos": [{**g, "itens": [{**s, **({"bt": bt_setup[s["id"]]} if s["id"] in bt_setup else {})}
+                                                     for s in g["itens"]]} for g in catalogo["grupos"]]}
+    (SAIDA / "setups.json").write_text(json.dumps(publicado_catalogo, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    (SAIDA / "paridade.json").write_text(json.dumps(paridade, separators=(",", ":")), encoding="utf-8")
+    sinais.sort(key=lambda x: (x["data"], x["ticker"], x["tf"], x["setup"]), reverse=True)
     sem_intraday = [a["ticker"] for a in publicados if a["liquido"] and a["mercado"] != "CRIPTO" and not a["intraday_ok"]]
     if sem_intraday:
         print(f"Sem 60 min confiável ({len(sem_intraday)}): {', '.join(sem_intraday)}")
@@ -414,14 +398,13 @@ def main() -> None:
         "usdbrl": _num(cambio.iloc[-1], 4),
         "parametros": {
             "mm": [estrategias.MM_RAPIDA, estrategias.MM_LENTA, estrategias.MM_LONGA],
-            "ifr": [estrategias.IFR_SOBREVENDIDO, estrategias.IFR_SOBRECOMPRADO],
             "bollinger": [estrategias.BB_PERIODO, estrategias.BB_DESVIOS],
             "tolerancia_fechamento_pct": validacao.TOLERANCIA_FECHAMENTO * 100,
         },
-        "familias": estrategias.FAMILIAS,
         "verificacao": {"conferidos": status.get("conferido", 0), "internos": status.get("interno", 0),
                         "retidos": len(retidos)},
         # pregões abertos agora: o candle aparece no gráfico, os sinais saem em "sinais_em"
+        # sinais: eventos dos setups do catálogo nos últimos 15 pregões / 8 semanas (candles fechados)
         "em_formacao": em_formacao,
         "ativos": publicados,
         "sinais": sinais,
@@ -439,7 +422,7 @@ def main() -> None:
         "carteira": consolidar_carteira(cfg, precos, cambio, {r["ticker"] for r in retidos}),
     }
     (SAIDA / "resumo.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=1), encoding="utf-8")
-    etapa(f"Publicados {len(publicados)} ativos ({status}), {len(retidos)} retidos, {len(sinais)} sinais.")
+    etapa(f"Publicados {len(publicados)} ativos ({status}), {len(retidos)} retidos, {len(sinais)} eventos de setups.")
 
 
 if __name__ == "__main__":

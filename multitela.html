@@ -3,111 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Multitela</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css">
-  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+  <title>Multitela → Setups</title>
+  <!-- a Multitela virou a visão em grade da página Setups -->
+  <script>location.replace("setups.html?visao=grade" + location.hash);</script>
+  <noscript><meta http-equiv="refresh" content="0; url=setups.html?visao=grade"></noscript>
 </head>
-<body>
-  <header class="topo" id="topo"></header>
-
-  <main class="larga">
-    <section class="painel menu-multi">
-      <div class="multi-topo">
-        <nav class="abas-multi" id="f-fonte" aria-label="O que mostrar"></nav>
-        <div class="multi-ajustes">
-          <div class="segmento" id="f-mercado" aria-label="Mercado">
-            <button data-v="" class="ativo">Todos</button>
-            <button data-v="BR">Brasil</button>
-            <button data-v="US">EUA</button>
-            <button data-v="CRIPTO">Cripto</button>
-            <button data-v="MACRO" title="Índices, moedas e commodities">Macro</button>
-          </div>
-          <div class="segmento" id="f-grade" aria-label="Grade">
-            <button data-v="1" title="Um gráfico grande por vez; ← → passam para o próximo">1 tela</button>
-            <button data-v="2" title="2×2">2×2</button>
-            <button data-v="3" class="ativo" title="3×3">3×3</button>
-            <button data-v="4" title="4×3">4×3</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="caixa-rastreador" id="caixa-rastreador" hidden>
-        <div class="categorias-modelo" id="r-categorias" role="tablist" aria-label="Tipo de condição"></div>
-        <div class="lista-modelos" id="r-modelos"></div>
-        <div class="linha-regras">
-          <div class="segmento" id="f-rtf" aria-label="Regras no">
-            <button data-v="D" class="ativo">Diário</button>
-            <button data-v="W">Semanal</button>
-          </div>
-          <div class="segmento" id="f-periodos" aria-label="Quando a condição aconteceu">
-            <button data-v="1" class="ativo">Último pregão</button>
-            <button data-v="2">2 pregões</button>
-            <button data-v="3">3 pregões</button>
-            <button data-v="5">5 pregões</button>
-          </div>
-          <p class="resumo-regras" id="r-resumo"></p>
-          <button class="botao botao-editar" id="r-editar" aria-expanded="false">✎ Editar regras</button>
-        </div>
-        <div class="editor-regras" id="r-editor" hidden>
-          <ol class="regras" id="r-regras"></ol>
-          <div class="regras-acoes">
-            <select id="r-adicionar" aria-label="Adicionar condição"></select>
-            <button class="botao" id="r-salvar" title="Guarda estas regras neste navegador, em Minhas regras">Salvar regras</button>
-            <button class="botao" id="r-restaurar" hidden>Desfazer edição</button>
-            <button class="botao perigo" id="r-excluir" hidden>Excluir</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- oportunidades das estratégias: ocultas por enquanto (o código continua em multitela.js) -->
-      <div class="linha-menu" id="opcoes-oportunidades" hidden>
-        <div class="segmento" id="f-pregoes">
-          <button data-v="1">Último pregão</button>
-          <button data-v="5" class="ativo">Últimos 5 pregões</button>
-        </div>
-        <label class="opcao"><input type="checkbox" id="f-confluencia"> Só com confluência (2+ estratégias)</label>
-      </div>
-
-      <div class="linha-menu" id="caixa-personalizada" hidden>
-        <input id="f-tickers" type="text" spellcheck="false" placeholder="Seus ativos: PETR4, GOOGL, VALE3, NVDA, BTC">
-      </div>
-
-      <div class="multi-rodape">
-        <p class="contagem-multi" id="f-descricao"></p>
-        <label class="ordem-multi" id="caixa-ordem">Ordenar <select id="f-ordem"></select></label>
-        <div class="multi-grafico">
-          <span class="rotulo-mini">Gráfico</span>
-          <div class="segmento" id="f-tf" aria-label="Tempo do gráfico">
-            <button data-v="60">60m</button>
-            <button data-v="240">4h</button>
-            <button data-v="D" class="ativo">D</button>
-            <button data-v="W">S</button>
-          </div>
-          <div class="segmento" id="f-camadas" aria-label="O que aparece no gráfico">
-            <button data-v="condicoes" class="ativo" title="Desenha nos gráficos as médias, bandas e níveis que o modelo usa">Condições</button>
-            <button data-v="meus" title="Usa os seus indicadores (MM20/50/200, Bollinger...)">Meus indicadores</button>
-          </div>
-        </div>
-        <nav class="paginacao-topo" id="paginacao-topo" aria-label="Páginas"></nav>
-      </div>
-      <div class="linha-indicadores" id="f-indicadores" hidden></div>
-    </section>
-
-    <section id="grade" class="grade-graficos"></section>
-    <nav class="paginacao" id="paginacao"></nav>
-  </main>
-
-  <footer>Em cada gráfico: arraste para navegar, roda do mouse dá zoom, ✎ abre as ferramentas de desenho (inclui risco/retorno) e ⛶ a tela cheia.
-    <kbd>←</kbd> <kbd>→</kbd> trocam de página.
-    <kbd>Alt</kbd>+<kbd>C</kbd> centraliza todos.</footer>
-
-  <script src="assets/js/comum.js"></script>
-  <script src="assets/js/desenhos.js"></script>
-  <script src="assets/js/simulador.js"></script>
-  <script src="assets/js/rastreador.js"></script>
-  <script src="assets/js/multitela.js"></script>
+<body style="background:#0c1016;color:#e4e7ec;font:14px Inter,system-ui,sans-serif">
+  <p style="padding:24px">A Multitela agora é a visão em grade da página <a href="setups.html?visao=grade" style="color:#4c8dff">Setups</a>.</p>
 </body>
 </html>

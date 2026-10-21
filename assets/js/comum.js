@@ -188,7 +188,7 @@ function chipsFamilias(familias, lado = "compra") {
 function seloHistorico(bt, tf) {
   if (!bt) return null;
   const [n, acerto, medio, vantagem] = bt;
-  const prazo = tf === "S" ? "8 semanas" : "10 pregões";
+  const prazo = tf === "S" || tf === "W" ? "8 semanas" : "10 pregões";
   if (acerto == null) return el("span", { class: "hist hist-poucos", title: `Só ${n} caso(s) no histórico deste ativo: pouco para tirar conclusão` }, `histórico: ${n} caso(s)`);
   const cls = acerto >= 55 && vantagem > 0 ? "hist-bom" : acerto < 45 || vantagem < 0 ? "hist-ruim" : "hist-neutro";
   return el("span", { class: `hist ${cls}`,
@@ -572,8 +572,9 @@ class Grafico {
     const m = [...porDia.values()].sort((a, b) => a.data.localeCompare(b.data)).map((s) => ({
       time: s.data,
       position: s.lado === "compra" ? "belowBar" : "aboveBar",
-      shape: s.lado === "compra" ? "arrowUp" : "arrowDown",
-      color: s.lado === "compra" ? p.corAlta : p.corBaixa,
+      // setups sem lado (ex.: Bollinger comprimida) ganham um ponto em vez de seta
+      shape: s.lado === "compra" ? "arrowUp" : s.lado === "venda" ? "arrowDown" : "circle",
+      color: s.lado === "compra" ? p.corAlta : s.lado === "venda" ? p.corBaixa : css("--aviso"),
     }));
     if (this.parcial) {
       m.push({ time: this.parcial, position: "aboveBar", shape: "circle", size: 0.5, color: css("--texto-fraco"),
@@ -589,11 +590,12 @@ class Grafico {
     if (!sinais?.length) { this.balao.hidden = true; return; }
     const tfNome = this.tf === "W" ? "semanal" : "diário";
     const semana = this.tf === "W" ? "semana de " : "";
-    this.balao.replaceChildren(...["compra", "venda"].flatMap((lado) => {
+    const rotulo = { compra: "▲ Sinal de compra", venda: "▼ Sinal de venda", neutro: "◆ Setup sem lado" };
+    this.balao.replaceChildren(...["compra", "venda", "neutro"].flatMap((lado) => {
       const doLado = sinais.filter((s) => s.lado === lado);
       if (!doLado.length) return [];
       return [el("div", { class: `balao-bloco ${lado}` },
-        el("b", {}, `${lado === "compra" ? "▲ Sinal de compra" : "▼ Sinal de venda"} · ${semana}${fmtData(doLado[0].data)} · ${tfNome}`),
+        el("b", {}, `${rotulo[lado]} · ${semana}${fmtData(doLado[0].data)} · ${tfNome}`),
         el("ul", {}, doLado.map((s) => el("li", {}, el("span", { class: `chip fam-${s.familia}` }, nomeFamilia(s.familia, lado)), " ", s.texto,
           s.bt ? el("div", {}, seloHistorico(s.bt, s.tf)) : null))))];
     }));
@@ -665,27 +667,27 @@ document.addEventListener("keydown", (e) => {
 /** Guia rápido de cada página (botão "?" do topo). */
 const AJUDA = {
   carteira: ["Carteira", [
-    "Resumo do seu patrimônio, suas posições e os sinais que apareceram nos ativos que você acompanha.",
-    "Clique em um ativo (na tabela ou nos sinais) para abrir o gráfico.",
-    "Use \"Simular\" no gráfico para treinar uma operação: entrada, stop e alvo ficam salvos e são reavaliados todo dia.",
+    "O que você tem e acompanha: posições, simulações e a sua lista de ativos, com os setups que dispararam em cada um.",
+    "Clique em um ativo para abrir a página dele (gráfico, setups recentes, contexto e histórico).",
+    "Na Minha lista, digite um ticker e clique em Adicionar; o × tira da lista. Ela fica salva neste navegador.",
   ]],
-  radar: ["Radar", [
-    "Oportunidades: escolha Compra ou Venda e o estilo. \"A favor da tendência\" (pullback, rompimento) é para quem segue o movimento; \"Contra a tendência\" (IFR extremo, fora da Bollinger) é para quem busca a virada.",
-    "Panorama: quem está em tendência forte, com Bollinger comprimida, etc.",
-    "Este ativo: tudo de uma ação só. Clique em um sinal para ver no gráfico o que o preço fez depois.",
-    "Os sinais só saem com o pregão fechado; durante o pregão o candle de hoje aparece \"em formação\".",
+  ativo: ["Ativo", [
+    "Tudo de um ativo: gráfico, setups recentes, contexto, suas simulações e como cada setup se saiu nele.",
+    "Clique num setup recente para ver no gráfico o que o preço fez depois.",
+    "Use a busca no topo ou as setas ← → para trocar de ativo.",
   ]],
-  multitela: ["Multitela", [
-    "Escolha um modelo (tendência, pullback, extremos...) ou edite as regras: a grade mostra todos os ativos que atendem, lado a lado.",
-    "Cada gráfico já desenha o que a regra usa (médias, Bollinger, IFR). \"Meus indicadores\" volta ao seu padrão.",
-    "No card: ✓ o que está a favor, ⚠ o que pede cuidado. O ✎ abre as ferramentas de desenho, inclusive risco/retorno.",
+  setups: ["Setups", [
+    "Escolha Compra ou Venda, depois \"A favor\" ou \"Contra a tendência\" e um setup (ou todos). Os chips mostram quantos ativos dispararam cada um no período.",
+    "\"Minhas regras\" monta um filtro próprio (médias, IFR, Bollinger...), salvo neste navegador.",
+    "Lista + gráfico: ↑ ↓ passam pelos ativos e o contexto (✓ a favor, ⚠ cuidado) aparece no item aberto. Grade: vários gráficos para comparar; passe o mouse no gráfico para ver o contexto e use ← → para trocar de página.",
+    "As setas no gráfico são os setups escolhidos neste ativo; a faixa azul marca o candle do sinal. Os sinais só saem com o pregão fechado.",
   ]],
-  backtest: ["Backtest", ["Como cada estratégia se saiu nos últimos 6 anos, por mercado, lado e prazo."]],
+  backtest: ["Backtest", ["Como cada setup se saiu nos últimos 6 anos, por mercado, lado e prazo."]],
 };
 const ATALHOS = [
   ["Alt", "C", "centraliza os gráficos"], ["Alt", "T", "segmento de reta"], ["Alt", "H", "linha horizontal"],
   ["Alt", "R", "retângulo"], ["Alt", "B", "pincel"], ["Ctrl", "Z", "desfaz o último desenho"],
-  ["←", "→", "páginas da Multitela"], ["↑", "↓", "lista do Radar"],
+  ["←", "→", "ativo anterior e seguinte (página do ativo)"],
 ];
 
 function montarTopo(pagina, dados) {
@@ -718,10 +720,53 @@ function montarTopo(pagina, dados) {
 
   topo.replaceChildren(
     marca,
-    el("nav", { "aria-label": "Páginas" }, link("index.html", "carteira", "Carteira"), link("radar.html", "radar", "Radar"),
-      link("multitela.html", "multitela", "Multitela"), link("backtest.html", "backtest", "Backtest")),
+    el("nav", { "aria-label": "Páginas" }, link("index.html", "carteira", "Carteira"), link("setups.html", "setups", "Setups"),
+      link("backtest.html", "backtest", "Backtest")),
+    buscaTopo(dados?.ativos ?? []),
     el("div", { class: "topo-info" }, status, dolar, botaoAjuda, painelAjuda),
   );
+}
+
+/** Acha o ativo pelo que foi digitado: PETR4, PETR4.SA, BTC, BRK.B... (null se não achar). */
+function acharAtivo(ativos, txt) {
+  const t = (txt ?? "").trim().toUpperCase();
+  if (!t) return null;
+  const tks = new Set(ativos.map((a) => a.ticker));
+  const porRotulo = new Map(ativos.map((a) => [(a.rotulo ?? semSufixo(a.ticker)).toUpperCase(), a.ticker]));
+  return [t, `${t}.SA`, t.replace(".", "-"), `${t}-USD`, porRotulo.get(t)].find((x) => x && tks.has(x)) ?? null;
+}
+
+/** Busca de ativo do topo: abre ativo.html#TICKER. No celular vira só a lupa, que abre o campo. */
+function buscaTopo(ativos) {
+  const lista = el("datalist", { id: "busca-topo-tickers" },
+    ativos.map((a) => el("option", { value: a.rotulo ?? semSufixo(a.ticker) }, a.nome)));
+  const campo = el("input", { type: "search", list: "busca-topo-tickers", spellcheck: "false", autocomplete: "off",
+    placeholder: "Buscar ativo", "aria-label": "Buscar ativo (atalho: /)", title: "Digite o ticker e tecle Enter (atalho: /)" });
+  const form = el("form", { class: "busca-topo", role: "search" });
+  const abrir = () => {
+    const tk = acharAtivo(ativos, campo.value) ?? (ativos.length ? null : campo.value.trim().toUpperCase());
+    if (!tk) { campo.setCustomValidity("Ativo não encontrado"); campo.reportValidity(); campo.setCustomValidity(""); return; }
+    campo.value = "";
+    form.classList.remove("aberta");
+    location.href = `ativo.html#${encodeURIComponent(tk)}`;
+  };
+  const lupa = el("button", { type: "button", class: "busca-lupa", "aria-label": "Buscar ativo", title: "Buscar ativo",
+    onclick: () => {
+      // no celular a lupa só abre o campo; com o campo visível, busca
+      if (getComputedStyle(campo).display === "none") { form.classList.add("aberta"); campo.focus(); }
+      else if (campo.value.trim()) abrir();
+      else campo.focus();
+    } }, "⌕");
+  form.addEventListener("submit", (e) => { e.preventDefault(); abrir(); });
+  // escolher uma opção da lista já abre o ativo
+  campo.addEventListener("input", (e) => { if (!e.inputType || e.inputType === "insertReplacementText") if (acharAtivo(ativos, campo.value)) abrir(); });
+  campo.addEventListener("keydown", (e) => { if (e.key === "Escape") { campo.value = ""; campo.blur(); form.classList.remove("aberta"); } });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
+    e.preventDefault(); form.classList.add("aberta"); campo.focus();
+  });
+  form.append(lupa, campo, lista);
+  return form;
 }
 
 function erroDados(e) {

@@ -1,0 +1,681 @@
+{
+ "_comentario": "Catálogo único de setups: lido pelo Python (eventos datados e backtest) e pelo site (menus e regras). Cada regra lista todos os parâmetros.",
+ "grupos": [
+  {
+   "nome": "Tendência",
+   "itens": [
+    {
+     "id": "tend-alta",
+     "nome": "Tendência de alta",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Fechamento acima da MMS 20 e da MMS 50 (a regra padrão do terminal).",
+     "regras": [
+      {
+       "t": "preco_media",
+       "lado": "acima",
+       "media": "sma20"
+      },
+      {
+       "t": "preco_media",
+       "lado": "acima",
+       "media": "sma50"
+      }
+     ]
+    },
+    {
+     "id": "tend-baixa",
+     "nome": "Tendência de baixa",
+     "vies": "venda",
+     "estilo": "tendencia",
+     "desc": "Fechamento abaixo da MMS 20 e da MMS 50.",
+     "regras": [
+      {
+       "t": "preco_media",
+       "lado": "abaixo",
+       "media": "sma20"
+      },
+      {
+       "t": "preco_media",
+       "lado": "abaixo",
+       "media": "sma50"
+      }
+     ]
+    },
+    {
+     "id": "tend-alta-forte",
+     "nome": "Alta forte (médias alinhadas)",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Fechamento acima da MMS 20, com MMS 20 > MMS 50 > MMS 200 e a MMS 50 subindo.",
+     "regras": [
+      {
+       "t": "preco_media",
+       "lado": "acima",
+       "media": "sma20"
+      },
+      {
+       "t": "media_media",
+       "a": "sma20",
+       "lado": "acima",
+       "b": "sma50"
+      },
+      {
+       "t": "media_media",
+       "a": "sma50",
+       "lado": "acima",
+       "b": "sma200"
+      },
+      {
+       "t": "inclinacao",
+       "media": "sma50",
+       "dir": "sobe"
+      }
+     ]
+    },
+    {
+     "id": "tend-baixa-forte",
+     "nome": "Baixa forte (médias alinhadas)",
+     "vies": "venda",
+     "estilo": "tendencia",
+     "desc": "Fechamento abaixo da MMS 20, com MMS 20 < MMS 50 < MMS 200 e a MMS 50 caindo.",
+     "regras": [
+      {
+       "t": "preco_media",
+       "lado": "abaixo",
+       "media": "sma20"
+      },
+      {
+       "t": "media_media",
+       "a": "sma20",
+       "lado": "abaixo",
+       "b": "sma50"
+      },
+      {
+       "t": "media_media",
+       "a": "sma50",
+       "lado": "abaixo",
+       "b": "sma200"
+      },
+      {
+       "t": "inclinacao",
+       "media": "sma50",
+       "dir": "cai"
+      }
+     ]
+    },
+    {
+     "id": "tend-curta",
+     "nome": "Alta curta (MME 9, MMS 25, MMS 50)",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Fechamento acima da MME 9, da MMS 25 e da MMS 50.",
+     "regras": [
+      {
+       "t": "preco_media",
+       "lado": "acima",
+       "media": "ema9"
+      },
+      {
+       "t": "preco_media",
+       "lado": "acima",
+       "media": "sma25"
+      },
+      {
+       "t": "preco_media",
+       "lado": "acima",
+       "media": "sma50"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nome": "Pullback de compra",
+   "itens": [
+    {
+     "id": "pb-mme9",
+     "nome": "Pullback de compra na MME 9",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Em alta (MMS 20 > MMS 50, fechamento acima da MMS 50), a mínima testa a MME 9 e fecha acima.",
+     "regras": [
+      {
+       "t": "pullback",
+       "lado": "compra",
+       "media": "ema9",
+       "modo": "retomada",
+       "positivo": "nao"
+      },
+      {
+       "t": "media_media",
+       "a": "sma20",
+       "lado": "acima",
+       "b": "sma50"
+      },
+      {
+       "t": "preco_media",
+       "lado": "acima",
+       "media": "sma50"
+      }
+     ]
+    },
+    {
+     "id": "pb-mm20",
+     "nome": "Pullback de compra na MMS 20",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "MMS 20 acima da MMS 50 e subindo; a mínima testa a MMS 20 e fecha acima.",
+     "regras": [
+      {
+       "t": "pullback",
+       "lado": "compra",
+       "media": "sma20",
+       "modo": "retomada",
+       "positivo": "nao"
+      },
+      {
+       "t": "media_media",
+       "a": "sma20",
+       "lado": "acima",
+       "b": "sma50"
+      },
+      {
+       "t": "inclinacao",
+       "media": "sma20",
+       "dir": "sobe"
+      }
+     ]
+    },
+    {
+     "id": "pb-mm50",
+     "nome": "Pullback de compra na MMS 50",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "MMS 50 acima da MMS 200; a mínima testa a MMS 50 e fecha acima.",
+     "regras": [
+      {
+       "t": "pullback",
+       "lado": "compra",
+       "media": "sma50",
+       "modo": "retomada",
+       "positivo": "nao"
+      },
+      {
+       "t": "media_media",
+       "a": "sma50",
+       "lado": "acima",
+       "b": "sma200"
+      }
+     ]
+    },
+    {
+     "id": "pb-mm200",
+     "nome": "Pullback de compra na MMS 200",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "MMS 200 subindo; a mínima testa a MMS 200 e fecha acima.",
+     "regras": [
+      {
+       "t": "pullback",
+       "lado": "compra",
+       "media": "sma200",
+       "modo": "retomada",
+       "positivo": "nao"
+      },
+      {
+       "t": "inclinacao",
+       "media": "sma200",
+       "dir": "sobe"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nome": "Pullback de venda",
+   "itens": [
+    {
+     "id": "pb-mme9-venda",
+     "nome": "Pullback de venda na MME 9",
+     "vies": "venda",
+     "estilo": "tendencia",
+     "desc": "Em baixa (MMS 20 < MMS 50, fechamento abaixo da MMS 50), a máxima testa a MME 9 e fecha abaixo.",
+     "regras": [
+      {
+       "t": "pullback",
+       "lado": "venda",
+       "media": "ema9",
+       "modo": "retomada",
+       "positivo": "nao"
+      },
+      {
+       "t": "media_media",
+       "a": "sma20",
+       "lado": "abaixo",
+       "b": "sma50"
+      },
+      {
+       "t": "preco_media",
+       "lado": "abaixo",
+       "media": "sma50"
+      }
+     ]
+    },
+    {
+     "id": "pb-mm20-venda",
+     "nome": "Pullback de venda na MMS 20",
+     "vies": "venda",
+     "estilo": "tendencia",
+     "desc": "MMS 20 abaixo da MMS 50 e caindo; a máxima testa a MMS 20 e fecha abaixo.",
+     "regras": [
+      {
+       "t": "pullback",
+       "lado": "venda",
+       "media": "sma20",
+       "modo": "retomada",
+       "positivo": "nao"
+      },
+      {
+       "t": "media_media",
+       "a": "sma20",
+       "lado": "abaixo",
+       "b": "sma50"
+      },
+      {
+       "t": "inclinacao",
+       "media": "sma20",
+       "dir": "cai"
+      }
+     ]
+    },
+    {
+     "id": "pb-mm50-venda",
+     "nome": "Pullback de venda na MMS 50",
+     "vies": "venda",
+     "estilo": "tendencia",
+     "desc": "MMS 50 abaixo da MMS 200; a máxima testa a MMS 50 e fecha abaixo.",
+     "regras": [
+      {
+       "t": "pullback",
+       "lado": "venda",
+       "media": "sma50",
+       "modo": "retomada",
+       "positivo": "nao"
+      },
+      {
+       "t": "media_media",
+       "a": "sma50",
+       "lado": "abaixo",
+       "b": "sma200"
+      }
+     ]
+    },
+    {
+     "id": "pb-mm200-venda",
+     "nome": "Pullback de venda na MMS 200",
+     "vies": "venda",
+     "estilo": "tendencia",
+     "desc": "MMS 200 caindo; a máxima testa a MMS 200 e fecha abaixo.",
+     "regras": [
+      {
+       "t": "pullback",
+       "lado": "venda",
+       "media": "sma200",
+       "modo": "retomada",
+       "positivo": "nao"
+      },
+      {
+       "t": "inclinacao",
+       "media": "sma200",
+       "dir": "cai"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nome": "Multitempo",
+   "itens": [
+    {
+     "id": "mtf-compra",
+     "nome": "Multitempo de compra",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Diário: acima da MMS 20 e da MMS 50 + exaustão de queda no 60 min (estocástico lento < 20 e/ou IFR 14 < 30). Semanal: semanal em alta + a mesma exaustão no diário ou no 4 horas.",
+     "regras": [
+      {
+       "t": "multitempo",
+       "lado": "compra"
+      }
+     ]
+    },
+    {
+     "id": "mtf-venda",
+     "nome": "Multitempo de venda",
+     "vies": "venda",
+     "estilo": "tendencia",
+     "desc": "Espelho do de compra: tempo do sinal em baixa + exaustão de alta no tempo menor (estocástico > 80 e/ou IFR > 70).",
+     "regras": [
+      {
+       "t": "multitempo",
+       "lado": "venda"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nome": "Exaustão e extremos",
+   "itens": [
+    {
+     "id": "bb-inf",
+     "nome": "Fechou abaixo da Bollinger",
+     "vies": "compra",
+     "estilo": "contra",
+     "desc": "Fechamento abaixo da banda inferior (20, 2): esticado para baixo.",
+     "regras": [
+      {
+       "t": "bollinger",
+       "pos": "fechou_abaixo"
+      }
+     ]
+    },
+    {
+     "id": "bb-sup",
+     "nome": "Fechou acima da Bollinger",
+     "vies": "venda",
+     "estilo": "contra",
+     "desc": "Fechamento acima da banda superior (20, 2): esticado para cima.",
+     "regras": [
+      {
+       "t": "bollinger",
+       "pos": "fechou_acima"
+      }
+     ]
+    },
+    {
+     "id": "ifr-sv",
+     "nome": "IFR sobrevendido",
+     "vies": "compra",
+     "estilo": "contra",
+     "desc": "IFR 14 abaixo de 30.",
+     "regras": [
+      {
+       "t": "ifr",
+       "n": 14,
+       "op": "abaixo",
+       "valor": 30
+      }
+     ]
+    },
+    {
+     "id": "ifr-sc",
+     "nome": "IFR sobrecomprado",
+     "vies": "venda",
+     "estilo": "contra",
+     "desc": "IFR 14 acima de 70.",
+     "regras": [
+      {
+       "t": "ifr",
+       "n": 14,
+       "op": "acima",
+       "valor": 70
+      }
+     ]
+    },
+    {
+     "id": "ifr-estoc",
+     "nome": "IFR e estocástico sobrevendidos",
+     "vies": "compra",
+     "estilo": "contra",
+     "desc": "IFR 14 abaixo de 30 e estocástico lento %K abaixo de 20.",
+     "regras": [
+      {
+       "t": "ifr",
+       "n": 14,
+       "op": "abaixo",
+       "valor": 30
+      },
+      {
+       "t": "estocastico",
+       "linha": "k",
+       "op": "abaixo",
+       "valor": 20
+      }
+     ]
+    },
+    {
+     "id": "ifr2",
+     "nome": "IFR 2 extremo em alta longa",
+     "vies": "compra",
+     "estilo": "contra",
+     "desc": "IFR 2 abaixo de 10 com o fechamento acima da MMS 200 (queda curta dentro de alta longa).",
+     "regras": [
+      {
+       "t": "ifr",
+       "n": 2,
+       "op": "abaixo",
+       "valor": 10
+      },
+      {
+       "t": "preco_media",
+       "lado": "acima",
+       "media": "sma200"
+      }
+     ]
+    },
+    {
+     "id": "longe-baixo",
+     "nome": "Muito abaixo da MMS 20",
+     "vies": "compra",
+     "estilo": "contra",
+     "desc": "Distância da MMS 20 de pelo menos 2,5× o normal do próprio ativo.",
+     "regras": [
+      {
+       "t": "distancia",
+       "lado": "abaixo",
+       "media": "sma20",
+       "valor": 2.5,
+       "modo": "normal"
+      }
+     ]
+    },
+    {
+     "id": "longe-cima",
+     "nome": "Muito acima da MMS 20",
+     "vies": "venda",
+     "estilo": "contra",
+     "desc": "Distância da MMS 20 de pelo menos 2,5× o normal do próprio ativo.",
+     "regras": [
+      {
+       "t": "distancia",
+       "lado": "acima",
+       "media": "sma20",
+       "valor": 2.5,
+       "modo": "normal"
+      }
+     ]
+    },
+    {
+     "id": "maiores-quedas",
+     "nome": "Maiores quedas do mercado",
+     "vies": "compra",
+     "estilo": "contra",
+     "desc": "Entre as 8% maiores quedas do mesmo mercado em 21 pregões (13 semanas no semanal), com queda de pelo menos 8% (12% no semanal).",
+     "regras": [
+      {
+       "t": "ranking",
+       "lado": "quedas"
+      }
+     ]
+    },
+    {
+     "id": "maiores-altas",
+     "nome": "Maiores altas do mercado",
+     "vies": "venda",
+     "estilo": "contra",
+     "desc": "Entre as 8% maiores altas do mesmo mercado em 21 pregões (13 semanas no semanal), com alta de pelo menos 8% (12% no semanal).",
+     "regras": [
+      {
+       "t": "ranking",
+       "lado": "altas"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nome": "Volatilidade e rompimento",
+   "itens": [
+    {
+     "id": "comprimida",
+     "nome": "Bollinger comprimida",
+     "vies": "neutro",
+     "estilo": "neutro",
+     "desc": "Largura das bandas entre as 10% mais estreitas dos últimos 120 candles.",
+     "regras": [
+      {
+       "t": "comprimida",
+       "valor": 10
+      }
+     ]
+    },
+    {
+     "id": "boca-alta",
+     "nome": "Boca de jacaré para cima",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Bollinger comprimida que abre (banda superior sobe e inferior desce) com fechamento acima da banda superior.",
+     "regras": [
+      {
+       "t": "boca",
+       "lado": "compra"
+      }
+     ]
+    },
+    {
+     "id": "boca-baixa",
+     "nome": "Boca de jacaré para baixo",
+     "vies": "venda",
+     "estilo": "tendencia",
+     "desc": "Bollinger comprimida que abre com fechamento abaixo da banda inferior.",
+     "regras": [
+      {
+       "t": "boca",
+       "lado": "venda"
+      }
+     ]
+    },
+    {
+     "id": "comprimida-alta",
+     "nome": "Compressão em tendência de alta",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Bandas entre as 15% mais estreitas, com fechamento acima da MMS 50.",
+     "regras": [
+      {
+       "t": "comprimida",
+       "valor": 15
+      },
+      {
+       "t": "preco_media",
+       "lado": "acima",
+       "media": "sma50"
+      }
+     ]
+    },
+    {
+     "id": "romp-max",
+     "nome": "Rompeu a máxima de 20 candles",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Fechamento acima da máxima dos 20 candles anteriores.",
+     "regras": [
+      {
+       "t": "rompimento",
+       "tipo": "max",
+       "janela": 20
+      }
+     ]
+    },
+    {
+     "id": "romp-max-vol",
+     "nome": "Rompimento com volume",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Fechou acima da máxima de 20 candles com volume 1,5× a média.",
+     "regras": [
+      {
+       "t": "rompimento",
+       "tipo": "max",
+       "janela": 20
+      },
+      {
+       "t": "volume",
+       "op": "acima",
+       "valor": 1.5
+      }
+     ]
+    },
+    {
+     "id": "perde-min",
+     "nome": "Perdeu a mínima de 20 candles",
+     "vies": "venda",
+     "estilo": "tendencia",
+     "desc": "Fechamento abaixo da mínima dos 20 candles anteriores.",
+     "regras": [
+      {
+       "t": "rompimento",
+       "tipo": "min",
+       "janela": 20
+      }
+     ]
+    },
+    {
+     "id": "max52",
+     "nome": "Perto da máxima de 52 semanas",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Até 3% da máxima de 52 semanas.",
+     "regras": [
+      {
+       "t": "perto_extremo",
+       "tipo": "max",
+       "valor": 3
+      }
+     ]
+    },
+    {
+     "id": "cruzou-mm20",
+     "nome": "Cruzou a MMS 20 para cima",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Fechou acima da MMS 20 depois de fechar abaixo dela.",
+     "regras": [
+      {
+       "t": "cruzamento",
+       "dir": "cima",
+       "media": "sma20"
+      }
+     ]
+    },
+    {
+     "id": "golden",
+     "nome": "MMS 50 cruzou a MMS 200 para cima",
+     "vies": "compra",
+     "estilo": "tendencia",
+     "desc": "Cruzamento de médias longas nos últimos 2 candles.",
+     "regras": [
+      {
+       "t": "cruzamento_medias",
+       "a": "sma50",
+       "dir": "cima",
+       "b": "sma200"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
