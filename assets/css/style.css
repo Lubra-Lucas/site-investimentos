@@ -1050,6 +1050,7 @@ main.pagina-setups { padding-top: 10px; gap: 10px; }
   .sep-cat { display: none; }
   #r-base { max-width: 100%; }
   .celula > .celula-setups { flex-wrap: wrap; white-space: normal; }
+}
 
 /* ---------- topo: busca de ativo (comum.js, buscaTopo) ---------- */
 .busca-topo { display: flex; align-items: center; position: relative; }
