@@ -252,8 +252,9 @@ function linhaSetups(i, compacta) {
 function blocoContexto(a) {
   const fotos = F?.ativos[a.ticker];
   if (!fotos) return null;
-  const sinais = EVENTOS.filter((e) => e.ticker === a.ticker).map(paraGrafico);
-  const { favor, cuidado, info } = contextoDecisao(a, fotos, estado.tf, viesAtual(), sinais);
+  const sinais = EVENTOS.filter((e) => e.ticker === a.ticker);
+  const { favor, cuidado, info } = contextoDecisao(a, fotos, estado.tf, viesAtual(), sinais,
+    (id) => (SETUP.has(id) ? nomeCurto(SETUP.get(id)) : id));
   const lista = (itens, cls, simbolo, max) => (itens.length ? el("ul", { class: `contexto-lista ${cls}` },
     itens.slice(0, max).map((t) => el("li", { title: t }, el("span", { class: "simbolo" }, simbolo), t)),
     itens.length > max ? el("li", { class: "mais", title: itens.slice(max).join("\n") }, `+${itens.length - max} outros`) : null) : null);

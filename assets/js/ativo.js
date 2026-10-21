@@ -142,7 +142,7 @@ function blocoContexto(a) {
     opcoes([["compra", "▲ Compra"], ["neutro", "Neutro"], ["venda", "▼ Venda"]], vies, (v) => { ficha.vies = v; renderLateral(a); }));
   if (!fotos) return el("li", { class: "ficha-bloco" }, tituloBloco("Contexto"),
     el("p", { class: "sub" }, F ? "Sem os indicadores do rastreador para este ativo." : "Indicadores do rastreador indisponíveis."));
-  const { favor, cuidado, info } = contextoDecisao(a, fotos, ficha.tfCtx, vies, eventos.map(eventoParaGrafico));
+  const { favor, cuidado, info } = contextoDecisao(a, fotos, ficha.tfCtx, vies, eventos, nomeSetup);
   const lista = (titulo, itens, cls, simbolo) => (itens.length ? el("div", { class: `contexto-grupo ${cls}` },
     el("h4", {}, titulo),
     el("ul", { class: `contexto-lista ${cls}` }, itens.map((t) => el("li", {}, el("span", { class: "simbolo" }, simbolo), t)))) : null);

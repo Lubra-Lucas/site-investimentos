@@ -1,44 +1,27 @@
 # Carteira Terminal
 
-Painel pessoal com três telas:
+Terminal pessoal de análise técnica, feito para a rotina **depois do fechamento**: ver quais setups se formaram,
+comparar os gráficos dos ativos na mesma condição e decidir as entradas do dia seguinte. Quatro páginas:
 
-- **Carteira** (`index.html`): patrimônio em BRL, posições, evolução da carteira e sinais nos ativos acompanhados.
-- **Radar** (`radar.html`): ~420 ativos. São todas as ações da B3 com volume médio acima de R$ 1 mi/dia,
-  as 150 maiores dos EUA, 30 criptos e 40 de macro (índices, moedas e commodities). O menu superior escolhe o mercado e a visão, e a lista à direita do gráfico mostra o resultado:
-  - **Oportunidades:** **Compra** ou **Venda** se abre em dois braços, **A favor da tendência** e **Contra a
-    tendência** (cartões com o que cada um busca e quantos ativos têm sinal), e o estilo escolhido se abre nas
-    estratégias. O caminho escolhido fica aceso, com setas animadas; passar o mouse no outro estilo mostra o
-    caminho até ele. A opção "Só com 2+ estratégias" mostra quem dispara 2 ou mais. A **camada** define o tempo gráfico dos sinais (diário ou semanal).
-  - **Filtros de estado:** tendência forte de alta e de baixa, IFR extremo e Bollinger comprimida. A Bollinger
-    escolhe o tempo (60m, 4h, diário, semanal), e o gráfico acompanha.
+- **Carteira** (`index.html`): o que você tem e acompanha. Patrimônio em BRL, posições, **Minha lista** (os
+  ativos que você acompanha, salva neste navegador), **Minhas simulações** e os setups que dispararam nesses ativos.
+- **Setups** (`setups.html`): ~420 ativos (todas as ações da B3 com volume médio acima de R$ 1 mi/dia, as 150
+  maiores dos EUA, 30 criptos e 40 de macro). Escolha o setup pela árvore **Compra | Venda** → **A favor** ou
+  **Contra a tendência** → setups (ou "Todos os setups" do lado), ou monte **Minhas regras**. Escolha também o
+  tempo do sinal (diário ou semanal) e de quando (último pregão, 2, 3 ou 5). O mesmo resultado em duas visões:
+  - **Lista + gráfico:** um ativo por vez num gráfico grande, a lista ao lado (<kbd>↑</kbd> <kbd>↓</kbd> navegam);
+    o item aberto mostra os setups, o selo do histórico e o contexto (✓ a favor, ⚠ cuidado).
+  - **Grade** (1, 2×2, 3×3 ou 4×3): vários gráficos lado a lado para comparar, cabendo na tela no zoom 100%.
+    O card é só gráfico; passe o mouse para o contexto entrar deslizando. Clique no nome para tela cheia.
 
-  Clicou, o gráfico abre ao lado, com setas nos candles em que cada sinal apareceu (passe o mouse sobre o candle
-  para ver o balão com o motivo); <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista. O botão ⛶ coloca o gráfico em tela cheia.
-- **Multitela** (`multitela.html`): rastreador de ativos em grade de gráficos interativos (2×2, 3×3 ou 4×3).
-  - **⌕ Rastrear condição:** escolha um modelo pronto (tendência de alta/baixa, alta forte com médias alinhadas,
-    pullback de compra e de venda na MME 9/MMS 20/MMS 50 (o candle precisa encostar na média e fechar perto dela, como no Radar), fora da Bollinger, IFR e estocástico extremos, IFR 2, longe da média,
-    compressão, rompimento de máxima/mínima, perto da máxima de 52 semanas, cruzamentos de médias...) ou monte
-    as suas regras (todas precisam ser atendidas): fechamento x média, média x média, inclinação, pullback,
-    cruzamentos, distância da média (em % ou × o normal do ativo), IFR 2/9/14, estocástico, Bollinger,
-    compressão, ATR, variação no período, rompimento, máxima/mínima de 52 semanas, candle e volume. Médias
-    simples (MMS) ou exponenciais (MME) de 5 a 200 períodos. As regras valem no **diário ou no semanal**, com
-    os indicadores daquele tempo gráfico. Regras editadas podem ser salvas em "Minhas regras" (neste navegador).
-  - **Quando:** último pregão (o padrão: para ver à noite e decidir a entrada no dia seguinte) ou os últimos
-    2, 3 ou 5 candles. O card diz quando a condição aconteceu e o gráfico marca esse candle. No semanal só
-    entram semanas fechadas: o sinal da semana sai depois do pregão de sexta (domingo em cripto).
-  - Cada card mostra os valores que fizeram o ativo passar e um **contexto para decidir**: ✓ o que está a favor
-    (tendência no outro tempo gráfico e há quanto tempo, perto da máxima de 52 semanas, volume, sinais das
-    estratégias), ⚠ o que pede cuidado (IFR/estocástico esticados no diário, semanal ou mensal, longe da média,
-    fora da Bollinger, contra o tempo maior, gap, volume fraco) e · informações (variação no mês/ano/12 meses,
-    onde ficaria um stop técnico nas médias, ATR). As médias usadas nas regras aparecem no gráfico.
-  - **Condições no gráfico:** cada gráfico já vem com o que o modelo usa (as médias da regra, a Bollinger, o
-    IFR/estocástico no painel de baixo, a máxima de 20 candles ou de 52 semanas). "Meus indicadores" volta aos
-    indicadores de sempre.
-  - **✎ Ferramentas de desenho** em cada gráfico (as mesmas do Radar, salvas por ativo), incluindo o
-    **risco/retorno** de compra e de venda: clique para criar (alvo 4%, stop 2%) ou arraste até o alvo; depois,
-    arraste o alvo, o stop e a ponta direita.
-  - Também mostra os seus ativos (carteira, simulações, lista própria). Cada gráfico pode ser arrastado, ter zoom
-    pela roda do mouse e ser aberto em tela cheia. As oportunidades das estratégias ficam no Radar.
+  "Só com 2+ setups" mostra os ativos com vários setups ao mesmo tempo; dá para ordenar por melhor histórico,
+  mais setups juntos, variação etc. As setas no gráfico marcam os candles em que o setup disparou.
+- **Ativo** (`ativo.html#PETR4`): tudo sobre um papel. Gráfico completo, setups recentes (clique para ir à data),
+  contexto, simulações e **como cada setup se saiu nesse ativo**. A busca no topo de qualquer página abre aqui
+  (atalho <kbd>/</kbd>).
+- **Backtest** (`backtest.html`): o histórico de cada setup do catálogo, por mercado, lado e prazo.
+
+`radar.html` e `multitela.html` (as páginas antigas) redirecionam para Setups.
 
 Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (20, 2) e IFR 14, nos tempos
 **60 min, 4 horas**, diário, semanal e mensal. **Alt+C** centraliza o gráfico no preço.
@@ -46,37 +29,45 @@ Gráficos com TradingView Lightweight Charts: candles, MM20/50/200, Bollinger (2
 ## Como funciona
 
 ```
-GitHub Actions (todo dia 19:30 BRT)
-   └─ scripts/atualizar_dados.py
+GitHub Actions (todo dia 19:30 e 07:17 BRT, e a cada push no main)
+   └─ scripts/atualizar_dados.py           (um processo por núcleo; ~5 min)
         ├─ fontes.py       baixa candles diários (6 anos) e de 60 min (6 meses) do Yahoo Finance
         ├─ validacao.py    verifica a integridade e confere os fechamentos com outra fonte
-        ├─ rastreador.py   indicadores do diário e do semanal para o rastreador da Multitela
-        ├─ estrategias.py  calcula indicadores e sinais datados (diário e semanal)
-        └─ grava data/radar.json, data/resumo.json, data/ativos/<ticker>.json e data/intraday/<ticker>.json
+        ├─ setups.py       avalia o catálogo config/setups.json em todo o histórico (diário e semanal)
+        ├─ backtest.py     mede o que aconteceu depois de cada setup, ativo por ativo
+        ├─ rastreador.py   fotos dos indicadores para as regras próprias e o contexto do site
+        └─ grava data/radar.json, data/setups.json, data/rastreador.json, data/backtest.json, data/ativos/...
    └─ publica o site estático no GitHub Pages
 ```
 
-## Backtest das estratégias
+**Um motor só.** `config/setups.json` é o catálogo único: cada setup é uma lista de regras (as mesmas do editor
+de "Minhas regras"). O Python avalia o catálogo e gera os sinais datados e o backtest; o site avalia só as suas
+regras próprias. Um teste de paridade (`scripts/testar_paridade.py`, rodado a cada push por
+`.github/workflows/testes.yml`) confere que Python e JS dão o mesmo resultado em todos os setups e ativos.
+Detalhes em `docs/arquitetura.md`.
+
+## Backtest dos setups
 
 A página **Backtest** (`backtest.html`) mostra, para cada mercado, sinal (diário/semanal), lado e prazo, como
-cada estratégia se saiu nos últimos 6 anos, ativo por ativo (`scripts/backtest.py`):
+cada setup se saiu nos últimos 6 anos, ativo por ativo (`scripts/backtest.py`):
 
 - **Entrada na abertura do candle seguinte** ao sinal (o site publica depois do fechamento) e **saída no
   fechamento** depois de 5, 10 ou 20 pregões (sinal diário) ou 4, 8 ou 13 semanas (sinal semanal). Na venda,
   o resultado é invertido.
-- Sinais repetidos da mesma estratégia dentro do prazo contam **uma vez só**.
+- Sinais repetidos do mesmo setup dentro do prazo contam **uma vez só**.
 - **Vantagem** = retorno médio do sinal menos o retorno médio de entrar num dia qualquer (mesmo mercado e prazo),
   porque em mercado de alta quase toda compra dá lucro.
-- Estratégias e ativos com menos de 5 casos aparecem como "poucos casos".
-- No Radar, cada sinal traz o selo do histórico **naquele ativo** (acerto, retorno médio e casos, no prazo de 10
+- Setups e ativos com menos de 5 casos aparecem como "poucos casos".
+- Em Setups e no Ativo, cada sinal traz o selo do histórico **naquele ativo** (acerto, retorno médio e casos, no prazo de 10
   pregões ou 8 semanas), e a lista pode ser ordenada por **melhor histórico**.
 
 Sem custos, impostos ou deslizamento; resultado passado não garante resultado futuro. "Maiores quedas/altas"
-não tem backtest, porque depende da comparação entre ativos a cada dia.
+não tem backtest, porque depende da comparação entre ativos a cada dia, e "Bollinger comprimida" também não,
+porque não tem lado.
 
 ## Personalizar o gráfico
 
-O botão **⚙ Personalizar** (no Radar, na Carteira e na Multitela) ajusta todos os gráficos do site:
+O botão **⚙ Personalizar** (em Setups e no Ativo) ajusta todos os gráficos do site:
 
 - **Predefinições:** *Escuro* (padrão), *Claro limpo* (fundo branco, sem grade e sem indicadores) e *Claro com grade*.
 - **Fundo e grade:** cor de fundo e linhas verticais e horizontais ligadas ou desligadas.
@@ -87,7 +78,7 @@ Os indicadores também têm atalhos de liga/desliga na barra acima de cada gráf
 
 ## Ferramentas de desenho
 
-Na barra do canto esquerdo do gráfico (Radar e Carteira):
+Na barra do canto esquerdo do gráfico (Setups, grade e Ativo):
 
 - **Linha horizontal**, **segmento de reta**, **retângulo** (com preenchimento e opacidade ajustável) e **pincel**.
 - Com o cursor, clique num desenho para selecionar, arraste para mover ou arraste as alças das pontas.
@@ -96,14 +87,14 @@ Na barra do canto esquerdo do gráfico (Radar e Carteira):
 
 ## Simulador de posição
 
-No Radar e na Carteira, o botão **⊕ Simular** abre uma ferramenta de risco/retorno no gráfico, como a do TradingView:
+Em Setups e no Ativo, o botão **⊕ Simular** abre uma ferramenta de risco/retorno no gráfico, como a do TradingView:
 
 - Linhas de **entrada**, **stop** e **alvo** que você arrasta com o mouse, com as zonas de risco (vermelha) e retorno (verde).
 - **Boleta** abaixo do gráfico: compra ou venda, preços, capital, quantidade, risco, retorno e R:R, atualizados ao vivo.
 - **Simulações salvas** são reavaliadas a cada atualização com os candles diários: *aguardando entrada*,
   *em aberto* (com o resultado do dia), *alvo atingido* ou *stop atingido* (com a data). Se stop e alvo cabem no
   mesmo candle, conta o stop (conservador).
-- A seção **Minhas simulações** lista todas com o resultado.
+- A seção **Minhas simulações**, na Carteira, lista todas com o resultado.
 
 As simulações ficam salvas **no navegador** (localStorage), sem servidor. Para levar a outro computador ou guardar
 uma cópia, use **Exportar** e **Importar** (arquivo JSON).
@@ -132,7 +123,7 @@ Na dúvida, o dado não entra:
    é trocado pelo candle oficial da B3 (COTAHIST) ou da Nasdaq, quando a fonte já publicou aquele pregão.
    Se ainda não publicou, o dia fica de fora com o aviso "incompleto na fonte". Uma segunda rodada às 07:17
    completa o que faltar.
-6. Um ativo que falha em qualquer etapa fica **retido**: sem gráfico e sem sinais no dia. A lista de retidos aparece no fim do Radar.
+6. Um ativo que falha em qualquer etapa fica **retido**: sem gráfico e sem sinais no dia. A lista de retidos aparece no fim da página Setups.
 7. **60 min e 4h:** cada dia de intraday é comparado com o candle diário já verificado. A máxima e a mínima
    precisam caber na do dia (folga de 0,5%), e o último fechamento precisa estar a até 2% do oficial (a diferença normal
    vem do leilão de fechamento). Os dias que não batem são descartados.
@@ -141,9 +132,9 @@ Na dúvida, o dado não entra:
 
 Sinais só saem de **candles fechados**. Se a atualização roda com o pregão aberto (um push no `main`, um cron
 atrasado ou um disparo manual), o candle de hoje aparece no gráfico **translúcido, marcado "em formação"**, mas
-fica fora das estratégias, do estado do ativo, do backtest, da carteira e da estratégia multitempo (o 60 min de
+fica fora dos setups, do estado do ativo, do backtest, da carteira e do setup multitempo (o 60 min de
 hoje também não conta). O pregão é considerado fechado a partir de 18h30 em São Paulo (B3), 16h30 em Nova York
-(EUA) e meia-noite UTC (cripto). Radar e Multitela mostram uma contagem regressiva até a rodada que publica os
+(EUA) e meia-noite UTC (cripto). As páginas mostram uma contagem regressiva até a rodada que publica os
 sinais do dia ("Brasil e EUA: sinais de 20/10 em 3h05").
 
 ### Cripto
@@ -152,43 +143,31 @@ sinais do dia ("Brasil e EUA: sinais de 20/10 em 3h05").
 - A semana de cripto vai de segunda a domingo.
 - "Último pregão" é contado por mercado: o último pregão da B3 pode ser sexta, enquanto o de cripto é domingo.
 
-## Estratégias (Oportunidades)
+## Setups (catálogo)
 
-No Radar: **1. Mercado** → **2. O que ver** (Oportunidades ou Filtros de estado) → **3. Sinal** (diário ou semanal).
-As oportunidades vêm em **Compra** e **Venda**, separadas em duas modalidades. Toda estratégia de venda é o espelho
-da de compra, com o mesmo nome. O grupo **★ Confluência** reúne os ativos com 2 ou mais estratégias do mesmo lado.
+`config/setups.json`, 35 setups. Os de venda são o espelho dos de compra.
 
-### A favor da tendência (comprar alta que continua / vender baixa que continua)
-
-| Estratégia | Compra | Venda |
+| Grupo | Setups | Estilo |
 |---|---|---|
-| Pullback nas médias | Médias alinhadas para cima. **Rejeição**: a mínima fura a MM20, MM50 ou MM200 e o candle fecha acima. **Violação e retomada**: vindo de cima, fecha abaixo da média por 1 ou 2 candles (até 1 ATR abaixo) e volta a fechar acima. Nos dois casos o candle do sinal precisa estar **na média**: a mínima chega até ela (folga de ¼ de ATR) e o fechamento fica a até 1 ATR; um gap que se afasta da média não conta | Espelho, com as médias alinhadas para baixo |
-| Boca de jacaré | Bollinger comprimida abre (superior sobe, inferior desce) e o preço fecha acima da banda superior | Fecha abaixo da inferior |
-| Multitempo | **Sinal diário:** diário acima da MM20 e da MM50 + exaustão de queda no 60 min (estocástico lento < 20 e/ou IFR < 30). **Sinal semanal:** semanal em alta + a mesma exaustão no diário ou no 4 horas | Espelho (estocástico > 80 e/ou IFR > 70) |
+| Tendência | Tendência de alta / de baixa (fechamento acima/abaixo da MMS 20 e da MMS 50); Alta / Baixa forte (médias alinhadas, MMS 50 subindo/caindo); Alta curta (acima da MME 9, MMS 25 e MMS 50) | a favor |
+| Pullback | Na MME 9, MMS 20, MMS 50 e MMS 200, de compra e de venda. **Rejeição** (a sombra fura a média e fecha do lado certo) ou **violação e retomada** (1 ou 2 candles do outro lado, até 1 ATR, vindo do lado certo). O candle precisa estar **na média**: a sombra chega até ela (folga de ¼ de ATR) e o fechamento fica a até 1 ATR | a favor |
+| Multitempo | Diário em tendência + exaustão no 60 min (estocástico lento < 20 e/ou IFR < 30); semanal em tendência + exaustão no diário ou no 4 horas | a favor |
+| Exaustão e extremos | Fechou fora da Bollinger; IFR 14 < 30 / > 70; IFR e estocástico sobrevendidos; IFR 2 < 10 em alta longa; muito longe da MMS 20 (2,5× o normal do ativo); maiores quedas / altas do mercado (8% maiores em 21 pregões ou 13 semanas, com pelo menos 8% / 12%) | contra |
+| Volatilidade e rompimento | Boca de jacaré (Bollinger comprimida que abre com fechamento fora); compressão em tendência de alta; rompeu a máxima / perdeu a mínima de 20 candles (com ou sem volume); perto da máxima de 52 semanas; cruzou a MMS 20; MMS 50 cruzou a MMS 200 | a favor |
+| Panorama | Bollinger comprimida (largura entre as 10% menores dos últimos 120 candles), sem lado | neutro |
 
-### Contra a tendência (comprar a faca caindo / vender o que esticou demais)
+Um setup dispara num candle fechado quando **todas** as regras dele valem. Para criar ou mudar um setup, edite
+`config/setups.json` (as regras usam os mesmos tipos do editor de "Minhas regras") e confira com o teste de paridade.
 
-| Estratégia | Compra | Venda |
-|---|---|---|
-| IFR extremo | IFR 14 abaixo de 20 | Acima de 80 |
-| Fora da Bollinger | Fecha abaixo da banda inferior (fora de uma boca de jacaré) | Acima da superior |
-| Distância da MM20 | Preço abaixo da MM20 a pelo menos 2,5x a distância média do próprio ativo (último ano no diário, 2 anos no semanal) | Acima |
-| Maiores quedas / altas | Entre as 8% maiores quedas do mercado em 21 pregões (diário) ou 13 semanas (semanal), com pelo menos 8% / 12% | Maiores altas |
-
-## Filtros de estado (panorama)
-
-A foto de hoje, independente de evento: **tendência forte de alta** e **de baixa** (preço acima ou abaixo da MM20 e
-da MM50 no diário e no semanal) e **Bollinger comprimida** (largura entre as 10% menores dos últimos 120 candles),
-no tempo gráfico escolhido (60m, 4h, diário ou semanal).
-
-Ativos com pouca liquidez (volume financeiro médio de 20 dias abaixo de R$ 10 mi na B3, US$ 100 mi nos EUA ou
-US$ 30 mi em cripto) ficam fora dos sinais. Os parâmetros ficam no topo de `scripts/estrategias.py`.
+Ativos com pouca liquidez (volume financeiro médio de 20 dias abaixo de R$ 1 mi na B3, US$ 20 mi nos EUA ou
+US$ 5 mi em cripto) ficam fora dos sinais. Os parâmetros ficam no topo de `scripts/estrategias.py`.
 
 **São filtros técnicos para chamar atenção, não recomendação de investimento.**
 
 ## Configuração
 
-- `config/universo.json`: ações do radar (BR e EUA). As da B3 foram escolhidas pelo volume médio no COTAHIST.
+- `config/setups.json`: o catálogo de setups (veja acima).
+- `config/universo.json`: os ativos acompanhados (B3, EUA, cripto e macro). As da B3 foram escolhidas pelo volume médio no COTAHIST.
 - `config/carteira.json`: capital inicial, ativos acompanhados (inclusive cripto) e `transacoes`:
 
 ```json
@@ -208,6 +187,7 @@ agendamento diário só roda na branch padrão.
 ```bash
 pip install -r requirements.txt
 python scripts/atualizar_dados.py      # leva alguns minutos (~420 ativos, um processo por núcleo)
+python scripts/testar_paridade.py      # confere que Python e JS avaliam os setups igual
 python -m http.server 8000             # abra http://localhost:8000
 ```
 

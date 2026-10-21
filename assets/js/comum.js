@@ -188,7 +188,7 @@ function chipsFamilias(familias, lado = "compra") {
 function seloHistorico(bt, tf) {
   if (!bt) return null;
   const [n, acerto, medio, vantagem] = bt;
-  const prazo = tf === "S" ? "8 semanas" : "10 pregões";
+  const prazo = tf === "S" || tf === "W" ? "8 semanas" : "10 pregões";
   if (acerto == null) return el("span", { class: "hist hist-poucos", title: `Só ${n} caso(s) no histórico deste ativo: pouco para tirar conclusão` }, `histórico: ${n} caso(s)`);
   const cls = acerto >= 55 && vantagem > 0 ? "hist-bom" : acerto < 45 || vantagem < 0 ? "hist-ruim" : "hist-neutro";
   return el("span", { class: `hist ${cls}`,
