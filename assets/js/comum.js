@@ -101,7 +101,7 @@ function avisoFormacao(R) {
       return el("span", { class: "formacao-item",
         title: `O pregão de ${fmtData(g.data)} ainda não fechou: o candle aparece no gráfico como "em formação", ` +
           `mas só gera sinais depois do fechamento, na atualização prevista para ${hora}.` },
-        "⏳ ", el("b", {}, g.mercados.join(" e ")), `: sinais de ${fmtData(g.data)} `,
+        el("b", {}, g.mercados.join(" e ")), `: sinais de ${fmtData(g.data)} `,
         falta > 0 ? el("b", { class: "contagem-regressiva" }, `em ${fmtDuracao(falta)}`) : el("b", {}, "já devem ter saído"),
         falta > 0 ? ` (≈ ${hora})` : " · recarregue a página");
     }));
@@ -362,7 +362,7 @@ class Grafico {
     this.chart = LWC.createChart(alvo, {
       autoSize: true,
       layout: {
-        fontFamily: "JetBrains Mono, monospace",
+        fontFamily: "Inter, system-ui, sans-serif",
         fontSize: this.mini ? 10 : 11,
         attributionLogo: !this.mini,
         panes: { separatorColor: css("--borda"), separatorHoverColor: css("--bg-elev") },
@@ -646,20 +646,65 @@ document.addEventListener("keydown", (e) => {
 
 // ------------------------------------------------------------- topo
 
+/** Guia rápido de cada página (botão "?" do topo). */
+const AJUDA = {
+  carteira: ["Carteira", [
+    "Resumo do seu patrimônio, suas posições e os sinais que apareceram nos ativos que você acompanha.",
+    "Clique em um ativo (na tabela ou nos sinais) para abrir o gráfico.",
+    "Use \"Simular\" no gráfico para treinar uma operação: entrada, stop e alvo ficam salvos e são reavaliados todo dia.",
+  ]],
+  radar: ["Radar", [
+    "Oportunidades: escolha Compra ou Venda e o estilo. \"A favor da tendência\" (pullback, rompimento) é para quem segue o movimento; \"Contra a tendência\" (IFR extremo, fora da Bollinger) é para quem busca a virada.",
+    "Panorama: quem está em tendência forte, com Bollinger comprimida, etc.",
+    "Este ativo: tudo de uma ação só. Clique em um sinal para ver no gráfico o que o preço fez depois.",
+    "Os sinais só saem com o pregão fechado; durante o pregão o candle de hoje aparece \"em formação\".",
+  ]],
+  multitela: ["Multitela", [
+    "Escolha um modelo (tendência, pullback, extremos...) ou edite as regras: a grade mostra todos os ativos que atendem, lado a lado.",
+    "Cada gráfico já desenha o que a regra usa (médias, Bollinger, IFR). \"Meus indicadores\" volta ao seu padrão.",
+    "No card: ✓ o que está a favor, ⚠ o que pede cuidado. O ✎ abre as ferramentas de desenho, inclusive risco/retorno.",
+  ]],
+  backtest: ["Backtest", ["Como cada estratégia se saiu nos últimos 6 anos, por mercado, lado e prazo."]],
+};
+const ATALHOS = [
+  ["Alt", "C", "centraliza os gráficos"], ["Alt", "T", "segmento de reta"], ["Alt", "H", "linha horizontal"],
+  ["Alt", "R", "retângulo"], ["Alt", "B", "pincel"], ["Ctrl", "Z", "desfaz o último desenho"],
+  ["←", "→", "páginas da Multitela"], ["↑", "↓", "lista do Radar"],
+];
+
 function montarTopo(pagina, dados) {
-  const link = (href, id, txt) => el("a", { href, class: pagina === id ? "ativo" : null }, txt);
+  const link = (href, id, txt) => el("a", { href, class: pagina === id ? "ativo" : null, "aria-current": pagina === id ? "page" : null }, txt);
   const topo = document.getElementById("topo");
   const v = dados?.verificacao;
+  const marca = el("a", { class: "marca", href: "index.html", "aria-label": "Carteira Terminal" });
+  marca.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="4" height="9" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="11" width="4" height="6" rx="1"/></svg><span>Carteira <b>Terminal</b></span>';
+
+  // status dos dados: data do último pregão e, no detalhe, a verificação
+  const ultimo = dados?.ativos?.length ? dados.ativos.reduce((m, a) => (a.mercado !== "CRIPTO" && a.data > m ? a.data : m), "") : null;
+  const status = dados ? el("span", { class: `status-dados ${v?.retidos ? "com-retidos" : ""}`,
+    title: `${v?.conferidos ?? 0} ativos conferidos com fonte oficial · ${v?.internos ?? 0} só com checagem interna · ` +
+      `${v?.retidos ?? 0} retidos por inconsistência.\nAtualizado em ${new Date(dados.atualizado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}.` },
+    el("i", { class: "ponto-status" }), "Pregão de ", el("b", {}, ultimo ? fmtData(ultimo) : "—"),
+    el("span", { class: "status-extra" }, ` · atualizado ${new Date(dados.atualizado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`)) : null;
+  const dolar = dados ? el("span", { class: "dolar", title: "Cotação do dólar usada para converter os ativos dos EUA" }, "Dólar ", el("b", {}, `R$ ${fmtNum(dados.usdbrl, 2)}`)) : null;
+
+  const [titulo, linhas] = AJUDA[pagina] ?? ["Ajuda", []];
+  const painelAjuda = el("div", { class: "ajuda", hidden: true, role: "dialog", "aria-label": "Como usar" },
+    el("h3", {}, `Como usar: ${titulo}`),
+    el("ul", {}, linhas.map((l) => el("li", {}, l))),
+    el("h3", {}, "Atalhos"),
+    el("dl", { class: "atalhos" }, ATALHOS.flatMap(([a, b, t]) => [el("dt", {}, el("kbd", {}, a), el("kbd", {}, b)), el("dd", {}, t)])),
+    el("p", { class: "sub" }, "Uso pessoal. Os sinais são filtros técnicos automáticos, não recomendação de investimento."));
+  const botaoAjuda = el("button", { class: "botao-ajuda", "aria-label": "Como usar esta página", title: "Como usar",
+    onclick: (e) => { e.stopPropagation(); painelAjuda.hidden = !painelAjuda.hidden; } }, "?");
+  document.addEventListener("click", (e) => { if (!painelAjuda.contains(e.target)) painelAjuda.hidden = true; });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") painelAjuda.hidden = true; });
+
   topo.replaceChildren(
-    el("div", { class: "marca" }, el("span", { class: "marca-ponto" }), el("h1", {}, "Carteira", el("span", {}, "Terminal"))),
-    el("nav", {}, link("index.html", "carteira", "Carteira"), link("radar.html", "radar", "Radar"), link("multitela.html", "multitela", "Multitela"), link("backtest.html", "backtest", "Backtest")),
-    el("div", { class: "topo-info" },
-      v ? el("span", { title: "Ativos publicados após a verificação de integridade" },
-        "Dados ", el("b", {}, `${v.conferidos} conferidos · ${v.internos} internos · ${v.retidos} retidos`)) : null,
-      dados ? el("span", {}, "USD/BRL ", el("b", {}, fmtNum(dados.usdbrl, 4))) : null,
-      dados ? el("span", {}, "Atualizado ", el("b", {},
-        new Date(dados.atualizado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }))) : null,
-      el("span", { class: "atalho", title: "Centraliza o gráfico no preço" }, el("kbd", {}, "Alt"), "+", el("kbd", {}, "C"))),
+    marca,
+    el("nav", { "aria-label": "Páginas" }, link("index.html", "carteira", "Carteira"), link("radar.html", "radar", "Radar"),
+      link("multitela.html", "multitela", "Multitela"), link("backtest.html", "backtest", "Backtest")),
+    el("div", { class: "topo-info" }, status, dolar, botaoAjuda, painelAjuda),
   );
 }
 

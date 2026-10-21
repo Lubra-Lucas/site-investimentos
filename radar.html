@@ -6,7 +6,7 @@
   <title>Radar de Ações</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
@@ -17,7 +17,7 @@
     <section class="filtros painel menu-radar">
       <div class="linha-menu">
         <div class="filtro">
-          <span class="filtro-rotulo"><i class="passo">1</i> Mercado</span>
+          <span class="filtro-rotulo">Mercado</span>
           <div class="segmento" id="f-mercado">
             <button data-v="" class="ativo">Todos</button>
             <button data-v="BR">Brasil</button>
@@ -26,29 +26,29 @@
           </div>
         </div>
         <div class="filtro">
-          <span class="filtro-rotulo"><i class="passo">2</i> O que ver</span>
+          <span class="filtro-rotulo">Ver</span>
           <div class="segmento segmento-forte" id="f-visao">
-            <button data-v="oportunidades" class="ativo" title="Sinais de compra e venda por estratégia, datados">◎ Oportunidades</button>
-            <button data-v="estado" title="Panorama: quem está em tendência forte ou com a Bollinger comprimida">▤ Filtros de estado</button>
-            <button data-v="ativo" title="Sinais, simulações e histórico só do ativo aberto no gráfico">◉ Este ativo</button>
+            <button data-v="oportunidades" class="ativo" title="Sinais de compra e venda por estratégia, datados">Oportunidades</button>
+            <button data-v="estado" title="Quem está em tendência forte, com a Bollinger comprimida...">Panorama</button>
+            <button data-v="ativo" title="Sinais, simulações e histórico só do ativo aberto no gráfico">Este ativo</button>
           </div>
         </div>
       </div>
 
       <div class="linha-menu" id="menu-oportunidades">
         <div class="filtro">
-          <span class="filtro-rotulo"><i class="passo">3</i> Sinal</span>
+          <span class="filtro-rotulo">Sinais do</span>
           <div class="segmento" id="f-tf">
             <button data-v="D" class="ativo" title="Sinais no gráfico diário">Diário</button>
             <button data-v="S" title="Sinais no gráfico semanal">Semanal</button>
           </div>
         </div>
         <div class="filtro">
-          <span class="filtro-rotulo">Período</span>
+          <span class="filtro-rotulo">De quando</span>
           <div class="segmento" id="f-periodo">
-            <button data-v="1" class="ativo">Último</button>
-            <button data-v="3">3</button>
-            <button data-v="5">5</button>
+            <button data-v="1" class="ativo">Último pregão</button>
+            <button data-v="3">3 pregões</button>
+            <button data-v="5">5 pregões</button>
             <button data-v="99">Todos</button>
           </div>
         </div>
@@ -57,7 +57,7 @@
 
       <div class="linha-menu" id="menu-ativo" hidden>
         <div class="filtro filtro-tickers">
-          <span class="filtro-rotulo"><i class="passo">3</i> Ativo</span>
+          <span class="filtro-rotulo">Ativo</span>
           <input id="f-ativo" type="text" list="lista-tickers" spellcheck="false" placeholder="Digite um ticker: PETR4, NVDA, BTC">
           <datalist id="lista-tickers"></datalist>
         </div>
@@ -65,7 +65,7 @@
       </div>
 
       <div class="linha-menu" id="menu-estado" hidden>
-        <span class="filtro-rotulo"><i class="passo">3</i> Panorama</span>
+        <span class="filtro-rotulo">Panorama</span>
         <div class="filtros-estado" id="f-estado" role="group" aria-label="Filtro de estado"></div>
         <div class="filtro" id="caixa-bb-tf" hidden>
           <span class="filtro-rotulo">Tempo da Bollinger</span>
@@ -88,6 +88,8 @@
             <button role="tab" data-lado="compra" class="aba-compra ativo">▲ Compra <span class="contagem" id="n-compra">0</span></button>
             <button role="tab" data-lado="venda" class="aba-venda">▼ Venda <span class="contagem" id="n-venda">0</span></button>
           </div>
+          <div class="estilos" id="f-estilo" role="tablist" aria-label="Estilo de operação"></div>
+          <p class="sub dica-estilo" id="dica-estilo"></p>
           <div class="categorias" id="categorias" role="group" aria-label="Estratégia"></div>
         </div>
         <div id="cab-estado" class="cab-estado" hidden>
@@ -102,7 +104,7 @@
         </div>
         <p class="sub cat-descricao" id="cat-descricao"></p>
         <ol class="lista-ativos" id="lista-ativos"></ol>
-        <p class="dica"><kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista · <kbd>Alt</kbd>+<kbd>C</kbd> centraliza</p>
+        <p class="dica"><kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista</p>
       </aside>
     </section>
 
