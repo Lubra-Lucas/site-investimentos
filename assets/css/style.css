@@ -1592,6 +1592,10 @@ main.triagem { padding-top: 10px; gap: 10px; }
 .tri-cartao.lado-compra { border-top: 3px solid var(--alta); }
 .tri-cartao.lado-venda { border-top: 3px solid var(--baixa); }
 .tri-cartao.arrastando { cursor: grabbing; }
+/* o gráfico do card é interativo (arrastar, zoom); o card se joga pelo resto */
+.tri-cartao .tri-grafico { cursor: crosshair; }
+.tri-tfs { margin-left: auto; }
+.tri-tfs button { padding: 2px 8px; font-size: 11.5px; }
 .tri-cartao[data-pos="1"] { transform: translateY(14px) scale(0.95); }
 .tri-cartao[data-pos="2"] { transform: translateY(28px) scale(0.9); opacity: 0.7; }
 .tri-cartao[data-pos="1"], .tri-cartao[data-pos="2"] { pointer-events: none; filter: brightness(0.85); }

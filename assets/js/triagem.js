@@ -147,7 +147,13 @@
 
   function criarCartao(i) {
     const a = porTicker.get(i.ticker);
-    const corpo = el("div", { class: "tri-grafico" });
+    const corpo = el("div", { class: "tri-grafico", title: "Arraste para navegar, roda do mouse (ou pinça) dá zoom" });
+    // tempo do gráfico do card (60m/4h só com intraday verificado)
+    const tfs = el("div", { class: "segmento tri-tfs", "aria-label": "Tempo do gráfico" },
+      [["60", "60m"], ["240", "4h"], ["D", "D"], ["W", "S"], ["M", "M"]]
+        .filter(([v]) => !INTRADAY.has(v) || a.tem_intraday)
+        .map(([v, rot]) => el("button", { type: "button", "data-tf": v, class: v === "D" ? "ativo" : null,
+          onclick: (e) => trocarTf(c, v, e.currentTarget) }, rot)));
     const ctx = el("div", { class: "contexto-decisao tri-contexto" }, blocoContexto(i));
     const n = conta(i);
     const carimbos = Object.entries(DEC).map(([d, x]) => el("div", { class: `tri-carimbo carimbo-${d}`, "data-d": d, "aria-hidden": "true" },
@@ -167,26 +173,32 @@
         el("span", { class: `chip ctx ${i.lado === "compra" ? "alta" : "baixa"}` }, `${i.lado === "compra" ? "▲" : "▼"} ${fmtData(i.data, true)}`),
         n >= 2 ? el("span", { class: "chip destaque" }, `${n} setups`) : null,
         chipsSetups(i.setups, i.lado),
-        seloHistorico(i.melhor?.bt, "D")),
+        seloHistorico(i.melhor?.bt, "D"), tfs),
       corpo, ctx, ...carimbos);
     const c = { no, corpo, ctx, i, g: null, carimbos: Object.fromEntries(carimbos.map((x) => [x.dataset.d, x])) };
     ligarGestos(c);
     return c;
   }
 
-  /** Gráfico diário do card: ~6 meses, setas dos eventos do lado, faixa no candle de hoje. Sem pan/zoom
-   *  (o arrasto é do card). Só os dois cards de cima têm gráfico. */
+  /** Gráfico do card: diário, ~6 meses, setas dos eventos do lado, faixa no candle de hoje. É um gráfico de
+   *  verdade (arrastar, zoom, cursor); o card se joga pelas partes fora dele. Só os dois de cima têm gráfico. */
   function abrirGrafico(c) {
     const a = porTicker.get(c.i.ticker);
     const g = new Grafico(c.corpo);
-    g.chart.applyOptions({ handleScroll: false, handleScale: false });
-    g.sinais = (EV.get(c.i.ticker) ?? []).filter((e) => e.tf === "D" && e.lado === c.i.lado).map(eventoParaGrafico);
+    g.sinais = (EV.get(c.i.ticker) ?? []).filter((e) => e.lado === c.i.lado).map(eventoParaGrafico);
     c.g = g;
     g.mostrar(a.arquivo, "D").then((ok) => {
       if (!ok || g.removido) return;
       g.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, g.n - BARRAS), to: g.n + 3 });
       g.destacar(c.i.data);
     }).catch(() => {});
+  }
+
+  async function trocarTf(c, tf, botao) {
+    if (!c.g || c.g.tf === tf) return;
+    botao.parentElement.querySelectorAll("button").forEach((b) => b.classList.toggle("ativo", b === botao));
+    const ok = await c.g.mostrar(porTicker.get(c.i.ticker).arquivo, tf);
+    if (ok && tf === "D") { c.g.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, c.g.n - BARRAS), to: c.g.n + 3 }); c.g.destacar(c.i.data); }
   }
 
   function soltarCartao(c) {
@@ -299,7 +311,8 @@
       if (prox) { prox.style.transition = ""; prox.style.transform = ""; }
     };
     no.addEventListener("pointerdown", (e) => {
-      if (no.dataset.pos !== "0" || e.button > 0 || e.target.closest("a, button, select, input, summary, .menu-acoes")) return;
+      // o gráfico é para analisar (arrastar, zoom): o card se joga pelo cabeçalho, chips, contexto e bordas
+      if (no.dataset.pos !== "0" || e.button > 0 || e.target.closest("a, button, select, input, summary, .menu-acoes, .tri-grafico")) return;
       g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, pts: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }],
         movendo: false, w: no.offsetWidth, h: no.offsetHeight };
       try { no.setPointerCapture(e.pointerId); } catch {}
