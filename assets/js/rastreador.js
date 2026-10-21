@@ -33,6 +33,8 @@ function janelaProxima(lista, v) {
 // ------------------------------------------------------------- regras
 
 const OP = [["acima", "acima de"], ["abaixo", "abaixo de"]];
+// pullback: o quanto o candle pode ficar da média, em ATR (iguais aos de scripts/estrategias.py)
+const PB_TOQUE_ATR = 0.25, PB_FECHAMENTO_ATR = 1, PB_VIOLACAO_ATR = 1;
 const campo = {
   media: (k, rot = "") => ({ k, tipo: "media", rot }),
   sel: (k, opcoes, rot = "") => ({ k, tipo: "sel", opcoes, rot }),
@@ -87,16 +89,28 @@ const CONDICOES = {
       const m = serieMedia(s, p.media);
       if (!m || ult(m) == null || ult(s.c) == null) return null;
       const compra = p.lado === "compra";
+      const lado = compra ? 1 : -1;
       const favor = (c, mm) => (compra ? c > mm : c < mm);
       if (!favor(ult(s.c), ult(m))) return false;
+      // o candle precisa estar NA média: a sombra encosta nela (folga de 1/4 de ATR) e o fechamento
+      // fica a até 1 ATR. Sem isso, um gap que se afasta da média passaria como "retomada".
+      const atr = ult(s.c) * (s.atr ?? 2) / 100;
+      const sombra = compra ? ult(s.l) : ult(s.h);
+      if (lado * (sombra - ult(m)) > PB_TOQUE_ATR * atr) return false;
+      if (lado * (ult(s.c) - ult(m)) > PB_FECHAMENTO_ATR * atr) return false;
       // rejeição: a sombra furou a média e o candle fechou do lado certo
-      const rejeicao = compra ? ult(s.l) <= ult(m) : ult(s.h) >= ult(m);
-      // violação e retomada: fechou do outro lado nos 1-2 candles anteriores e voltou
-      const retomada = p.modo === "retomada" && [1, 2].some((k) => ult(m, k) != null && !favor(ult(s.c, k), ult(m, k)));
+      const rejeicao = lado * (sombra - ult(m)) <= 0 && favor(ult(s.c, 1), ult(m, 1));
+      // violação e retomada: fechou do outro lado por 1 ou 2 candles (pouco além da média),
+      // vindo do lado certo antes disso. Mais tempo ou mais fundo é virada, não pullback.
+      const contra = (k) => ult(m, k) != null && !favor(ult(s.c, k), ult(m, k))
+        && lado * (ult(m, k) - ult(s.c, k)) <= PB_VIOLACAO_ATR * atr;
+      const veioDoLado = (k) => ult(m, k) != null && favor(ult(s.c, k), ult(m, k));
+      const retomada = p.modo === "retomada" && (
+        (contra(1) && veioDoLado(2)) || (contra(1) && contra(2) && veioDoLado(3)));
       if (!rejeicao && !retomada) return false;
       return p.positivo !== "sim" || (compra ? ult(s.c) > ult(s.c, 1) : ult(s.c) < ult(s.c, 1));
     },
-    texto: (p) => `Pullback de ${p.lado} na ${nomeMedia(p.media)} (${p.modo === "rejeicao" ? "rejeição" : "rejeição ou violação e retomada"}` +
+    texto: (p) => `Pullback de ${p.lado} na ${nomeMedia(p.media)} (${p.modo === "rejeicao" ? "rejeição" : "rejeição ou violação e retomada"}, candle na média` +
       `${p.positivo === "sim" ? ", + fechamento a favor" : ""})`,
     valor: (s, p) => `${fmtPct(pct(ult(s.c), ult(serieMedia(s, p.media))))} da ${nomeMedia(p.media)}`,
   },

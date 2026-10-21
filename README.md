@@ -16,7 +16,7 @@ Painel pessoal com três telas:
   para ver o balão com o motivo); <kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista. O botão ⛶ coloca o gráfico em tela cheia.
 - **Multitela** (`multitela.html`): rastreador de ativos em grade de gráficos interativos (2×2, 3×3 ou 4×3).
   - **⌕ Rastrear condição:** escolha um modelo pronto (tendência de alta/baixa, alta forte com médias alinhadas,
-    pullback de compra e de venda na MME 9/MMS 20/MMS 50, fora da Bollinger, IFR e estocástico extremos, IFR 2, longe da média,
+    pullback de compra e de venda na MME 9/MMS 20/MMS 50 (o candle precisa encostar na média e fechar perto dela, como no Radar), fora da Bollinger, IFR e estocástico extremos, IFR 2, longe da média,
     compressão, rompimento de máxima/mínima, perto da máxima de 52 semanas, cruzamentos de médias...) ou monte
     as suas regras (todas precisam ser atendidas): fechamento x média, média x média, inclinação, pullback,
     cruzamentos, distância da média (em % ou × o normal do ativo), IFR 2/9/14, estocástico, Bollinger,
@@ -162,7 +162,7 @@ da de compra, com o mesmo nome. O grupo **★ Confluência** reúne os ativos co
 
 | Estratégia | Compra | Venda |
 |---|---|---|
-| Pullback nas médias | Médias alinhadas para cima. **Rejeição**: a mínima fura a MM20, MM50 ou MM200 e o candle fecha acima. **Violação e retomada**: fecha abaixo da média por 1 ou 2 candles e volta a fechar acima | Espelho, com as médias alinhadas para baixo |
+| Pullback nas médias | Médias alinhadas para cima. **Rejeição**: a mínima fura a MM20, MM50 ou MM200 e o candle fecha acima. **Violação e retomada**: vindo de cima, fecha abaixo da média por 1 ou 2 candles (até 1 ATR abaixo) e volta a fechar acima. Nos dois casos o candle do sinal precisa estar **na média**: a mínima chega até ela (folga de ¼ de ATR) e o fechamento fica a até 1 ATR; um gap que se afasta da média não conta | Espelho, com as médias alinhadas para baixo |
 | Boca de jacaré | Bollinger comprimida abre (superior sobe, inferior desce) e o preço fecha acima da banda superior | Fecha abaixo da inferior |
 | Multitempo | **Sinal diário:** diário acima da MM20 e da MM50 + exaustão de queda no 60 min (estocástico lento < 20 e/ou IFR < 30). **Sinal semanal:** semanal em alta + a mesma exaustão no diário ou no 4 horas | Espelho (estocástico > 80 e/ou IFR > 70) |
 
