@@ -3,8 +3,8 @@
 Painel pessoal com três telas:
 
 - **Carteira** (`index.html`): patrimônio em BRL, posições, evolução da carteira e sinais nos ativos acompanhados.
-- **Radar** (`radar.html`): ~450 ativos. São todas as ações da B3 com volume médio acima de R$ 10 mi/dia,
-  ~260 dos EUA e 31 criptos. O menu superior escolhe o mercado e a visão, e a lista à direita do gráfico mostra o resultado:
+- **Radar** (`radar.html`): ~420 ativos. São todas as ações da B3 com volume médio acima de R$ 1 mi/dia,
+  as 150 maiores dos EUA, 30 criptos e 40 de macro (índices, moedas e commodities). O menu superior escolhe o mercado e a visão, e a lista à direita do gráfico mostra o resultado:
   - **Oportunidades:** **Compra** ou **Venda** se abre em dois braços, **A favor da tendência** e **Contra a
     tendência** (cartões com o que cada um busca e quantos ativos têm sinal), e o estilo escolhido se abre nas
     estratégias. O caminho escolhido fica aceso, com setas animadas; passar o mouse no outro estilo mostra o
@@ -207,7 +207,7 @@ agendamento diário só roda na branch padrão.
 
 ```bash
 pip install -r requirements.txt
-python scripts/atualizar_dados.py      # leva alguns minutos (~270 ativos)
+python scripts/atualizar_dados.py      # leva alguns minutos (~420 ativos, um processo por núcleo)
 python -m http.server 8000             # abra http://localhost:8000
 ```
 
@@ -217,8 +217,8 @@ python -m http.server 8000             # abra http://localhost:8000
 
 - **Brasil:** ações à vista da B3 com pelo menos R$ 1 milhão/dia de volume médio (arquivo oficial COTAHIST),
   sem BDRs e fundos.
-- **EUA:** ações com valor de mercado de US$ 10 bilhões ou mais (screener da Nasdaq).
-- **Cripto:** os ~70 pares em dólar mais negociados na Coinbase, sem stablecoins, com o preço do Yahoo
+- **EUA:** as 150 maiores ações por valor de mercado (screener da Nasdaq), hoje acima de ~US$ 110 bilhões.
+- **Cripto:** os 30 pares em dólar mais negociados na Coinbase, sem stablecoins, com o preço do Yahoo
   conferido com a Coinbase.
 - **Macro:** índices (Ibovespa, S&P 500, Nasdaq, Dow, DAX, Nikkei...), moedas (EUR/USD, GBP/USD, USD/BRL,
   DXY...) e commodities (ouro, prata, petróleo WTI e Brent, gás, cobre, soja, milho, café...). Não há fonte

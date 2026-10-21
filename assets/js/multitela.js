@@ -140,13 +140,33 @@ function blocoContexto(a) {
   const tf = tfContexto();
   const { favor, cuidado, info } = contextoDecisao(a, fotos, tf, viesAtual(), R.sinais.filter((s) => s.ticker === a.ticker));
   const lista = (itens, cls, simbolo, max) => (itens.length ? el("ul", { class: `contexto-lista ${cls}` },
-    itens.slice(0, max).map((t) => el("li", {}, el("span", { class: "simbolo" }, simbolo), t)),
+    itens.slice(0, max).map((t) => el("li", { title: t }, el("span", { class: "simbolo" }, simbolo), t)),
     itens.length > max ? el("li", { class: "mais", title: itens.slice(max).join("\n") }, `+${itens.length - max} outros`) : null) : null);
+  // resumo de uma linha para células baixas (grade densa); abre a lista completa por cima do gráfico
+  const resumo = favor.length + cuidado.length + info.length ? el("details", { class: "contexto-resumo", ontoggle: abrirResumo },
+    el("summary", { title: "Ver o contexto completo" },
+      favor.length ? el("span", { class: "favor", title: `${favor.length} a favor` }, `✓ ${favor.length}`) : null,
+      cuidado.length ? el("span", { class: "cuidado", title: `${cuidado.length} de cuidado` }, `⚠ ${cuidado.length}`) : null,
+      el("span", { class: "ver" }, "Contexto")),
+    el("div", { class: "contexto-flutuante" }, lista(favor, "favor", "✓", 99), lista(cuidado, "cuidado", "⚠", 99), lista(info, "info", "·", 99))) : null;
   // enxuto: até 3 a favor e 3 de cuidado; o resto fica em "Mais"
-  return el("div", { class: "contexto-decisao" },
+  return el("div", { class: "contexto-decisao" }, resumo,
     lista(favor, "favor", "✓", 3), lista(cuidado, "cuidado", "⚠", 3),
     info.length ? el("details", { class: "contexto-mais" }, el("summary", {}, "Mais informações"), lista(info, "info", "·", 8)) : null);
 }
+
+/** A lista do resumo abre para baixo, por cima das células vizinhas; perto do fim da janela, para cima. */
+function abrirResumo(e) {
+  const d = e.currentTarget;
+  if (!d.open) return;
+  document.querySelectorAll(".contexto-resumo[open]").forEach((x) => x !== d && (x.open = false));
+  const r = d.getBoundingClientRect();
+  d.classList.toggle("para-cima", r.bottom + 320 > innerHeight && r.top > innerHeight / 2);
+}
+// clicar fora fecha o resumo aberto
+document.addEventListener("click", (e) => {
+  document.querySelectorAll(".contexto-resumo[open]").forEach((d) => d.contains(e.target) || (d.open = false));
+});
 
 /** O que a condição desenha no gráfico deste ativo (null = usar os indicadores do usuário). */
 function sobreposicao(a, k = 0) {
@@ -226,6 +246,33 @@ const observador = new IntersectionObserver((entradas) => {
     e.target.abrir();
   }
 }, { rootMargin: "200px" });
+
+// ------------------------------------------------------------- encaixe na janela
+
+const LINHAS = { 1: 1, 2: 2, 3: 3, 4: 3 }, COLUNAS = { 1: 1, 2: 2, 3: 3, 4: 4 };
+const telaLarga = matchMedia("(min-width: 1101px)");
+/** Em telas largas a grade usa só a altura que sobra abaixo do menu: a página inteira cabe sem rolar.
+ *  Pelo tamanho das células escolhe a disposição: contexto ao lado do gráfico (célula larga) ou embaixo,
+ *  resumido numa linha quando falta altura. Em telas estreitas a grade rola como antes. */
+function encaixarGrade() {
+  const grade = document.getElementById("grade");
+  const ativo = telaLarga.matches && !!grade.querySelector(".celula");
+  grade.classList.toggle("encaixar", ativo);
+  if (!ativo) { grade.removeAttribute("data-layout"); grade.removeAttribute("data-compacto"); return; }
+  const g = estado.grade, linhas = LINHAS[g] ?? 3, colunas = COLUNAS[g] ?? 3, vao = 10;
+  const topo = grade.getBoundingClientRect().top + scrollY;
+  const altura = Math.floor(Math.max(innerHeight - topo - 10, linhas * (g === "1" ? 380 : 140)));
+  grade.style.setProperty("--altura-grade", `${altura}px`);
+  grade.style.setProperty("--linhas", linhas);
+  const larg = (grade.clientWidth - vao * (colunas - 1)) / colunas, alt = (altura - vao * (linhas - 1)) / linhas;
+  const lado = larg >= 480 && larg / alt >= 1.5;
+  grade.dataset.layout = lado ? "lado" : "pilha";
+  grade.dataset.compacto = !lado && alt < 340 ? "sim" : "nao";
+}
+addEventListener("resize", encaixarGrade);
+telaLarga.addEventListener("change", encaixarGrade);
+// o menu muda de altura (editor de regras, aviso de formação, quebra de linha): a grade acompanha
+new ResizeObserver(() => encaixarGrade()).observe(document.querySelector(".menu-multi"));
 
 // ------------------------------------------------------------- menu
 
@@ -409,6 +456,7 @@ function render() {
       ? "Nenhuma ação com 2+ estratégias no período. Desmarque \"Só com confluência\" ou aumente o período."
       : "Nenhum ativo nesta lista hoje.";
   grade.replaceChildren(...(pagina.length ? pagina.map(celula) : [el("p", { class: "vazio painel" }, vazio)]));
+  encaixarGrade();
   grade.querySelectorAll(".mini-grafico").forEach((c) => observador.observe(c));
 
   totalPaginas = paginas;
@@ -461,7 +509,8 @@ async function iniciar() {
   try { carteira = (await carregarResumo()).carteira.posicoes.map((p) => p.ticker); } catch {}
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
   montarTopo("multitela", R);
-  document.getElementById("f-descricao").after(avisoFormacao(R));
+  // aviso de candle em formação na linha das abas, para o menu não ganhar mais uma linha
+  document.getElementById("f-fonte").after(avisoFormacao(R));
   document.getElementById("f-indicadores").replaceChildren(atalhosIndicadores({ comSinais: true, comIFR: false }));
 
   if (F) ligarRastreador();

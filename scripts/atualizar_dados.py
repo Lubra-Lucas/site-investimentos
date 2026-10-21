@@ -12,8 +12,11 @@ Uso:  python scripts/atualizar_dados.py
 from __future__ import annotations
 
 import json
+import os
+from concurrent.futures import ProcessPoolExecutor
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
+from time import perf_counter
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -255,6 +258,73 @@ def maiores_movimentos(publicados: list[dict]) -> list[dict]:
 
 # ----------------------------------------------------------------------- main
 
+_INICIO = perf_counter()
+
+
+def etapa(msg: str) -> None:
+    """Mensagem de progresso com o tempo desde o início (flush: o log do Actions mostra na hora)."""
+    seg = int(perf_counter() - _INICIO)
+    print(f"[{seg // 60:02d}:{seg % 60:02d}] {msg}", flush=True)
+
+
+def processar_ativo(tarefa: tuple) -> dict:
+    """Valida, calcula estratégias e indicadores e grava os JSONs de um ativo. Roda em paralelo
+    (um processo por núcleo), então só lê os argumentos e devolve o resultado para o main juntar."""
+    tk, meta, bruto, ref, intra, form, hoje = tarefa
+    rotulo = meta.get("simbolo") or tk.removesuffix(".SA")
+    base = {"ticker": tk, "rotulo": rotulo, "nome": meta["nome"], "mercado": meta["mercado"]}
+    if bruto is None:
+        return {"tk": tk, "retido": {**base, "motivo": "sem dados no Yahoo"}}
+    # pregão de hoje ainda aberto: o candle sai do histórico (sem sinais) e volta só no gráfico
+    bruto, parcial = separar_parcial(bruto, form, meta["mercado"])
+    oficiais = (ref or {}).get("candles")
+    if form and oficiais:
+        oficiais = {d: c for d, c in oficiais.items() if pd.Timestamp(d) < pd.Timestamp(form[0])}
+    # candle quebrado/ausente no Yahoo é trocado pelo oficial da B3 ou da Nasdaq, quando existir
+    bruto, completados = validacao.completar_com_oficial(bruto, oficiais)
+    df, laudo = validacao.avaliar(bruto, meta["mercado"], ref, hoje)
+    if not laudo["publicar"]:
+        return {"tk": tk, "df": df, "retido": {**base, "motivo": laudo["motivo"]}}
+
+    grafico = df if parcial is None else pd.concat([df, parcial.to_frame().T.astype(float)])
+    # o 60 min de hoje aparece no gráfico, mas a estratégia multitempo só vê pregões fechados
+    h, dias_60_descartados = (validacao.limpar_intraday(intra, grafico) if intra is not None else (None, 0))
+    h_fechado = h
+    if h is not None and form:
+        h_fechado = h[h.index.normalize() < pd.Timestamp(form[0])]
+        h_fechado = h_fechado if len(h_fechado) >= 60 else None
+    estado, sinais_tk, historico = estrategias.analisar(df, meta["mercado"], h_fechado)
+    foto = rastreador.fotos(df, meta["mercado"], casas_preco(df["Close"], meta["moeda"]))
+    if parcial is not None:
+        estado["parcial"] = {"data": form[0].isoformat(), "ultimo": _num(parcial["Close"], 4),
+                             "var_pct": _num((parcial["Close"] / df["Close"].iloc[-1] - 1) * 100)}
+    arquivo = tk.replace("=", "_")
+    (SAIDA_ATIVOS / f"{arquivo}.json").write_text(json.dumps(
+        {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(grafico, meta["moeda"]),
+         "parcial": estado.get("parcial", {}).get("data")},
+        separators=(",", ":")), encoding="utf-8")
+    if h is not None:
+        (SAIDA_INTRADAY / f"{arquivo}.json").write_text(json.dumps(
+            {"ticker": tk, "h": intraday_compacto(h, meta["moeda"])}, separators=(",", ":")), encoding="utf-8")
+
+    conf = laudo.get("conferencia", {})
+    publicado = {
+        **base, "moeda": meta["moeda"], "arquivo": arquivo, "carteira": meta["carteira"],
+        "verificacao": {"status": conf.get("status", "interno"), "fonte": conf.get("fonte"),
+                        "ate": conf.get("ate"), "dif_max_pct": conf.get("dif_max_pct"),
+                        "comparados": conf.get("comparados", 0), "candles_descartados": laudo["n_correcoes"],
+                        "dias_60min_descartados": dias_60_descartados,
+                        "completados_oficial": completados,
+                        # candle mais recente que veio incompleto da fonte e ficou de fora
+                        "pendente": (bruto.index[-1].strftime("%Y-%m-%d")
+                                     if bruto.index[-1] > df.index[-1] else None)},
+        "tem_intraday": h is not None,
+        **estado,
+    }
+    return {"tk": tk, "df": df, "publicado": publicado, "sinais": [{"ticker": tk, **x} for x in sinais_tk],
+            "historico": historico, "foto": foto, "parcial": parcial is not None}
+
+
 def montar_lista(cfg: dict) -> dict[str, dict]:
     ativos: dict[str, dict] = {}
     universo = json.loads(UNIVERSO.read_text(encoding="utf-8"))
@@ -278,11 +348,11 @@ def main() -> None:
             antigo.unlink()  # ativo retido hoje não pode ficar com gráfico de ontem
     hoje = pd.Timestamp.today().normalize()
 
-    print(f"Baixando {len(ativos)} ativos do Yahoo...")
+    etapa(f"Baixando {len(ativos)} ativos do Yahoo...")
     brutos = fontes.baixar_yahoo(list(dict.fromkeys([*ativos, TICKER_CAMBIO])))
-    print("Buscando fechamentos de referência...")
+    etapa("Buscando fechamentos de referência...")
     refs = fontes.referencias(list(ativos.values()))
-    print("Baixando candles de 60 min...")
+    etapa("Baixando candles de 60 min...")
     intraday = {}
     for mercado, fuso in (("BR", "America/Sao_Paulo"), ("US", "America/New_York"), ("CRIPTO", "UTC"),
                           ("MACRO", "America/New_York")):
@@ -298,69 +368,33 @@ def main() -> None:
     publicados, retidos, sinais = [], [], []
     fotos: dict[str, dict] = {}  # indicadores para o rastreador da Multitela
     precos: dict[str, pd.DataFrame] = {}
-    for tk, meta in ativos.items():
-        rotulo = meta.get("simbolo") or tk.removesuffix(".SA")
-        base = {"ticker": tk, "rotulo": rotulo, "nome": meta["nome"], "mercado": meta["mercado"]}
-        if tk not in brutos:
-            retidos.append({**base, "motivo": "sem dados no Yahoo"})
+    tarefas = [(tk, meta, brutos.get(tk), refs.get(tk), intraday.get(tk), formacao[meta["mercado"]], hoje)
+               for tk, meta in ativos.items()]
+    nucleos = os.cpu_count() or 1
+    etapa(f"Calculando estratégias e indicadores ({nucleos} processos)...")
+    with ProcessPoolExecutor(nucleos) as ex:
+        resultados = list(ex.map(processar_ativo, tarefas, chunksize=8))
+    for r in resultados:  # na ordem do universo, como antes
+        tk, meta = r["tk"], ativos[r["tk"]]
+        if "df" in r:
+            precos[tk] = r["df"]
+        if "retido" in r:
+            retidos.append(r["retido"])
+            if "df" in r:
+                print(f"[retido] {tk:10s} {r['retido']['motivo']}")
             continue
-        form = formacao[meta["mercado"]]
-        # pregão de hoje ainda aberto: o candle sai do histórico (sem sinais) e volta só no gráfico
-        bruto, parcial = separar_parcial(brutos[tk], form, meta["mercado"])
-        oficiais = (refs.get(tk) or {}).get("candles")
-        if form and oficiais:
-            oficiais = {d: c for d, c in oficiais.items() if pd.Timestamp(d) < pd.Timestamp(form[0])}
-        # candle quebrado/ausente no Yahoo é trocado pelo oficial da B3 ou da Nasdaq, quando existir
-        bruto, completados = validacao.completar_com_oficial(bruto, oficiais)
-        df, laudo = validacao.avaliar(bruto, meta["mercado"], refs.get(tk), hoje)
-        precos[tk] = df
-        if not laudo["publicar"]:
-            retidos.append({**base, "motivo": laudo["motivo"]})
-            print(f"[retido] {tk:10s} {laudo['motivo']}")
-            continue
-
-        grafico = df if parcial is None else pd.concat([df, parcial.to_frame().T.astype(float)])
-        # o 60 min de hoje aparece no gráfico, mas a estratégia multitempo só vê pregões fechados
-        h, dias_60_descartados = (validacao.limpar_intraday(intraday[tk], grafico) if tk in intraday else (None, 0))
-        h_fechado = h
-        if h is not None and form:
-            h_fechado = h[h.index.normalize() < pd.Timestamp(form[0])]
-            h_fechado = h_fechado if len(h_fechado) >= 60 else None
-        estado, sinais_tk, historico = estrategias.analisar(df, meta["mercado"], h_fechado)
-        fotos[tk] = rastreador.fotos(df, meta["mercado"], casas_preco(df["Close"], meta["moeda"]))
-        if parcial is not None:
-            estado["parcial"] = {"data": form[0].isoformat(), "ultimo": _num(parcial["Close"], 4),
-                                 "var_pct": _num((parcial["Close"] / df["Close"].iloc[-1] - 1) * 100)}
+        publicados.append(r["publicado"])
+        sinais += r["sinais"]
+        fotos[tk] = r["foto"]
+        if r["historico"]:
+            teste.adicionar(tk, meta["mercado"], r["historico"])
+        if r["parcial"]:
+            form = formacao[meta["mercado"]]
             em_formacao.setdefault(meta["mercado"], {
                 "data": form[0].isoformat(), "fecha_em": form[1].astimezone(timezone.utc).isoformat(timespec="minutes"),
                 "sinais_em": proxima_publicacao(form[1]).isoformat(timespec="minutes")})
-        if historico:
-            teste.adicionar(tk, meta["mercado"], historico)
-        arquivo = tk.replace("=", "_")
-        (SAIDA_ATIVOS / f"{arquivo}.json").write_text(json.dumps(
-            {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(grafico, meta["moeda"]),
-             "parcial": estado.get("parcial", {}).get("data")},
-            separators=(",", ":")), encoding="utf-8")
-        if h is not None:
-            (SAIDA_INTRADAY / f"{arquivo}.json").write_text(json.dumps(
-                {"ticker": tk, "h": intraday_compacto(h, meta["moeda"])}, separators=(",", ":")), encoding="utf-8")
 
-        conf = laudo.get("conferencia", {})
-        publicados.append({
-            **base, "moeda": meta["moeda"], "arquivo": arquivo, "carteira": meta["carteira"],
-            "verificacao": {"status": conf.get("status", "interno"), "fonte": conf.get("fonte"),
-                            "ate": conf.get("ate"), "dif_max_pct": conf.get("dif_max_pct"),
-                            "comparados": conf.get("comparados", 0), "candles_descartados": laudo["n_correcoes"],
-                            "dias_60min_descartados": dias_60_descartados,
-                            "completados_oficial": completados,
-                            # candle mais recente que veio incompleto da fonte e ficou de fora
-                            "pendente": (bruto.index[-1].strftime("%Y-%m-%d")
-                                         if bruto.index[-1] > df.index[-1] else None)},
-            "tem_intraday": h is not None,
-            **estado,
-        })
-        sinais += [{"ticker": tk, **x} for x in sinais_tk]
-
+    etapa("Backtest e arquivos finais...")
     sinais += maiores_movimentos(publicados)
     # histórico de cada estratégia neste ativo: [casos, acerto %, retorno médio %, vantagem %]
     for x in sinais:
@@ -405,7 +439,7 @@ def main() -> None:
         "carteira": consolidar_carteira(cfg, precos, cambio, {r["ticker"] for r in retidos}),
     }
     (SAIDA / "resumo.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"Publicados {len(publicados)} ativos ({status}), {len(retidos)} retidos, {len(sinais)} sinais.")
+    etapa(f"Publicados {len(publicados)} ativos ({status}), {len(retidos)} retidos, {len(sinais)} sinais.")
 
 
 if __name__ == "__main__":

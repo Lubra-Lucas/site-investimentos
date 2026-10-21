@@ -2,13 +2,14 @@
 
 - Brasil: ações à vista da B3 com volume financeiro médio de pelo menos R$ 1 milhão/dia nos
   últimos ~20 pregões (arquivo oficial COTAHIST), sem BDRs, fundos ou direitos.
-- EUA: ações listadas (screener da Nasdaq) com valor de mercado de US$ 10 bilhões ou mais.
-- Cripto: os pares em dólar mais negociados na Coinbase (sem stablecoins), cujo histórico no
+- EUA: as 150 maiores ações listadas por valor de mercado (screener da Nasdaq).
+- Cripto: os 30 pares em dólar mais negociados na Coinbase (sem stablecoins), cujo histórico no
   Yahoo bate com o preço da Coinbase (evita ticker do Yahoo que é de outro token).
 - Macro: principais índices, moedas e commodities (lista fixa abaixo).
 
 Todos precisam ter pelo menos ~1 ano de candles no Yahoo. Nomes já existentes no arquivo
-são mantidos, e os ativos que já estavam na lista continuam (para nada sumir de quem acompanha). Roda à mão de vez em quando (não faz parte da atualização diária):
+são mantidos. No Brasil e no Macro, os ativos que já estavam na lista continuam; EUA e cripto
+ficam só nos maiores, para a atualização diária não pesar (os ativos da carteira entram sempre). Roda à mão de vez em quando (não faz parte da atualização diária):
 
     python scripts/montar_universo.py
 """
@@ -32,7 +33,8 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chr
 
 VOLUME_MINIMO_BR = 1e6          # R$/dia
 VALOR_MERCADO_MINIMO_US = 10e9  # US$
-CRIPTOS = 70
+MAIORES_US = 150                # só as N maiores por valor de mercado
+CRIPTOS = 30
 ESTAVEIS = {"USDT", "USDC", "DAI", "PYUSD", "EURC", "GUSD", "USDS", "FDUSD", "TUSD", "USD1", "PAX", "WBTC", "CBETH",
             "WETH", "LSETH", "MSOL", "STETH", "RLUSD", "USDE", "GYEN", "XSGD", "AUDD"}
 
@@ -133,7 +135,7 @@ def eua(nomes_antigos: dict[str, str]) -> list[dict]:
     limpar = lambda n: (n.replace(" Common Stock", "").replace(" Class A", "").replace(" Ordinary Shares", "")
                         .replace(" American Depositary Shares", "").replace(" Inc.", "").replace(", Inc.", "")
                         .replace(" Corporation", "").replace(" Holdings", "").split(" (")[0].strip(" ,"))
-    return [{"ticker": t, "nome": nomes_antigos.get(t) or limpar(n)} for t, n, _ in grandes if t in ok]
+    return [{"ticker": t, "nome": nomes_antigos.get(t) or limpar(n)} for t, n, _ in grandes if t in ok][:MAIORES_US]
 
 
 def cripto(antigos: dict[str, dict]) -> list[dict]:
@@ -181,7 +183,8 @@ def main() -> None:
     nomes = {a["ticker"]: a["nome"] for m in ("BR", "US") for a in atual.get(m, [])}
     criptos = {a.get("simbolo") or a["ticker"].removesuffix("-USD"): a for a in atual.get("CRIPTO", [])}
     novo = {"BR": brasil(nomes), "US": eua(nomes), "CRIPTO": cripto(criptos), "MACRO": macro()}
-    for m, lista in novo.items():
+    for m in ("BR", "MACRO"):
+        lista = novo[m]
         presentes = {a["ticker"] for a in lista}
         lista += [a for a in atual.get(m, []) if a["ticker"] not in presentes]
     ARQUIVO.write_text(json.dumps(novo, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")

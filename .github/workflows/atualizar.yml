@@ -42,6 +42,8 @@ jobs:
         env:
           # Opcional: token gratuito de https://brapi.dev para conferir os fechamentos da B3
           BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          # mostra cada etapa (com o tempo) no log na hora, em vez de tudo no fim
+          PYTHONUNBUFFERED: "1"
         run: python scripts/atualizar_dados.py
 
       - name: Montar site
