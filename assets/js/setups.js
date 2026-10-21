@@ -284,7 +284,7 @@ function itemLista(i) {
   const a = porTicker.get(i.ticker);
   return el("li", { class: `item ${i.setups.size >= 2 ? "confluencia" : ""}`, "data-tk": i.ticker, onclick: () => selecionar(i.ticker) },
     el("div", { class: "item-topo" },
-      el("div", { class: "item-nome" }, el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
+      el("div", { class: "item-nome" }, el("b", { class: "mono" }, semSufixo(a.ticker)), selosBandeja(a.ticker), " ", el("span", { class: "cartao-nome" }, a.nome)),
       precoComFormacao(a, "cartao-preco")),
     linhaSetups(i, false));
 }
@@ -394,7 +394,7 @@ function celula(i) {
       el("div", { class: "celula-nome", title: "Abrir o gráfico em tela cheia",
         onclick: () => (document.fullscreenElement ? document.exitFullscreen() : cel.requestFullscreen?.()) },
       el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
-      el("div", { class: "celula-acoes" }, ctx.dica, precoComFormacao(a, "celula-preco"), botaoTelaCheia(() => cel), linkAtivo(a.ticker))),
+      el("div", { class: "celula-acoes" }, selosBandeja(a.ticker), ctx.dica, precoComFormacao(a, "celula-preco"), botaoTelaCheia(() => cel), linkAtivo(a.ticker))),
     linhaSetups(i, true),
     corpo,
     sob ? el("div", { class: "legenda-extras" }, legendaSobreposicao(sob).map((x) =>

@@ -670,11 +670,13 @@ const AJUDA = {
     "O que você tem e acompanha: posições, simulações e a sua lista de ativos, com os setups que dispararam em cada um.",
     "Clique em um ativo para abrir a página dele (gráfico, setups recentes, contexto e histórico).",
     "Na Minha lista, digite um ticker e clique em Adicionar; o × tira da lista. Ela fica salva neste navegador.",
+    "Plano de amanhã: o que você vai operar no próximo pregão (entrada, stop, alvo, quantidade pelo risco); Minhas anotações: o que viu em cada ativo e o que o preço fez depois. Exportar/Importar leva os dois.",
   ]],
   ativo: ["Ativo", [
     "Tudo de um ativo: gráfico, setups recentes, contexto, suas simulações e como cada setup se saiu nele.",
     "Clique num setup recente para ver no gráfico o que o preço fez depois.",
     "Use a busca no topo ou as setas ← → para trocar de ativo.",
+    "+ Plano de amanhã põe o ativo no plano do próximo pregão com níveis sugeridos; ✎ Anotar guarda o que você viu, preso à data e ao preço.",
   ]],
   setups: ["Setups", [
     "Escolha Compra ou Venda, depois \"A favor\" ou \"Contra a tendência\" e um setup (ou todos). Os chips mostram quantos ativos dispararam cada um no período.",
