@@ -1554,3 +1554,172 @@ html.comparar-aberto { overflow: hidden; }
   .arrasto-alvos.visivel .alvo-plano.perto { transform: translate(0, -50%); }
   .arrasto-alvos.visivel .alvo-notas.perto { transform: none; }
 }
+
+/* ======================================================================================
+ * Triagem (triagem.html / triagem.js): o "Tinder" de ativos. Barra (lado, visão, filtros),
+ * pilha de cards com carimbos (GOSTEI / DESCARTAR / SUPER), botões, tela de fim e o
+ * resultado em três colunas + dias anteriores. Tema escuro (variáveis do :root).
+ * ====================================================================================== */
+:root { --tri-super: #f5b942; --tri-gostei: var(--alta); --tri-desc: #8a94a6; }
+main.triagem { padding-top: 10px; gap: 10px; }
+
+/* barra */
+.tri-barra { display: grid; gap: 8px; }
+.tri-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.tri-lados { display: inline-flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
+.tri-lados button {
+  background: var(--bg-painel); color: var(--texto-fraco); border: 0; font: 600 13px Inter, sans-serif;
+  padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent;
+}
+.tri-lados button + button { border-left: 1px solid var(--borda); }
+.tri-lados .aba-compra.ativo { color: var(--alta); border-bottom-color: var(--alta); background: rgba(34, 176, 125, 0.1); }
+.tri-lados .aba-venda.ativo { color: var(--baixa); border-bottom-color: var(--baixa); background: rgba(229, 72, 77, 0.1); }
+.tri-progresso { margin: 0 0 0 auto; font-weight: 600; color: var(--texto-fraco); }
+.tri-filtros { font-size: 12.5px; }
+.tri-sessoes { margin: 0; }
+.tri-botao-filtros { display: none; }
+
+/* pilha de cards */
+.tri-baralho { display: grid; justify-items: center; gap: 12px; }
+.tri-pilha { position: relative; width: min(900px, 70vw); height: 70vh; margin-bottom: 22px; }
+.tri-cartao {
+  position: absolute; inset: 0; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 12px;
+  background: var(--bg-painel); border: 1px solid var(--borda-forte); border-radius: 16px; overflow: hidden;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.85); touch-action: none; user-select: none; -webkit-user-select: none;
+  cursor: grab; transform-origin: 50% 90%; transition: transform 0.3s var(--suave), opacity 0.3s;
+}
+.tri-cartao.lado-compra { border-top: 3px solid var(--alta); }
+.tri-cartao.lado-venda { border-top: 3px solid var(--baixa); }
+.tri-cartao.arrastando { cursor: grabbing; }
+.tri-cartao[data-pos="1"] { transform: translateY(14px) scale(0.95); }
+.tri-cartao[data-pos="2"] { transform: translateY(28px) scale(0.9); opacity: 0.7; }
+.tri-cartao[data-pos="1"], .tri-cartao[data-pos="2"] { pointer-events: none; filter: brightness(0.85); }
+.tri-cartao[data-pos="saindo"] { pointer-events: none; }
+.tri-cab { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; }
+.tri-id { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; margin-right: auto; }
+.tri-ticker { font-size: 22px; letter-spacing: -0.01em; }
+.tri-nome { color: var(--texto-fraco); font-size: 13px; }
+.tri-preco { font-size: 15px; white-space: nowrap; }
+.tri-acoes { display: flex; align-items: center; gap: 4px; }
+.tri-link { color: var(--acento); text-decoration: none; font-size: 12px; padding: 2px 4px; }
+.tri-link:hover { text-decoration: underline; }
+.tri-chips { margin-top: 0; }
+.tri-grafico { position: relative; flex: 1 1 auto; min-height: 180px; border-radius: 8px; overflow: hidden; }
+.tri-contexto { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 18px; font-size: 12px; flex: none; align-items: start; }
+.tri-contexto .contexto-lista { align-content: start; }
+.tri-contexto li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* carimbos */
+.tri-carimbo {
+  position: absolute; top: 70px; padding: 4px 14px; border: 4px solid currentColor; border-radius: 10px;
+  font: 800 34px/1.1 Inter, sans-serif; letter-spacing: 0.06em; opacity: 0; pointer-events: none; z-index: 5;
+  background: rgba(12, 16, 22, 0.55);
+}
+.carimbo-gostei { left: 28px; color: var(--tri-gostei); transform: rotate(-14deg); }
+.carimbo-descartado { right: 28px; color: var(--baixa); transform: rotate(14deg); }
+.carimbo-super { left: 50%; top: auto; bottom: 34%; color: var(--tri-super); transform: translateX(-50%) rotate(-6deg); }
+
+/* botões */
+.tri-botoes { display: flex; gap: 18px; align-items: center; justify-content: center; }
+.tri-b {
+  display: grid; place-items: center; width: 62px; height: 62px; border-radius: 50%; cursor: pointer;
+  background: var(--bg-painel); border: 2px solid var(--borda-forte); font: 700 24px/1 Inter, sans-serif; position: relative;
+  transition: transform 0.15s var(--mola), background 0.15s;
+}
+.tri-b span { position: absolute; top: 100%; margin-top: 4px; font: 500 11px Inter, sans-serif; color: var(--texto-fraco); white-space: nowrap; }
+.tri-b:hover:not(:disabled) { transform: scale(1.08); }
+.tri-b:active:not(:disabled) { transform: scale(0.94); }
+.tri-b:disabled { opacity: 0.35; cursor: not-allowed; }
+.tri-b-descartar { color: var(--baixa); border-color: rgba(229, 72, 77, 0.5); }
+.tri-b-super { color: var(--tri-super); border-color: rgba(245, 185, 66, 0.5); width: 52px; height: 52px; font-size: 20px; }
+.tri-b-gostei { color: var(--tri-gostei); border-color: rgba(34, 176, 125, 0.5); }
+.tri-b-desfazer { color: var(--texto-fraco); width: 44px; height: 44px; font-size: 18px; margin-left: 8px; }
+.tri-dica { border: 0; padding: 14px 0 0; text-align: center; }
+
+/* fim do baralho */
+.tri-fim { width: min(720px, 100%); }
+.tri-fim-caixa { text-align: center; display: grid; gap: 10px; justify-items: center; padding: 28px 20px; }
+.tri-fim-icone {
+  width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font: 700 26px Inter, sans-serif;
+  color: var(--alta); background: rgba(34, 176, 125, 0.12); border: 1px solid rgba(34, 176, 125, 0.4);
+}
+.tri-fim-caixa h2 { font-size: 18px; }
+.tri-fim-resumo { margin: 0; font-weight: 600; }
+.r-super { color: var(--tri-super); } .r-gostei { color: var(--tri-gostei); } .r-desc { color: var(--tri-desc); }
+.tri-fim-botoes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.botao.venda { color: var(--baixa); } .botao.compra { color: var(--alta); }
+
+/* resultado */
+.tri-resultado { display: grid; gap: 12px; }
+.tri-res-cab { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.tri-res-lote { display: flex; gap: 8px; flex-wrap: wrap; }
+.tri-colunas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.tri-coluna { background: var(--bg-painel); border: 1px solid var(--borda); border-radius: var(--raio); padding: 12px; min-width: 0; }
+.tri-coluna h3 { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.col-super { border-top: 3px solid var(--tri-super); } .col-super .tri-col-icone { color: var(--tri-super); }
+.col-gostei { border-top: 3px solid var(--tri-gostei); } .col-gostei .tri-col-icone { color: var(--tri-gostei); }
+.col-descartado { border-top: 3px solid var(--tri-desc); } .col-descartado .tri-col-icone { color: var(--tri-desc); }
+.tri-col-vazia { margin: 0; }
+.tri-res-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tri-res-item { background: var(--bg-elev); border: 1px solid var(--borda); border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; min-width: 0; }
+.tri-res-item .chips { margin-top: 0; }
+.tri-res-topo { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.tri-res-ticker { color: var(--texto); font-weight: 700; text-decoration: none; }
+.tri-res-ticker:hover { color: var(--acento); }
+.tri-res-preco { margin-left: auto; font-size: 12px; white-space: nowrap; }
+.tri-res-grafico { height: 150px; position: relative; border-radius: 6px; overflow: hidden; }
+.tri-desde { font-size: 12px; color: var(--texto-fraco); }
+.tri-desde b.alta { color: var(--alta); } .tri-desde b.baixa { color: var(--baixa); }
+.tri-res-acoes { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.tri-sep { flex: 1; }
+.tri-mini {
+  background: var(--bg-painel); border: 1px solid var(--borda-forte); border-radius: 6px; color: var(--texto);
+  font: 600 12px Inter, sans-serif; padding: 3px 8px; cursor: pointer; min-width: 30px;
+}
+.tri-mini:hover { border-color: var(--acento); color: var(--acento); }
+.tri-mini.mover-super { color: var(--tri-super); } .tri-mini.mover-gostei { color: var(--tri-gostei); } .tri-mini.mover-descartado { color: var(--tri-desc); }
+.dec-descartado .tri-res-topo { opacity: 0.8; }
+.tri-anteriores summary { cursor: pointer; display: flex; align-items: baseline; gap: 10px; }
+.tri-anteriores summary h2 { display: inline; }
+.tri-dia { border-top: 1px solid var(--borda); padding-top: 8px; margin-top: 10px; }
+.tri-dia h4 { margin: 0 0 6px; font-size: 13px; }
+.tri-dia-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.tri-dia-lista li { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; font-size: 12.5px; padding: 4px 6px; border-radius: 6px; }
+.tri-dia-lista li:hover { background: var(--bg-elev); }
+.tri-dia-lista a { color: var(--texto); font-weight: 600; text-decoration: none; }
+.tri-dia-dec.dec-super { color: var(--tri-super); } .tri-dia-dec.dec-gostei { color: var(--tri-gostei); }
+.tri-dia-setups { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
+.tri-dia-acoes { margin-left: auto; display: flex; gap: 4px; }
+
+@media (max-width: 1100px) {
+  .tri-pilha { width: min(900px, 100%); }
+  .tri-colunas { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  main.triagem { padding: 6px 10px 20px; gap: 6px; }
+  .tri-botao-filtros { display: inline-block; }
+  .tri-barra .tri-filtros { display: none; }
+  .tri-barra.filtros-abertos .tri-filtros { display: flex; }
+  .tri-lados button { padding: 6px 10px; font-size: 12.5px; }
+  .tri-linha { gap: 6px 8px; }
+  #f-visao button { padding: 6px 10px; }
+  .tri-progresso { font-size: 12px; }
+  .tri-pilha { width: 100%; }
+  .tri-cartao { padding: 10px 10px 8px; border-radius: 14px; gap: 6px; }
+  .tri-ticker { font-size: 19px; }
+  .tri-nome { font-size: 12px; }
+  .tri-preco { font-size: 13px; }
+  .tri-contexto { grid-template-columns: 1fr; font-size: 11.5px; }
+  .tri-contexto li:nth-child(n + 3) { display: none; }
+  .tri-carimbo { font-size: 26px; top: 90px; }
+  .tri-botoes { gap: 14px; }
+  .tri-b { width: 56px; height: 56px; }
+  .tri-b span { display: none; }
+  .tri-dica { display: none; }
+  .tri-baralho { gap: 10px; }
+  .tri-res-lote .botao { white-space: normal; }
+  .tri-dia-setups { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tri-cartao, .tri-b { transition: none; }
+}

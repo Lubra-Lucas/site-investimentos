@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Triagem</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body class="pagina-triagem">
+  <header class="topo" id="topo"></header>
+
+  <main class="larga triagem">
+    <!-- barra: lado, visão (baralho / hoje) e filtros -->
+    <section class="tri-barra" id="tri-barra">
+      <div class="tri-linha">
+        <div class="tri-lados" role="tablist" aria-label="Compra ou venda">
+          <button role="tab" data-lado="compra" class="aba-compra">▲ Compra <span class="contagem" id="n-compra">0</span></button>
+          <button role="tab" data-lado="venda" class="aba-venda">▼ Venda <span class="contagem" id="n-venda">0</span></button>
+        </div>
+        <div class="segmento segmento-forte" id="f-visao" aria-label="Visão">
+          <button data-v="baralho" title="Um card por vez: arraste para decidir">🂠 Baralho</button>
+          <button data-v="hoje" title="O que você decidiu hoje: Super, Gostei e Descartados">Hoje <span class="contagem" id="n-hoje">0</span></button>
+        </div>
+        <button class="botao tri-botao-filtros" id="tri-filtros-abrir" aria-expanded="false" aria-controls="tri-filtros">⚙ Filtros</button>
+        <p class="tri-progresso mono" id="tri-progresso" aria-live="polite"></p>
+      </div>
+      <div class="tri-linha tri-filtros" id="tri-filtros">
+        <div class="segmento" id="f-mercado" aria-label="Mercado">
+          <button data-v="">Todos</button>
+          <button data-v="BR">Brasil</button>
+          <button data-v="US">EUA</button>
+          <button data-v="CRIPTO">Cripto</button>
+          <button data-v="MACRO" title="Índices, moedas e commodities">Macro</button>
+        </div>
+        <label class="opcao" title="Ativos com 2 ou mais setups deste lado no mesmo pregão">
+          <input type="checkbox" id="f-so2"> <span id="rot-so2">Só com 2+ setups</span>
+        </label>
+        <label class="opcao" title="Tendência de alta/baixa, alta forte e afins valem todo dia enquanto a tendência dura: com esta opção eles não bastam para pôr o ativo no baralho (continuam aparecendo como chips)">
+          <input type="checkbox" id="f-tendencia"> <span>Ignorar os de tendência</span>
+        </label>
+        <label class="ordem-multi">Ordem <select id="f-ordem">
+          <option value="confluencia">Mais setups juntos</option>
+          <option value="historico">Melhor histórico</option>
+        </select></label>
+        <span class="sub tri-sessoes" id="tri-sessoes"></span>
+        <span id="lugar-aviso"></span>
+      </div>
+    </section>
+
+    <!-- baralho: a pilha de cards e os botões -->
+    <section class="tri-baralho" id="tri-baralho" aria-label="Baralho">
+      <div class="tri-pilha" id="tri-pilha"></div>
+      <div class="tri-fim" id="tri-fim" hidden></div>
+      <div class="tri-botoes" id="tri-botoes">
+        <button class="tri-b tri-b-descartar" data-d="descartado" title="Descartar por hoje (←)" aria-label="Descartar por hoje">✗<span>Descartar</span></button>
+        <button class="tri-b tri-b-super" data-d="super" title="Super (↑)" aria-label="Super">★<span>Super</span></button>
+        <button class="tri-b tri-b-gostei" data-d="gostei" title="Gostei (→)" aria-label="Gostei">♥<span>Gostei</span></button>
+        <button class="tri-b tri-b-desfazer" id="tri-desfazer" title="Desfazer a última decisão (Backspace ou Ctrl+Z)" aria-label="Desfazer">↶<span>Desfazer</span></button>
+      </div>
+      <p class="dica tri-dica"><kbd>←</kbd> descartar · <kbd>↑</kbd> super · <kbd>→</kbd> gostei · <kbd>Backspace</kbd> desfaz · arraste o card com o mouse ou o dedo</p>
+    </section>
+
+    <!-- resultado: hoje (três colunas) e dias anteriores -->
+    <section class="tri-resultado" id="tri-resultado" hidden></section>
+  </main>
+
+  <footer>
+    Uso pessoal: os setups são filtros técnicos automáticos, não recomendação de investimento. As decisões ficam salvas só neste navegador.
+  </footer>
+
+  <script src="assets/js/comum.js"></script>
+  <script src="assets/js/simulador.js"></script>
+  <script src="assets/js/rastreador.js"></script>
+  <script src="assets/js/eventos.js"></script>
+  <script src="assets/js/plano.js"></script>
+  <script src="assets/js/notas.js"></script>
+  <script src="assets/js/comparar.js"></script>
+  <script src="assets/js/arrastar.js"></script>
+  <script src="assets/js/triagem.js"></script>
+</body>
+</html>
