@@ -203,6 +203,15 @@ function sinaisGrafico(i) {
   return ev;
 }
 
+/** Para arrastar.js (Plano de amanhã, Notas): o ativo com o evento em destaque no card ou no item. */
+window.ctxArrasto = (tk) => {
+  const i = lista.find((x) => x.ticker === tk);
+  const e = i && !ehMinhas() ? eventoFoco(i) : null;
+  if (!i) return null;
+  return e ? { ticker: tk, setup: e.setup, tf: e.tf, data: e.data, lado: e.lado, preco: e.preco }
+    : { ticker: tk, tf: estado.tf, data: i.data, lado: ehMinhas() ? minhas().vies : undefined, preco: porTicker.get(tk)?.ultimo };
+};
+
 const dataFoco = (i) => (!i ? null : ehMinhas() ? i.data : eventoFoco(i)?.data) || null;
 
 // ------------------------------------------------------------- pedaços do ativo
@@ -284,8 +293,8 @@ function itemLista(i) {
   const a = porTicker.get(i.ticker);
   return el("li", { class: `item ${i.setups.size >= 2 ? "confluencia" : ""}`, "data-tk": i.ticker, onclick: () => selecionar(i.ticker) },
     el("div", { class: "item-topo" },
-      el("div", { class: "item-nome" }, el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
-      precoComFormacao(a, "cartao-preco")),
+      el("div", { class: "item-nome" }, el("b", { class: "mono" }, semSufixo(a.ticker)), selosBandeja(a.ticker), " ", el("span", { class: "cartao-nome" }, a.nome)),
+      precoComFormacao(a, "cartao-preco"), window.Arrastar?.menu(a.ticker)),
     linhaSetups(i, false));
 }
 
@@ -394,7 +403,7 @@ function celula(i) {
       el("div", { class: "celula-nome", title: "Abrir o gráfico em tela cheia",
         onclick: () => (document.fullscreenElement ? document.exitFullscreen() : cel.requestFullscreen?.()) },
       el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
-      el("div", { class: "celula-acoes" }, ctx.dica, precoComFormacao(a, "celula-preco"), botaoTelaCheia(() => cel), linkAtivo(a.ticker))),
+      el("div", { class: "celula-acoes" }, selosBandeja(a.ticker), ctx.dica, precoComFormacao(a, "celula-preco"), botaoTelaCheia(() => cel), linkAtivo(a.ticker), window.Arrastar?.menu(a.ticker))),
     linhaSetups(i, true),
     corpo,
     sob ? el("div", { class: "legenda-extras" }, legendaSobreposicao(sob).map((x) =>

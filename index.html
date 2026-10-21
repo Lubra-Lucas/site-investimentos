@@ -30,6 +30,17 @@
 
     <section class="grade grade-carteira">
       <div class="coluna-carteira">
+        <section class="painel" id="secao-plano">
+          <div class="painel-cab">
+            <div>
+              <h2>Plano de amanhã</h2>
+              <p class="sub">O que você planejou operar no próximo pregão, com entrada, stop, alvo e a quantidade pelo risco por operação.</p>
+            </div>
+            <button class="botao primario" id="plano-abrir">Abrir plano</button>
+          </div>
+          <div id="plano-resumo"></div>
+        </section>
+
         <div class="painel" id="secao-lista">
           <div class="painel-cab">
             <div>
@@ -58,6 +69,20 @@
             </div>
           </div>
           <div id="lista-simulacoes"></div>
+        </section>
+
+        <section class="painel" id="secao-notas">
+          <div class="painel-cab">
+            <div>
+              <h2>Minhas anotações</h2>
+              <p class="sub">O que você viu em cada ativo, preso à data e ao preço, e o que o preço fez desde então. Clique para abrir.</p>
+            </div>
+            <div class="controles" title="Plano de amanhã e anotações num arquivo JSON">
+              <button class="botao" id="bandejas-exportar">Exportar plano + notas</button>
+              <label class="botao">Importar<input type="file" accept="application/json" id="bandejas-importar" hidden></label>
+            </div>
+          </div>
+          <div id="notas-lista"></div>
         </section>
       </div>
 
@@ -94,6 +119,10 @@
   <script src="assets/js/comum.js"></script>
   <script src="assets/js/simulador.js"></script>
   <script src="assets/js/eventos.js"></script>
+  <script src="assets/js/plano.js"></script>
+  <script src="assets/js/notas.js"></script>
+  <script src="assets/js/comparar.js"></script>
+  <script src="assets/js/arrastar.js"></script>
   <script src="assets/js/carteira.js"></script>
 </body>
 </html>

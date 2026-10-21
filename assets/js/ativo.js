@@ -51,9 +51,10 @@ function renderCabecalho(a) {
   const variacao = (rot, v) => el("span", { class: "cab-ativo-var" }, rot, " ", el("b", { class: cor(v) }, fmtPct(v)));
   const tend = (rot, t) => el("span", { class: `tend-pilula ${t}` }, rot, " ",
     el("b", {}, t === "alta" ? "▲ alta" : t === "baixa" ? "▼ baixa" : "▬ lateral"));
+  document.getElementById("cab-ativo-id").dataset.tk = a.ticker;  // arrastar.js: segurar o cabeçalho leva o ativo
   document.getElementById("cab-ativo-id").replaceChildren(
     el("div", { class: "cab-ativo-nome" },
-      el("h1", { class: "mono" }, semSufixo(a.ticker)), el("span", {}, a.nome), el("span", { class: "tag" }, a.mercado)),
+      el("h1", { class: "mono" }, semSufixo(a.ticker)), el("span", {}, a.nome), el("span", { class: "tag" }, a.mercado), selosBandeja(a.ticker)),
     el("div", { class: "cab-ativo-preco" },
       p.parcial ? el("span", { class: "ponto-formacao", title: `Pregão de ${fmtData(a.parcial.data)} em andamento` }, "● ") : null,
       el("b", { class: "mono" }, fmtMoeda(p.ultimo, a.moeda)), " ",
@@ -63,8 +64,17 @@ function renderCabecalho(a) {
       variacao("Mês", a.var_mes_pct), variacao("Ano", a.var_ano_pct),
       tend("Diário", a.tend_d), tend("Semanal", a.tend_s), seloVerificacao(a)));
   document.getElementById("cab-ativo-links").replaceChildren(
+    Plano.botao(() => ctxBandeja(a)), Notas.botao(() => ctxBandeja(a)),
     el("a", { class: "botao", href: `setups.html#${encodeURIComponent(a.ticker)}`, title: "Abrir este ativo na página de setups" }, "Ver nos setups →"),
-    el("a", { class: "botao", href: "index.html", title: "Posições, simulações e a minha lista" }, "Carteira"));
+    el("a", { class: "botao", href: "index.html", title: "Posições, simulações e a minha lista" }, "Carteira"),
+    window.Arrastar?.menu(a.ticker));
+}
+
+/** O ativo aberto no formato do plano e das anotações: lado e setup dos eventos mais recentes, tempo do gráfico. */
+function ctxBandeja(a) {
+  const ev = eventosDoAtivo(R, a.ticker);
+  return { ticker: a.ticker, setup: ev[0]?.setup, tf: painel?.grafico.tf === "W" ? "W" : "D", data: a.data,
+    lado: ficha.vies ?? viesDosEventos(ev), preco: a.ultimo };
 }
 
 // ------------------------------------------------------------- lateral: setups, contexto, simulações
@@ -162,7 +172,7 @@ function blocoSimulacoes(a) {
 }
 
 function renderLateral(a) {
-  document.getElementById("ficha-lateral").replaceChildren(blocoSetups(a), blocoContexto(a), blocoSimulacoes(a));
+  document.getElementById("ficha-lateral").replaceChildren(blocoSetups(a), blocoContexto(a), blocoSimulacoes(a), Notas.bloco(a.ticker));
 }
 
 // ------------------------------------------------------------- histórico dos setups neste ativo
@@ -271,6 +281,8 @@ async function iniciar() {
   window.addEventListener("popstate", doEndereco);
   // salvar/excluir uma simulação no gráfico atualiza os chips
   document.addEventListener("simulacoes", () => { const a = porTicker.get(ficha.ticker); if (a) renderLateral(a); });
+  // plano de amanhã e anotações: botões do cabeçalho e bloco de anotações
+  document.addEventListener("bandejas", () => { const a = porTicker.get(ficha.ticker); if (a) { renderCabecalho(a); renderLateral(a); } });
 
   const pedido = decodeURIComponent(location.hash.slice(1)), achado = tickerDoEndereco();
   const inicial = achado ?? [guardar.ler("ativo-ticker", null), R.ativos.find((a) => a.carteira)?.ticker, R.ativos[0].ticker]
