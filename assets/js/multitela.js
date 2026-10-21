@@ -394,7 +394,7 @@ function render() {
   observador.disconnect();
   abertos.splice(0).forEach((g) => g.remover());
   const lista = listar().filter((i) => porTicker.has(i.ticker));
-  const porPagina = { 2: 4, 3: 9, 4: 12 }[estado.grade];
+  const porPagina = { 1: 1, 2: 4, 3: 9, 4: 12 }[estado.grade] ?? 9;
   const paginas = Math.max(1, Math.ceil(lista.length / porPagina));
   estado.pagina = Math.min(estado.pagina, paginas - 1);
   const pagina = lista.slice(estado.pagina * porPagina, (estado.pagina + 1) * porPagina);
@@ -411,10 +411,22 @@ function render() {
   grade.querySelectorAll(".mini-grafico").forEach((c) => observador.observe(c));
 
   totalPaginas = paginas;
-  document.getElementById("paginacao").replaceChildren(...(paginas > 1
-    ? Array.from({ length: paginas }, (_, i) => el("button", { class: i === estado.pagina ? "ativo" : null,
-        onclick: () => irParaPagina(i, true) }, String(i + 1)))
-    : []));
+  // paginação compacta: primeira, vizinhas da atual e última (com 1 por tela seriam centenas)
+  const mostrar = [...new Set([0, estado.pagina - 2, estado.pagina - 1, estado.pagina, estado.pagina + 1, estado.pagina + 2, paginas - 1])]
+    .filter((i) => i >= 0 && i < paginas).sort((x, y) => x - y);
+  document.getElementById("paginacao").replaceChildren(...(paginas > 1 ? mostrar.flatMap((i, j) => [
+    j && i - mostrar[j - 1] > 1 ? el("span", { class: "reticencias" }, "…") : null,
+    el("button", { class: i === estado.pagina ? "ativo" : null, onclick: () => irParaPagina(i, true) }, String(i + 1)),
+  ]).filter(Boolean) : []));
+  // em 1 tela, setas grandes nas laterais do gráfico
+  if (estado.grade === "1" && pagina.length) {
+    const cel = grade.querySelector(".celula");
+    cel.append(
+      el("button", { class: "seta-tela anterior", disabled: estado.pagina === 0, "aria-label": "Ativo anterior (←)", title: "Anterior (←)",
+        onclick: () => irParaPagina(estado.pagina - 1) }, "‹"),
+      el("button", { class: "seta-tela proxima", disabled: estado.pagina >= paginas - 1, "aria-label": "Próximo ativo (→)", title: "Próximo (→)",
+        onclick: () => irParaPagina(estado.pagina + 1) }, "›"));
+  }
   // atalho no topo: ‹ 1/3 › (e as setas do teclado) para não precisar rolar até o fim
   document.getElementById("paginacao-topo").replaceChildren(...(paginas > 1 ? [
     el("button", { disabled: estado.pagina === 0, title: "Página anterior (←)", onclick: () => irParaPagina(estado.pagina - 1) }, "‹"),

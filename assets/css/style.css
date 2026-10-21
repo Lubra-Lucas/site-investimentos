@@ -621,6 +621,30 @@ main.larga { max-width: 1800px; }
 .chip.sim b.alta { color: var(--alta); } .chip.sim b.baixa { color: var(--baixa); } .chip.sim b.aviso { color: var(--aviso); }
 .mini-grafico { height: 260px; margin-top: 8px; position: relative; }
 .grade-graficos[data-grade="2"] .mini-grafico { height: 360px; }
+/* 1 tela: um gráfico grande; o contexto vai para a coluna da direita */
+.grade-graficos[data-grade="1"] { grid-template-columns: minmax(0, 1fr); }
+.grade-graficos[data-grade="1"] .celula {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 300px; column-gap: 20px; padding: 14px 56px;
+  align-content: start;
+}
+.grade-graficos[data-grade="1"] .celula > * { grid-column: 1; }
+.grade-graficos[data-grade="1"] .celula > header { grid-column: 1 / -1; font-size: 14px; }
+.grade-graficos[data-grade="1"] .celula > .contexto-decisao,
+.grade-graficos[data-grade="1"] .celula > .sim-celula,
+.grade-graficos[data-grade="1"] .celula > .valores-regra { grid-column: 2; grid-row: 2 / span 4; align-self: start; }
+.grade-graficos[data-grade="1"] .celula > .contexto-decisao { grid-row: 3 / span 6; border-top: 0; padding-top: 0; font-size: 13px; }
+.grade-graficos[data-grade="1"] .celula > .valores-regra { grid-row: 2; font-size: 13px; }
+.grade-graficos[data-grade="1"] .mini-grafico { height: max(440px, calc(100vh - 330px)); grid-row: 2 / span 6; }
+.grade-graficos[data-grade="1"] .legenda-extras { grid-row: 8; }
+.seta-tela {
+  position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 72px; border-radius: 8px;
+  border: 1px solid var(--borda-forte); background: var(--bg-elev); color: var(--texto); font: 400 30px/1 Inter, sans-serif;
+  cursor: pointer; z-index: 5;
+}
+.seta-tela:hover:not(:disabled) { border-color: var(--acento); color: var(--acento); }
+.seta-tela:disabled { opacity: 0.3; cursor: default; }
+.seta-tela.anterior { left: 8px; } .seta-tela.proxima { right: 8px; }
+.reticencias { color: var(--texto-fraco); padding: 6px 2px; }
 /* ---------- multitela: rastreador ---------- */
 .menu-multi { display: grid; gap: 14px; }
 .multi-topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; }
@@ -724,6 +748,9 @@ main.larga { max-width: 1800px; }
   .area-radar .grafico { height: 460px; flex: none; }
   .lista-sinais { max-height: 80vh; }
   .grade-graficos, .grade-graficos[data-grade] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grade-graficos[data-grade="1"] { grid-template-columns: minmax(0, 1fr); }
+  .grade-graficos[data-grade="1"] .celula { grid-template-columns: minmax(0, 1fr); padding: 12px 48px; }
+  .grade-graficos[data-grade="1"] .celula > * { grid-column: 1 !important; grid-row: auto !important; }
 }
 @media (max-width: 1000px) {
   .grade { grid-template-columns: 1fr; }
