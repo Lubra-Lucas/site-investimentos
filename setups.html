@@ -14,7 +14,7 @@
   <header class="topo" id="topo"></header>
 
   <main class="larga pagina-setups">
-    <section class="painel menu-setups" id="menu-setups">
+    <section class="painel menu-setups compacto" id="menu-setups">
       <div class="linha-topo">
         <div class="segmento" id="f-mercado" aria-label="Mercado">
           <button data-v="" class="ativo">Todos</button>
@@ -41,10 +41,6 @@
         </div>
         <span id="lugar-aviso"></span>
         <div class="visao">
-          <div class="segmento segmento-forte" id="f-visao" aria-label="Visão">
-            <button data-v="lista" class="ativo" title="Um gráfico grande e a lista ao lado (↑ ↓ navegam)">☰ Lista + gráfico</button>
-            <button data-v="grade" title="Vários gráficos lado a lado para comparar (← → trocam de página)">▦ Grade</button>
-          </div>
           <div class="segmento" id="f-grade" aria-label="Tamanho da grade">
             <button data-v="1" title="Um gráfico grande por vez; ← → passam para o próximo">1</button>
             <button data-v="2" title="2×2">2×2</button>
@@ -99,13 +95,14 @@
         </div>
       </div>
 
+      <p class="sub cat-descricao" id="cat-descricao"></p>
       <div class="barra-setups">
         <p class="contagem-multi" id="f-descricao"></p>
         <label class="opcao" id="caixa-so2" title="Ativos com 2 ou mais setups deste ramo ao mesmo tempo">
           <input type="checkbox" id="f-so2"> <span id="rot-so2">Só com 2+ setups</span>
         </label>
         <label class="ordem-multi">Ordenar <select id="f-ordem"></select></label>
-        <div class="multi-grafico so-grade">
+        <div class="multi-grafico">
           <span class="rotulo-mini">Gráfico</span>
           <div class="segmento" id="f-tf-grafico" aria-label="Tempo do gráfico">
             <button data-v="60">60m</button>
@@ -118,27 +115,13 @@
             <button data-v="meus" title="Usa os seus indicadores (MM20/50/200, Bollinger...)">Meus indicadores</button>
           </div>
         </div>
-        <nav class="paginacao-topo so-grade" id="paginacao-topo" aria-label="Páginas"></nav>
+        <nav class="paginacao-topo" id="paginacao-topo" aria-label="Páginas"></nav>
       </div>
-      <div class="linha-indicadores so-grade" id="f-indicadores" hidden></div>
+      <div class="linha-indicadores" id="f-indicadores" hidden></div>
     </section>
 
-    <!-- visão 1: gráfico grande + lista -->
-    <section class="area-radar area-setups" id="vista-lista">
-      <div class="painel painel-grafico" id="painel-grafico"></div>
-      <aside class="painel lista-sinais" aria-label="Lista de ativos">
-        <div class="cab-lista">
-          <h2 id="titulo-lista"></h2>
-          <span class="contagem" id="n-lista"></span>
-        </div>
-        <div class="sub cat-descricao" id="cat-descricao"></div>
-        <ol class="lista-ativos" id="lista-ativos"></ol>
-        <p class="dica"><kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista · <kbd>Alt</kbd>+<kbd>C</kbd> centraliza o gráfico</p>
-      </aside>
-    </section>
-
-    <!-- visão 2: grade de gráficos -->
-    <section id="vista-grade" class="vista-grade" hidden>
+    <!-- grade de gráficos -->
+    <section id="vista-grade" class="vista-grade">
       <div id="grade" class="grade-graficos"></div>
       <nav class="paginacao" id="paginacao"></nav>
     </section>
