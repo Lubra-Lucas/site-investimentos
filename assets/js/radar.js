@@ -180,7 +180,7 @@ function renderOportunidades() {
             el("option", { value: k, selected: estado.ordemOp === k ? true : null }, rot))))));
   const nomeEstr = estado.categoria === "todas" ? "" : ` · ${NOME_CATEGORIA[estado.categoria] ?? (estado.categoria === "quedas" && estado.lado === "venda" ? "Maiores altas" : R.familias[estado.categoria]?.nome)}`;
   document.getElementById("titulo-lista").textContent =
-    `${estado.lado === "compra" ? "▲ Compra" : "▼ Venda"} ${m.chave === "tendencia" ? "a favor" : "contra"} da tendência${nomeEstr}`;
+    `${estado.lado === "compra" ? "▲ Compra" : "▼ Venda"} ${m.chave === "tendencia" ? "a favor da" : "contra a"} tendência${nomeEstr}`;
   document.getElementById("titulo-lista").className = estado.lado;
   document.getElementById("cat-descricao").textContent = estado.categoria === "todas"
     ? `Ativos com sinal de ${estado.lado} ${m.chave === "tendencia" ? "a favor" : "contra"} da tendência no período.`
@@ -349,7 +349,7 @@ async function blocoHistorico(a) {
     caixa.replaceChildren(
       tituloBloco("Histórico das estratégias neste ativo", "6 anos"),
       linhas.length ? el("p", { class: "sub" }, `Entrando na abertura seguinte ao sinal e saindo ${prazo("D")} depois (diário) ou ${prazo("S")} (semanal). ` +
-        `Vantagem: quanto rendeu a mais que entrar num dia qualquer.`) : null,
+        `Vantagem: quanto rendeu a mais que entrar num dia qualquer.`) : "",
       linhas.length ? el("div", { class: "tabela-wrap" }, el("table", { class: "ficha-tabela" },
         el("thead", {}, el("tr", {}, ["Estratégia", "Casos", "Acerto", "Médio", "Vantagem"].map((h, i) => el("th", { class: i ? "num" : "" }, h)))),
         el("tbody", {}, linhas.map(({ tf, fam, lado, e }) => el("tr", {},

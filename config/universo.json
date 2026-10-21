@@ -1088,7 +1088,7 @@
   },
   {
    "ticker": "BHP",
-   "nome": "BHP Group Limited (Each representing two)"
+   "nome": "BHP Group Limited"
   },
   {
    "ticker": "MRVL",
@@ -1116,7 +1116,7 @@
   },
   {
    "ticker": "TD",
-   "nome": "Toronto Dominion Bank (The)"
+   "nome": "Toronto Dominion Bank"
   },
   {
    "ticker": "ADI",
@@ -1132,7 +1132,7 @@
   },
   {
    "ticker": "SAN",
-   "nome": "Banco Santander S.A. Sponsored ADR (Spain)"
+   "nome": "Banco Santander S.A. Sponsored ADR"
   },
   {
    "ticker": "VZ",
@@ -1196,7 +1196,7 @@
   },
   {
    "ticker": "BUD",
-   "nome": "Anheuser-Busch Inbev SA Sponsored ADR (Belgium)"
+   "nome": "Anheuser-Busch Inbev SA Sponsored ADR"
   },
   {
    "ticker": "NEE",
@@ -1220,7 +1220,7 @@
   },
   {
    "ticker": "SMFG",
-   "nome": "Sumitomo Mitsui Financial Group Inc Unsponsored (Japan)"
+   "nome": "Sumitomo Mitsui Financial Group Inc Unsponsored"
   },
   {
    "ticker": "SCHW",
@@ -1240,7 +1240,7 @@
   },
   {
    "ticker": "STX",
-   "nome": "Seagate Technology PLC (Ireland)"
+   "nome": "Seagate Technology PLC"
   },
   {
    "ticker": "NOW",
@@ -1316,7 +1316,7 @@
   },
   {
    "ticker": "MFG",
-   "nome": "Mizuho Financial Group Sponosred ADR (Japan)"
+   "nome": "Mizuho Financial Group Sponosred ADR"
   },
   {
    "ticker": "VLO",
@@ -1464,7 +1464,7 @@
   },
   {
    "ticker": "GSK",
-   "nome": "GSK plc (Each representing two)"
+   "nome": "GSK plc"
   },
   {
    "ticker": "HCA",
@@ -1524,7 +1524,7 @@
   },
   {
    "ticker": "RACE",
-   "nome": "Ferrari N.V. Common Shares"
+   "nome": "Ferrari N.V."
   },
   {
    "ticker": "SU",
@@ -1536,7 +1536,7 @@
   },
   {
    "ticker": "ASX",
-   "nome": "ASE Technology Holding Co. Ltd. (each representing Two Common Shares)"
+   "nome": "ASE Technology Holding Co. Ltd."
   },
   {
    "ticker": "MRNA",
@@ -1628,7 +1628,7 @@
   },
   {
    "ticker": "NGG",
-   "nome": "National Grid Transco PLC National Grid PLC (NEW)"
+   "nome": "National Grid Transco PLC National Grid PLC"
   },
   {
    "ticker": "UPS",
@@ -1696,7 +1696,7 @@
   },
   {
    "ticker": "CP",
-   "nome": "Canadian Pacific Kansas City Limited Common Shares"
+   "nome": "Canadian Pacific Kansas City Limited"
   },
   {
    "ticker": "ITW",
@@ -1788,15 +1788,15 @@
   },
   {
    "ticker": "AMX",
-   "nome": "America Movil S.A.B. de C.V. (each representing the right to receive twenty (20) Series B Shares"
+   "nome": "America Movil S.A.B. de C.V."
   },
   {
    "ticker": "RELX",
-   "nome": "RELX PLC PLC (Each representing One Ordinary Share)"
+   "nome": "RELX PLC PLC"
   },
   {
    "ticker": "NWG",
-   "nome": "NatWest Group plc (each representing two (2))"
+   "nome": "NatWest Group plc"
   },
   {
    "ticker": "AEP",
@@ -1808,7 +1808,7 @@
   },
   {
    "ticker": "B",
-   "nome": "Barrick Mining Common Shares"
+   "nome": "Barrick Mining"
   },
   {
    "ticker": "HON",
@@ -1872,7 +1872,7 @@
   },
   {
    "ticker": "ALL",
-   "nome": "Allstate (The)"
+   "nome": "Allstate"
   },
   {
    "ticker": "CVE",
@@ -1884,7 +1884,7 @@
   },
   {
    "ticker": "TAK",
-   "nome": "Takeda Pharmaceutical Company Limited (each representing 1/2 of a share of)"
+   "nome": "Takeda Pharmaceutical Company Limited"
   },
   {
    "ticker": "MPWR",
@@ -1904,7 +1904,7 @@
   },
   {
    "ticker": "WPM",
-   "nome": "Wheaton Precious Metals Corp Common Shares (Canada)"
+   "nome": "Wheaton Precious Metals Corp"
   },
   {
    "ticker": "DB",
@@ -1948,7 +1948,7 @@
   },
   {
    "ticker": "MSTR",
-   "nome": "Strategy (MicroStrategy)"
+   "nome": "Strategy"
   },
   {
    "ticker": "KEYS",
@@ -1992,7 +1992,7 @@
   },
   {
    "ticker": "GRMN",
-   "nome": "Garmin Ltd. (Switzerland)"
+   "nome": "Garmin Ltd."
   },
   {
    "ticker": "D",
@@ -2052,7 +2052,7 @@
   },
   {
    "ticker": "ABEV",
-   "nome": "Ambev S.A. (Each representing 1 Common Share)"
+   "nome": "Ambev S.A."
   },
   {
    "ticker": "CCEP",
@@ -2064,7 +2064,7 @@
   },
   {
    "ticker": "UMC",
-   "nome": "United Microelectronics (NEW)"
+   "nome": "United Microelectronics"
   },
   {
    "ticker": "ADSK",
@@ -2116,7 +2116,7 @@
   },
   {
    "ticker": "VMRK",
-   "nome": "Vivmark Residential Common Shares of Beneficial Interest"
+   "nome": "Vivmark Residential of Beneficial Interest"
   },
   {
    "ticker": "A",
@@ -2148,7 +2148,7 @@
   },
   {
    "ticker": "TRI",
-   "nome": "Thomson Reuters Common Shares"
+   "nome": "Thomson Reuters"
   },
   {
    "ticker": "FNV",
@@ -2192,7 +2192,7 @@
   },
   {
    "ticker": "HLN",
-   "nome": "Haleon plc (Each representing two)"
+   "nome": "Haleon plc"
   },
   {
    "ticker": "COIN",
@@ -2256,7 +2256,7 @@
   },
   {
    "ticker": "WCN",
-   "nome": "Waste Connections Common Shares"
+   "nome": "Waste Connections"
   },
   {
    "ticker": "AIG",
@@ -2304,7 +2304,7 @@
   },
   {
    "ticker": "BBDO",
-   "nome": "Banco Bradesco Sa (each representing one Common Share)"
+   "nome": "Banco Bradesco Sa"
   },
   {
    "ticker": "BTSGU",
@@ -2344,7 +2344,7 @@
   },
   {
    "ticker": "EL",
-   "nome": "Estee Lauder Companies (The)"
+   "nome": "Estee Lauder Companies"
   },
   {
    "ticker": "TTWO",
@@ -2420,7 +2420,7 @@
   },
   {
    "ticker": "CCL",
-   "nome": "Carnival Ltd. Common Shares"
+   "nome": "Carnival Ltd."
   },
   {
    "ticker": "FER",
@@ -2500,7 +2500,7 @@
   },
   {
    "ticker": "QSR",
-   "nome": "Restaurant Brands International Common Shares"
+   "nome": "Restaurant Brands International"
   },
   {
    "ticker": "RMD",
@@ -2516,7 +2516,7 @@
   },
   {
    "ticker": "NTR",
-   "nome": "Nutrien Ltd. Common Shares"
+   "nome": "Nutrien Ltd."
   },
   {
    "ticker": "EXPE",
@@ -2524,11 +2524,11 @@
   },
   {
    "ticker": "VMC",
-   "nome": "Vulcan Materials Company (Holding Company)"
+   "nome": "Vulcan Materials Company"
   },
   {
    "ticker": "IRM",
-   "nome": "Iron Mountain Incorporated (Delaware)Common Stock REIT"
+   "nome": "Iron Mountain Incorporated"
   },
   {
    "ticker": "OKTA",
@@ -2660,7 +2660,7 @@
   },
   {
    "ticker": "WSM",
-   "nome": "Williams-Sonoma (DE)"
+   "nome": "Williams-Sonoma"
   },
   {
    "ticker": "WTW",
@@ -2672,7 +2672,7 @@
   },
   {
    "ticker": "PBA",
-   "nome": "Pembina Pipeline Corp. (Canada)"
+   "nome": "Pembina Pipeline Corp."
   },
   {
    "ticker": "AEE",
@@ -2700,7 +2700,7 @@
   },
   {
    "ticker": "FTS",
-   "nome": "Fortis Common Shares"
+   "nome": "Fortis"
   },
   {
    "ticker": "ATO",
@@ -2796,7 +2796,7 @@
   },
   {
    "ticker": "CNP",
-   "nome": "CenterPoint Energy Inc (Holding Co)"
+   "nome": "CenterPoint Energy Inc"
   },
   {
    "ticker": "DGX",
@@ -2856,7 +2856,7 @@
   },
   {
    "ticker": "ROIV",
-   "nome": "Roivant Sciences Ltd. Common Shares"
+   "nome": "Roivant Sciences Ltd."
   },
   {
    "ticker": "PHG",
@@ -2872,7 +2872,7 @@
   },
   {
    "ticker": "IHG",
-   "nome": "Intercontinental Hotels Group (Each representing one Ordinary Share)"
+   "nome": "Intercontinental Hotels Group"
   },
   {
    "ticker": "CHD",
@@ -2908,7 +2908,7 @@
   },
   {
    "ticker": "ES",
-   "nome": "Eversource Energy (D/B/A)"
+   "nome": "Eversource Energy"
   },
   {
    "ticker": "XYL",
@@ -3016,7 +3016,7 @@
   },
   {
    "ticker": "SBS",
-   "nome": "Companhia de saneamento Basico Do Estado De Sao Paulo - Sabesp (Each repstg 250 Common Shares)"
+   "nome": "Companhia de saneamento Basico Do Estado De Sao Paulo - Sabesp"
   },
   {
    "ticker": "STZ",
@@ -3048,7 +3048,7 @@
   },
   {
    "ticker": "STE",
-   "nome": "STERIS plc (Ireland)"
+   "nome": "STERIS plc"
   },
   {
    "ticker": "BNH",
@@ -3148,11 +3148,11 @@
   },
   {
    "ticker": "LYB",
-   "nome": "LyondellBasell Industries NV (Netherlands)"
+   "nome": "LyondellBasell Industries NV"
   },
   {
    "ticker": "SOJC",
-   "nome": "Southern Company (The) Series 2017B 5.25% Junior Subordinated Notes due December 1 2077"
+   "nome": "Southern Company"
   },
   {
    "ticker": "AMCR",
@@ -3164,11 +3164,11 @@
   },
   {
    "ticker": "BEKE",
-   "nome": "KE Inc (each representing three)"
+   "nome": "KE Inc"
   },
   {
    "ticker": "VIV",
-   "nome": "Telefonica Brasil S.A. (Each representing One Common Share)"
+   "nome": "Telefonica Brasil S.A."
   },
   {
    "ticker": "NI",
@@ -3192,11 +3192,11 @@
   },
   {
    "ticker": "BG",
-   "nome": "Bunge Limited Common Shares"
+   "nome": "Bunge Limited"
   },
   {
    "ticker": "OVV",
-   "nome": "Ovintiv (DE)"
+   "nome": "Ovintiv"
   },
   {
    "ticker": "BR",
@@ -3224,7 +3224,7 @@
   },
   {
    "ticker": "SOJD",
-   "nome": "Southern Company (The) Series 2020A 4.95% Junior Subordinated Notes due January 30 2080"
+   "nome": "Southern Company"
   },
   {
    "ticker": "BEP",
@@ -3268,7 +3268,7 @@
   },
   {
    "ticker": "PKX",
-   "nome": "POSCO HOLDINGS INC. (Each representing 1/4th of a share of)"
+   "nome": "POSCO HOLDINGS INC."
   },
   {
    "ticker": "FIS",
@@ -3428,7 +3428,7 @@
   },
   {
    "ticker": "SOJE",
-   "nome": "Southern Company (The) Series 2020C 4.20% Junior Subordinated Notes due October 15 2060"
+   "nome": "Southern Company"
   },
   {
    "ticker": "BIP",
@@ -3436,7 +3436,7 @@
   },
   {
    "ticker": "WF",
-   "nome": "Woori Financial Group (each representing three (3) shares of)"
+   "nome": "Woori Financial Group"
   },
   {
    "ticker": "BALL",
@@ -3556,7 +3556,7 @@
   },
   {
    "ticker": "ZTO",
-   "nome": "ZTO Express (Cayman) each representing one ordinary share."
+   "nome": "ZTO Express"
   },
   {
    "ticker": "LSCC",
@@ -3592,7 +3592,7 @@
   },
   {
    "ticker": "KIM",
-   "nome": "Kimco Realty (HC)"
+   "nome": "Kimco Realty"
   },
   {
    "ticker": "ASND",
@@ -3684,7 +3684,7 @@
   },
   {
    "ticker": "EMA",
-   "nome": "Emera Incorporated Common Shares"
+   "nome": "Emera Incorporated"
   },
   {
    "ticker": "APOS",
@@ -3708,7 +3708,7 @@
   },
   {
    "ticker": "LECO",
-   "nome": "Lincoln Electric Common Shares"
+   "nome": "Lincoln Electric"
   },
   {
    "ticker": "GWRE",
@@ -3748,7 +3748,7 @@
   },
   {
    "ticker": "CNH",
-   "nome": "CNH Industrial N.V. Common Shares"
+   "nome": "CNH Industrial N.V."
   },
   {
    "ticker": "JLL",
@@ -3764,7 +3764,7 @@
   },
   {
    "ticker": "JBS",
-   "nome": "JBS N.V. Common Shares"
+   "nome": "JBS N.V."
   },
   {
    "ticker": "SWK",
@@ -3784,7 +3784,7 @@
   },
   {
    "ticker": "LTM",
-   "nome": "LATAM Airlines Group S.A. (each representing two thousand (2000) shares of)"
+   "nome": "LATAM Airlines Group S.A."
   },
   {
    "ticker": "CACI",
@@ -3804,7 +3804,7 @@
   },
   {
    "ticker": "JAZZ",
-   "nome": "Jazz Pharmaceuticals plc (Ireland)"
+   "nome": "Jazz Pharmaceuticals plc"
   },
   {
    "ticker": "CET",
@@ -3824,7 +3824,7 @@
   },
   {
    "ticker": "AGI",
-   "nome": "Alamos Gold Common Shares"
+   "nome": "Alamos Gold"
   },
   {
    "ticker": "NLY",
@@ -3912,7 +3912,7 @@
   },
   {
    "ticker": "EQX",
-   "nome": "Equinox Gold Corp. Common Shares"
+   "nome": "Equinox Gold Corp."
   },
   {
    "ticker": "CNA",
@@ -3992,7 +3992,7 @@
   },
   {
    "ticker": "STLA",
-   "nome": "Stellantis N.V. Common Shares"
+   "nome": "Stellantis N.V."
   },
   {
    "ticker": "FIVE",
@@ -4028,7 +4028,7 @@
   },
   {
    "ticker": "FMS",
-   "nome": "Fresenius Medical Care AG (Each representing 1/2 of an Ordinary Share)"
+   "nome": "Fresenius Medical Care AG"
   },
   {
    "ticker": "WSO",
@@ -4052,7 +4052,7 @@
   },
   {
    "ticker": "PAC",
-   "nome": "Grupo Aeroportuario Del Pacifico S.A. B. de C.V. Grupo Aeroportuario Del Pacifico S.A. de C.V. (each representing 10 Series B shares)"
+   "nome": "Grupo Aeroportuario Del Pacifico S.A. B. de C.V. Grupo Aeroportuario Del Pacifico S.A. de C.V."
   },
   {
    "ticker": "TOL",
@@ -4140,7 +4140,7 @@
   },
   {
    "ticker": "TX",
-   "nome": "Ternium S.A. Ternium S.A. (each representing ten shares USD1.00 par value)"
+   "nome": "Ternium S.A. Ternium S.A."
   },
   {
    "ticker": "GNRC",
@@ -4200,7 +4200,7 @@
   },
   {
    "ticker": "AMH",
-   "nome": "American Homes 4 Rent Common Shares of Beneficial Interest"
+   "nome": "American Homes 4 Rent of Beneficial Interest"
   },
   {
    "ticker": "FRHC",
@@ -4240,7 +4240,7 @@
   },
   {
    "ticker": "NYT",
-   "nome": "New York Times Company (The)"
+   "nome": "New York Times Company"
   },
   {
    "ticker": "RDY",
@@ -4276,7 +4276,7 @@
   },
   {
    "ticker": "SUZ",
-   "nome": "Suzano S.A. (each representing One Ordinary Share)"
+   "nome": "Suzano S.A."
   },
   {
    "ticker": "UHS",
@@ -4288,7 +4288,7 @@
   },
   {
    "ticker": "RTO",
-   "nome": "Rentokil Initial plc (each representing five (5))"
+   "nome": "Rentokil Initial plc"
   },
   {
    "ticker": "AES",
@@ -4304,7 +4304,7 @@
   },
   {
    "ticker": "HBM",
-   "nome": "Hudbay Minerals (Canada)"
+   "nome": "Hudbay Minerals"
   },
   {
    "ticker": "HMY",
@@ -4348,7 +4348,7 @@
   },
   {
    "ticker": "ELPC",
-   "nome": "Companhia Paranaense de Energia (COPEL) (each representing four (4) Common Shares)"
+   "nome": "Companhia Paranaense de Energia"
   },
   {
    "ticker": "TLK",
@@ -4356,7 +4356,7 @@
   },
   {
    "ticker": "CLX",
-   "nome": "Clorox Company (The)"
+   "nome": "Clorox Company"
   },
   {
    "ticker": "MDGL",

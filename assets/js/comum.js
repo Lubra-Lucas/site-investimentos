@@ -828,8 +828,8 @@ function painelGrafico(alvo, { aoSelecionar, simular = false } = {}) {
         el("span", { class: "mono" }, fmtMoeda(a.ultimo, a.moeda)), " ",
         el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct)), " · ",
         `fechamento de ${fmtData(a.data)} `, seloVerificacao(a),
-        a.parcial ? el("span", { class: "selo selo-formacao", title: "Pregão em andamento: o candle de hoje aparece no gráfico, mas só gera sinais depois do fechamento" },
-          `hoje ${fmtData(a.parcial.data)} em formação: ${fmtMoeda(a.parcial.ultimo, a.moeda)} ${fmtPct(a.parcial.var_pct)}`) : null);
+        ...[a.parcial ? el("span", { class: "selo selo-formacao", title: "Pregão em andamento: o candle de hoje aparece no gráfico, mas só gera sinais depois do fechamento" },
+          `hoje ${fmtData(a.parcial.data)} em formação: ${fmtMoeda(a.parcial.ultimo, a.moeda)} ${fmtPct(a.parcial.var_pct)}`) : null].filter(Boolean));
       contexto.replaceChildren(...contextoAtivo(a));
       // 60 min/4h só existem para ações com intraday verificado
       tfs.querySelectorAll("button").forEach((b) => {

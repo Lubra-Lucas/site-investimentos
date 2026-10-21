@@ -132,7 +132,7 @@ def eua(nomes_antigos: dict[str, str]) -> list[dict]:
     print(f"EUA: {len(grandes)} com US$ {VALOR_MERCADO_MINIMO_US / 1e9:.0f} bi de valor de mercado, {len(ok)} com histórico")
     limpar = lambda n: (n.replace(" Common Stock", "").replace(" Class A", "").replace(" Ordinary Shares", "")
                         .replace(" American Depositary Shares", "").replace(" Inc.", "").replace(", Inc.", "")
-                        .replace(" Corporation", "").replace(" Holdings", "").strip(" ,"))
+                        .replace(" Corporation", "").replace(" Holdings", "").split(" (")[0].strip(" ,"))
     return [{"ticker": t, "nome": nomes_antigos.get(t) or limpar(n)} for t, n, _ in grandes if t in ok]
 
 

@@ -92,8 +92,8 @@ function renderAtivos() {
   alvo.replaceChildren(
     el("p", { class: "rotulo-lista" }, "Onde mais funcionou"),
     el("ol", { class: "bt-lista" }, lista.slice(0, 15).map(linha)),
-    lista.length > 15 ? el("p", { class: "rotulo-lista" }, "Onde menos funcionou") : null,
-    lista.length > 15 ? el("ol", { class: "bt-lista" }, lista.slice(-5).reverse().map(linha)) : null);
+    lista.length > 15 ? el("p", { class: "rotulo-lista" }, "Onde menos funcionou") : "",
+    lista.length > 15 ? el("ol", { class: "bt-lista" }, lista.slice(-5).reverse().map(linha)) : "");
 }
 
 async function iniciar() {

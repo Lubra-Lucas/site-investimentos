@@ -377,7 +377,8 @@ function ligarRastreador() {
 function descricao(n) {
   if (estado.fonte === "rastreador") {
     const { tf, periodos } = regrasAtuais();
-    const quando = periodos === 1 ? (tf === "W" ? "na última semana fechada" : "no último pregão fechado") : `nos últimos ${unid(tf, periodos)}`;
+    const quando = periodos === 1 ? (tf === "W" ? "na última semana fechada" : "no último pregão fechado")
+      : `${tf === "W" ? "nas últimas" : "nos últimos"} ${unid(tf, periodos)}`;
     return `${n} ${n === 1 ? "ativo atendeu" : "ativos atenderam"} ${quando}`;
   }
   if (ehOportunidade()) {
