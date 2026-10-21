@@ -686,6 +686,12 @@ const AJUDA = {
     "As setas no gráfico são os setups escolhidos neste ativo; a faixa azul marca o candle do sinal. Os sinais só saem com o pregão fechado.",
     "Segure um card parado por meio segundo (até em cima do gráfico) ou arraste pelo cabeçalho: aparecem Comparar, Plano de amanhã e Anotar nas bordas; solte num deles. O ⋯ do card faz o mesmo.",
   ]],
+  triagem: ["Triagem", [
+    "Um card por ativo que deu sinal de compra (ou de venda) no último pregão fechado do mercado dele: gráfico, setups do dia, histórico e contexto.",
+    "Arraste o card para a direita (♥ Gostei), para a esquerda (✗ Descartar, só por hoje) ou para cima (★ Super). Os botões embaixo fazem o mesmo.",
+    "Teclado: → gostei, ← descartar, ↑ super, Backspace ou Ctrl+Z desfaz a última decisão.",
+    "Em \"Hoje\" ficam as três colunas (Super, Gostei, Descartados): mude de coluna, devolva ao baralho ou mande para Comparar e Plano de amanhã. Os descartados voltam no próximo pregão; Super e Gostei ficam em \"Dias anteriores\" com o quanto o preço andou desde a triagem.",
+  ]],
   backtest: ["Backtest", ["Como cada setup se saiu nos últimos 6 anos, por mercado, lado e prazo."]],
 };
 const ATALHOS = [
@@ -725,7 +731,7 @@ function montarTopo(pagina, dados) {
   topo.replaceChildren(
     marca,
     el("nav", { "aria-label": "Páginas" }, link("index.html", "carteira", "Carteira"), link("setups.html", "setups", "Setups"),
-      link("backtest.html", "backtest", "Backtest")),
+      link("triagem.html", "triagem", "Triagem"), link("backtest.html", "backtest", "Backtest")),
     buscaTopo(dados?.ativos ?? []),
     el("div", { class: "topo-info" }, status, dolar, botaoAjuda, painelAjuda),
   );
