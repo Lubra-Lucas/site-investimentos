@@ -1,15 +1,11 @@
-/* Carteira: patrimônio, posições e sinais nos ativos acompanhados. */
+/* Carteira: o que eu tenho e acompanho. Posições, minha lista, os setups que dispararam nesses
+ * ativos e as simulações. Qualquer ativo abre a página dele (ativo.html#TICKER). */
 
-let R, C, porTicker, painel;
+let R, C, porTicker;
+let tfSetups = guardar.ler("carteira-tf-setups", "D");
 
-function selecionar(tk, rolar = true) {
-  const a = porTicker.get(tk);
-  if (!a) return;
-  guardar.gravar("carteira-ticker", tk);
-  document.querySelectorAll("[data-tk]").forEach((n) => n.classList.toggle("selecionado", n.dataset.tk === tk));
-  painel.selecionar(a, R.sinais.filter((s) => s.ticker === tk));
-  if (rolar && window.innerWidth < 1000) document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth" });
-}
+const urlAtivo = (tk) => `ativo.html#${encodeURIComponent(tk)}`;
+const abrirAtivo = (tk) => { location.href = urlAtivo(tk); };
 
 function renderKPIs(c) {
   const kpi = (rotulo, valor, extra, classe = "") =>
@@ -25,60 +21,41 @@ function renderKPIs(c) {
   );
 }
 
-/** Sinais dos últimos 5 pregões nos ativos acompanhados, separados por lado e por estilo. */
-function renderSinais() {
-  const daCarteira = sinaisDoPeriodo(R, "D", 5).sinais.filter((s) => porTicker.get(s.ticker)?.carteira);
-  const blocos = [];
-  for (const lado of ["compra", "venda"]) {
-    for (const [estilo, nome] of [["tendencia", "a favor da tendência"], ["contra", "contra a tendência"]]) {
-      const doEstilo = daCarteira.filter((s) => s.lado === lado && R.familias[s.familia]?.modalidade === estilo);
-      const itens = agruparSinais(doEstilo, { tf: "D" })[lado];
-      if (!itens.length) continue;
-      blocos.push(el("div", { class: `bloco-lado lado-${lado}` },
-        el("h3", {}, `${lado === "compra" ? "▲ Compra" : "▼ Venda"} `, el("span", { class: "estilo-nome" }, nome), " ",
-          el("span", { class: "contagem" }, itens.length)),
-        el("ol", { class: "cartoes" }, itens.map((i) => {
-          const a = porTicker.get(i.ticker);
-          return el("li", { class: `cartao ${i.familias.size >= 2 ? "confluencia" : ""}`, "data-tk": i.ticker, onclick: () => selecionar(i.ticker) },
-            el("div", { class: "cartao-topo" },
-              el("div", {}, el("span", { class: "cartao-ticker" }, semSufixo(i.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
-              el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct))),
-            el("div", { class: "chips" },
-              i.familias.size >= 2 ? el("span", { class: "chip destaque" }, `${i.familias.size} estratégias`) : null,
-              chipsFamilias(i.familias, lado)),
-            el("ul", { class: "motivos" }, i.sinais.slice(0, 3).map((s) => el("li", {}, el("span", { class: "data" }, fmtData(s.data)), s.texto))));
-        }))));
-    }
-  }
-  document.getElementById("sinais-carteira").replaceChildren(
-    ...(blocos.length ? blocos : [el("p", { class: "vazio" }, "Nenhum sinal nos seus ativos nos últimos 5 pregões.")]),
-    el("a", { class: "link-radar", href: "radar.html" }, "Ver todas as oportunidades no Radar →"));
-}
+// ------------------------------------------------------------- tabelas
 
-function tabela(id, colunas, linhas, aoClicar, vazio) {
+/** Tabela clicável: a linha inteira abre o ativo (o ticker também é um link de verdade). */
+function tabela(id, colunas, linhas, vazio) {
   const t = document.getElementById(id);
   if (!linhas.length) {
-    t.replaceChildren(el("tbody", {}, el("tr", {}, el("td", { class: "vazio", colspan: colunas.length }, vazio))));
+    t.replaceChildren(el("tbody", {}, el("tr", { class: "sem-clique" }, el("td", { class: "vazio", colspan: colunas.length }, vazio))));
     return;
   }
   t.replaceChildren(
     el("thead", {}, el("tr", {}, colunas.map((c) => el("th", { class: c.num ? "num" : "" }, c.rotulo)))),
     el("tbody", {}, linhas.map((l) =>
-      el("tr", { "data-tk": l.ticker, onclick: () => aoClicar(l) }, colunas.map((c) => {
-        const td = el("td", { class: [c.num ? "num" : "", c.classe ? c.classe(l) : ""].join(" ") });
-        const v = c.valor(l);
-        td.append(v instanceof Node ? v : document.createTextNode(v));
-        return td;
-      })))),
+      el("tr", { "data-tk": l.ticker, onclick: (e) => { if (porTicker.has(l.ticker) && !e.target.closest("a, button")) abrirAtivo(l.ticker); } },
+        colunas.map((c) => {
+          const td = el("td", { class: [c.num ? "num" : "", c.classe ? c.classe(l) : ""].join(" ") });
+          const v = c.valor(l);
+          td.append(v instanceof Node ? v : document.createTextNode(v));
+          return td;
+        })))),
   );
 }
 
-const celTicker = (l) => el("span", { class: "ticker-cel" },
-  el("b", {}, semSufixo(l.ticker)), el("span", {}, porTicker.get(l.ticker)?.nome ?? ""));
+const celTicker = (l) => (porTicker.has(l.ticker)
+  ? el("a", { class: "ticker-cel", href: urlAtivo(l.ticker), title: "Abrir a página do ativo" },
+    el("b", {}, semSufixo(l.ticker)), el("span", {}, porTicker.get(l.ticker).nome))
+  : el("span", { class: "ticker-cel" }, el("b", {}, semSufixo(l.ticker)), el("span", {}, l.nome ?? "")));
+
+const tendencia = (l) => {
+  const t = (x) => el("span", { class: x === "alta" ? "alta" : x === "baixa" ? "baixa" : "fraco" }, x === "alta" ? "▲ alta" : x === "baixa" ? "▼ baixa" : "lateral");
+  return el("span", { title: "Alta: acima da MM20 e da MM50; baixa: abaixo das duas" }, t(l.tend_d), " · ", t(l.tend_s));
+};
 
 function renderPosicoes(c) {
   const vazio = el("span", {}, "Você ainda não tem posições registradas. Enquanto isso, treine com ",
-    el("b", {}, "Simular"), " no gráfico. (As compras e vendas reais ficam no arquivo de configuração do site, ",
+    el("b", {}, "⊕ Simular"), " no gráfico de um ativo. (As compras e vendas reais ficam no arquivo de configuração do site, ",
     el("code", {}, "config/carteira.json"), ".)");
   tabela("tabela-posicoes", [
     { rotulo: "Ativo", valor: celTicker },
@@ -93,7 +70,8 @@ function renderPosicoes(c) {
     { rotulo: "%", num: true, valor: (l) => fmtPct(l.resultado_pct), classe: (l) => cor(l.resultado_pct) },
     { rotulo: "Mês", num: true, valor: (l) => fmtPct(l.var_mes_pct), classe: (l) => cor(l.var_mes_pct) },
     { rotulo: "Ano", num: true, valor: (l) => fmtPct(l.var_ano_pct), classe: (l) => cor(l.var_ano_pct) },
-  ], c.posicoes, (l) => selecionar(l.ticker), vazio);
+    { rotulo: "Setups", valor: (l) => chipsRecentes(l.ticker) },
+  ], c.posicoes, vazio);
 
   const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro", CAIXA: "Caixa" };
   const total = Object.values(c.alocacao_brl).reduce((s, v) => s + v, 0) || 1;
@@ -121,6 +99,107 @@ function renderPosicoes(c) {
   }
 }
 
+// ------------------------------------------------------------- setups (eventos do catálogo)
+
+let recentesD = new Map();
+
+/** Chips dos setups do ativo nos últimos 5 pregões (diário), um por setup; o resto vai num "+n". */
+function chipsRecentes(tk, max = 3) {
+  const grupos = agruparPorSetup(recentesD.get(tk) ?? []);
+  if (!grupos.length) return el("span", { class: "fraco" }, "—");
+  const titulo = (g) => `${setaLado(g.lado)}${nomeSetup(g.setup)}: ${g.eventos.map((e) => fmtData(e.data)).join(", ")}`;
+  return el("span", { class: "chips chips-linha" },
+    grupos.slice(0, max).map((g) => el("span", { class: `chip evento ${g.lado}`, title: titulo(g) }, setaLado(g.lado), nomeSetup(g.setup))),
+    grupos.length > max ? el("span", { class: "chip", title: grupos.slice(max).map(titulo).join("\n") }, `+${grupos.length - max}`) : null);
+}
+
+/** Os tickers "meus": posições, minha lista e acompanhados da configuração. */
+const meusTickers = () => new Set([...C.carteira.posicoes.map((p) => p.ticker), ...tickersDaLista().filter(Boolean),
+  ...R.ativos.filter((a) => a.carteira).map((a) => a.ticker)]);
+
+/** Setups recentes nos meus ativos, por lado e estilo (a favor / contra a tendência). */
+function renderSetups() {
+  const n = tfSetups === "D" ? 5 : 2;
+  const recentes = eventosRecentes(R, tfSetups, n);
+  const meus = meusTickers();
+  document.getElementById("setups-sub").textContent =
+    `${tfSetups === "D" ? "Últimos 5 pregões" : "Últimas 2 semanas"} · posições, minha lista e acompanhados (${meus.size})`;
+  const blocos = [];
+  const ESTILOS = [["tendencia", "a favor da tendência"], ["contra", "contra a tendência"], [null, ""]];
+  for (const lado of ["compra", "venda", "neutro"]) {
+    for (const [estilo, nome] of ESTILOS) {
+      const itens = [];
+      for (const tk of meus) {
+        const evs = (recentes.get(tk) ?? []).filter((e) => e.lado === lado &&
+          (estilo ? SETUP_POR_ID.get(e.setup)?.estilo === estilo : !["tendencia", "contra"].includes(SETUP_POR_ID.get(e.setup)?.estilo)));
+        if (evs.length && porTicker.has(tk)) itens.push({ ticker: tk, evs, setups: new Set(evs.map((e) => e.setup)) });
+      }
+      if (!itens.length) continue;
+      itens.sort((x, y) => y.setups.size - x.setups.size || y.evs[0].data.localeCompare(x.evs[0].data) || x.ticker.localeCompare(y.ticker));
+      const titulo = lado === "compra" ? "▲ Compra" : lado === "venda" ? "▼ Venda" : "◆ Neutro";
+      blocos.push(el("div", { class: `bloco-lado lado-${lado}` },
+        el("h3", {}, `${titulo} `, nome ? el("span", { class: "estilo-nome" }, nome) : null, " ", el("span", { class: "contagem" }, itens.length)),
+        el("ol", { class: "cartoes" }, itens.map((i) => {
+          const a = porTicker.get(i.ticker);
+          return el("li", { class: `cartao ${i.setups.size >= 2 ? "confluencia" : ""}` },
+            el("a", { class: "cartao-link", href: urlAtivo(i.ticker), title: "Abrir a página do ativo" },
+              el("div", { class: "cartao-topo" },
+                el("div", {}, el("span", { class: "cartao-ticker" }, semSufixo(i.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
+                el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct))),
+              i.setups.size >= 2 ? el("div", { class: "chips" }, el("span", { class: "chip destaque" }, `${i.setups.size} setups`)) : null,
+              el("ul", { class: "motivos" }, agruparPorSetup(i.evs).slice(0, 4).map((g) => el("li", {}, el("span", { class: "data" }, fmtData(g.ultima)),
+                nomeSetup(g.setup), g.eventos.length > 1 ? el("span", { class: "fraco" }, ` · ${g.eventos.length}×`) : null, " ", seloEvento(g.eventos[0]))))));
+        }))));
+    }
+  }
+  document.getElementById("setups-carteira").replaceChildren(
+    ...(blocos.length ? blocos : [el("p", { class: "vazio" }, `Nenhum setup nos seus ativos ${tfSetups === "D" ? "nos últimos 5 pregões" : "nas últimas 2 semanas"}.`)]),
+    el("a", { class: "link-radar", href: "setups.html" }, "Ver todos os setups do mercado →"));
+}
+
+// ------------------------------------------------------------- minha lista
+
+/** Ticker de cada item da lista (null quando o que foi digitado não existe nos dados). */
+const tickersDaLista = () => MinhaLista.ler().map((t) => acharAtivo(R.ativos, t));
+
+function renderLista() {
+  const rotulos = MinhaLista.ler();
+  const linhas = rotulos.map((rot) => {
+    const tk = acharAtivo(R.ativos, rot);
+    return tk ? { ...porTicker.get(tk), rot } : { ticker: rot, rot, nome: "não encontrado nos dados publicados", ausente: true };
+  });
+  const remover = (l) => el("button", { class: "botao-remover", title: `Tirar ${semSufixo(l.ticker)} da lista`, "aria-label": `Tirar ${semSufixo(l.ticker)} da lista`,
+    onclick: () => { MinhaLista.gravar(MinhaLista.ler().filter((x) => x !== l.rot)); renderLista(); renderSetups(); } }, "×");
+  const ou = (l, f) => (l.ausente ? "" : f(l));
+  tabela("tabela-lista", [
+    { rotulo: "Ativo", valor: celTicker },
+    { rotulo: "Último", num: true, valor: (l) => ou(l, (x) => precoComFormacao(x, "celula-preco")) },
+    { rotulo: "Mês", num: true, valor: (l) => ou(l, (x) => fmtPct(x.var_mes_pct)), classe: (l) => cor(l.var_mes_pct) },
+    { rotulo: "Ano", num: true, valor: (l) => ou(l, (x) => fmtPct(x.var_ano_pct)), classe: (l) => cor(l.var_ano_pct) },
+    { rotulo: "Tendência (D · S)", valor: (l) => ou(l, tendencia) },
+    { rotulo: "Setups recentes", valor: (l) => ou(l, (x) => chipsRecentes(x.ticker)) },
+    { rotulo: "", valor: remover },
+  ], linhas, "Sua lista está vazia. Digite um ticker acima e clique em Adicionar.");
+}
+
+function ligarLista() {
+  document.getElementById("lista-tickers").replaceChildren(...R.ativos.map((a) =>
+    el("option", { value: a.rotulo ?? semSufixo(a.ticker) }, a.nome)));
+  const campo = document.getElementById("lista-campo");
+  document.getElementById("lista-adicionar").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const tk = acharAtivo(R.ativos, campo.value);
+    if (!tk) { campo.setCustomValidity("Ativo não encontrado"); campo.reportValidity(); campo.setCustomValidity(""); return; }
+    const atuais = MinhaLista.ler();
+    if (!atuais.some((t) => acharAtivo(R.ativos, t) === tk)) MinhaLista.gravar([...atuais, porTicker.get(tk).rotulo ?? semSufixo(tk)]);
+    campo.value = "";
+    renderLista();
+    renderSetups();
+  });
+}
+
+// ------------------------------------------------------------- acompanhados
+
 function renderAcompanhados() {
   const linhas = R.ativos.filter((a) => a.carteira);
   const ifrCls = (x) => (x == null ? "" : x < 30 ? "alta" : x > 70 ? "baixa" : "");
@@ -131,43 +210,43 @@ function renderAcompanhados() {
     { rotulo: "Dia", num: true, valor: (l) => fmtPct(l.var_dia_pct), classe: (l) => cor(l.var_dia_pct) },
     { rotulo: "Mês", num: true, valor: (l) => fmtPct(l.var_mes_pct), classe: (l) => cor(l.var_mes_pct) },
     { rotulo: "Ano", num: true, valor: (l) => fmtPct(l.var_ano_pct), classe: (l) => cor(l.var_ano_pct) },
-    { rotulo: "Tendência (diário · semanal)", valor: (l) => {
-        const t = (x) => el("span", { class: x === "alta" ? "alta" : x === "baixa" ? "baixa" : "fraco" }, x === "alta" ? "▲ alta" : x === "baixa" ? "▼ baixa" : "lateral");
-        return el("span", { title: "Alta: acima da MM20 e da MM50; baixa: abaixo das duas" }, t(l.tend_d), " · ", t(l.tend_s));
-      } },
+    { rotulo: "Tendência (diário · semanal)", valor: tendencia },
     { rotulo: "IFR D", num: true, valor: (l) => fmtNum(l.ifr_d, 0), classe: (l) => ifrCls(l.ifr_d) },
     { rotulo: "IFR S", num: true, valor: (l) => fmtNum(l.ifr_s, 0), classe: (l) => ifrCls(l.ifr_s) },
     { rotulo: "IFR M", num: true, valor: (l) => fmtNum(l.ifr_m, 0), classe: (l) => ifrCls(l.ifr_m) },
     { rotulo: "Da máx. 52s", num: true, valor: (l) => fmtPct(l.dist_max52_pct), classe: (l) => cor(l.dist_max52_pct) },
+    { rotulo: "Setups", valor: (l) => chipsRecentes(l.ticker) },
     { rotulo: "Dados", valor: (l) => seloVerificacao(l) },
-  ], linhas, (l) => selecionar(l.ticker), "Nenhum ativo acompanhado.");
+  ], linhas, "Nenhum ativo acompanhado.");
 }
+
+// ------------------------------------------------------------- início
 
 async function iniciar() {
   try { [R, C] = await Promise.all([carregarRadar(), carregarResumo()]); }
   catch (e) { montarTopo("carteira"); return erroDados(e); }
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
   montarTopo("carteira", R);
-  painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
+  await carregarCatalogoSetups().catch(() => null);  // sem o catálogo, os setups aparecem pelo id
+  recentesD = eventosRecentes(R, "D", 5);
 
   renderKPIs(C.carteira);
-  renderSinais();
   renderPosicoes(C.carteira);
+  ligarLista();
+  renderLista();
+  segmento("f-tf-setups", ({ v }) => { tfSetups = v; guardar.gravar("carteira-tf-setups", v); renderSetups(); }).marcar("v", tfSetups);
+  renderSetups();
   renderAcompanhados();
 
-  // simulações: lista, exportar/importar e atualização quando salvar/excluir no gráfico
-  const abrirSimulacao = (tk) => { selecionar(tk, false); document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth" }); };
-  const listarSimulacoes = () => renderListaSimulacoes(document.getElementById("lista-simulacoes"), porTicker, abrirSimulacao);
-  document.addEventListener("simulacoes", listarSimulacoes);
+  // simulações: lista, exportar/importar; clicar abre a página do ativo
+  const listarSimulacoes = () => renderListaSimulacoes(document.getElementById("lista-simulacoes"), porTicker, abrirAtivo);
   document.getElementById("sim-exportar").addEventListener("click", exportarSimulacoes);
   document.getElementById("sim-importar").addEventListener("change", (e) => {
-    if (e.target.files[0]) importarSimulacoes(e.target.files[0], () => location.reload());
+    if (e.target.files[0]) importarSimulacoes(e.target.files[0], listarSimulacoes);
   });
   listarSimulacoes();
-
-  const salvo = guardar.ler("carteira-ticker", null);
-  const inicial = [salvo, C.carteira.posicoes[0]?.ticker, R.ativos.find((a) => a.carteira)?.ticker].find((t) => porTicker.has(t));
-  if (inicial) selecionar(inicial, false);
+  // vindo de outra página com #secao-simulacoes: a seção só tem altura depois de montada
+  if (location.hash) document.querySelector(location.hash.replace(/[^#\w-]/g, ""))?.scrollIntoView();
 }
 
 iniciar();

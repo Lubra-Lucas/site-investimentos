@@ -13,28 +13,14 @@
 <body>
   <header class="topo" id="topo"></header>
 
-  <main>
+  <main class="pagina-carteira">
     <section class="kpis" id="kpis"></section>
-
-    <section class="grade">
-      <div class="painel painel-grafico" id="painel-grafico"></div>
-
-      <aside class="painel painel-lateral">
-        <div class="painel-cab">
-          <div>
-            <h2>Sinais nos meus ativos</h2>
-            <p class="sub">Últimos 5 pregões, separados por estilo</p>
-          </div>
-        </div>
-        <div id="sinais-carteira"></div>
-      </aside>
-    </section>
 
     <section class="painel">
       <div class="painel-cab">
         <div>
-          <h2>Minha carteira</h2>
-          <p class="sub">Valores convertidos para BRL pelo câmbio do dia</p>
+          <h2>Posições</h2>
+          <p class="sub">Valores convertidos para BRL pelo câmbio do dia. Clique em um ativo para abrir a página dele.</p>
         </div>
         <div class="alocacao" id="alocacao"></div>
       </div>
@@ -42,25 +28,59 @@
       <div id="grafico-patrimonio"></div>
     </section>
 
-    <section class="painel" id="secao-simulacoes">
-      <div class="painel-cab">
-        <div>
-          <h2>Minhas simulações</h2>
-          <p class="sub">Posições simuladas no gráfico, reavaliadas a cada atualização. Ficam salvas neste navegador.</p>
+    <section class="grade grade-carteira">
+      <div class="coluna-carteira">
+        <div class="painel" id="secao-lista">
+          <div class="painel-cab">
+            <div>
+              <h2>Minha lista</h2>
+              <p class="sub">Os ativos que você acompanha, com os setups dos últimos 5 pregões. Fica salva neste navegador.</p>
+            </div>
+            <form class="lista-adicionar" id="lista-adicionar">
+              <input id="lista-campo" type="search" list="lista-tickers" spellcheck="false" autocomplete="off"
+                placeholder="Ticker: PETR4, NVDA, BTC" aria-label="Ticker para adicionar à lista">
+              <datalist id="lista-tickers"></datalist>
+              <button class="botao primario" type="submit">Adicionar</button>
+            </form>
+          </div>
+          <div class="tabela-wrap"><table id="tabela-lista"></table></div>
         </div>
-        <div class="controles">
-          <button class="botao" id="sim-exportar">Exportar</button>
-          <label class="botao">Importar<input type="file" accept="application/json" id="sim-importar" hidden></label>
-        </div>
+
+        <section class="painel" id="secao-simulacoes">
+          <div class="painel-cab">
+            <div>
+              <h2>Minhas simulações</h2>
+              <p class="sub">Posições simuladas no gráfico, reavaliadas a cada atualização. Ficam salvas neste navegador. Clique para abrir o ativo.</p>
+            </div>
+            <div class="controles">
+              <button class="botao" id="sim-exportar">Exportar</button>
+              <label class="botao">Importar<input type="file" accept="application/json" id="sim-importar" hidden></label>
+            </div>
+          </div>
+          <div id="lista-simulacoes"></div>
+        </section>
       </div>
-      <div id="lista-simulacoes"></div>
+
+      <aside class="painel painel-lateral">
+        <div class="painel-cab">
+          <div>
+            <h2>Setups nos meus ativos</h2>
+            <p class="sub" id="setups-sub">Posições, minha lista e acompanhados</p>
+          </div>
+          <div class="segmento" id="f-tf-setups">
+            <button data-v="D" class="ativo" title="Setups no diário, últimos 5 pregões">Diário</button>
+            <button data-v="W" title="Setups no semanal, últimas 2 semanas">Semanal</button>
+          </div>
+        </div>
+        <div id="setups-carteira"></div>
+      </aside>
     </section>
 
     <section class="painel">
       <div class="painel-cab">
         <div>
           <h2>Ativos acompanhados</h2>
-          <p class="sub">Clique em um ativo para abrir o gráfico. IFR acima de 70 está esticado para cima; abaixo de 30, para baixo.</p>
+          <p class="sub">Os ativos da configuração da carteira. IFR acima de 70 está esticado para cima; abaixo de 30, para baixo.</p>
         </div>
       </div>
       <div class="tabela-wrap"><table id="tabela-acompanhados"></table></div>
@@ -68,12 +88,12 @@
   </main>
 
   <footer>
-    Uso pessoal. Os sinais são filtros técnicos automáticos, não recomendação de investimento.
+    Uso pessoal. Os setups são filtros técnicos automáticos, não recomendação de investimento.
   </footer>
 
   <script src="assets/js/comum.js"></script>
-  <script src="assets/js/desenhos.js"></script>
   <script src="assets/js/simulador.js"></script>
+  <script src="assets/js/eventos.js"></script>
   <script src="assets/js/carteira.js"></script>
 </body>
 </html>
