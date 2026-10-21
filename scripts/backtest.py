@@ -1,39 +1,35 @@
-"""Backtest das estratégias do radar.
+"""Backtest dos setups do catálogo (config/setups.json).
 
-Para cada ativo, refaz todas as vezes que cada estratégia disparou no histórico (6 anos) e mede o
-que aconteceu depois:
+Para cada ativo, refaz todas as vezes que cada setup disparou no histórico (6 anos, candles
+fechados, diário e semanal) e mede o que aconteceu depois:
 
 - entrada na ABERTURA do candle seguinte ao sinal (o site publica depois do fechamento);
 - saída no FECHAMENTO depois de N candles: 5, 10 e 20 pregões (sinal diário) ou 4, 8 e 13 semanas
-  (sinal semanal). Na venda o resultado é invertido (ganha se o preço cair);
-- sem sobreposição: depois de um sinal, novos sinais da mesma estratégia e lado dentro da janela
-  principal são ignorados, para não contar o mesmo movimento várias vezes;
+  (sinal semanal). Em setup de venda o resultado é invertido (ganha se o preço cair);
+- sem sobreposição: depois de um sinal, novos sinais do mesmo setup dentro da janela principal são
+  ignorados, para não contar o mesmo movimento várias vezes (um setup que fica valendo vários
+  candles seguidos conta uma vez por janela);
 - comparação com a "média de qualquer dia" do mesmo ativo e prazo (vantagem): em mercado de alta
   quase toda compra dá lucro, e a vantagem mostra se o sinal acrescenta algo além disso.
 
+Setups neutros (sem lado) e o ranking (depende de todos os ativos) ficam de fora.
 Não inclui custos, impostos nem deslizamento. Resultado passado não garante resultado futuro.
 """
 
 from __future__ import annotations
 
-import re
 from collections import defaultdict
 
 import numpy as np
+import pandas as pd
 
-HORIZONTES = {"D": (5, 10, 20), "S": (4, 8, 13)}
-PRINCIPAL = {"D": 10, "S": 8}
+HORIZONTES = {"D": (5, 10, 20), "W": (4, 8, 13)}
+PRINCIPAL = {"D": 10, "W": 8}
 MIN_CASOS = 5   # abaixo disso a taxa de acerto não quer dizer muito
+SINAL = {"compra": 1, "venda": -1}
 
 
-def variante(familia: str, texto: str) -> str:
-    """Agrupamento fino para o ranking: no pullback separa média, tipo e fechamento a favor."""
-    if familia != "pullback":
-        return familia
-    return re.sub(r"\s*\(\d candles?\)", "", texto)
-
-
-def _estatisticas(retornos: list[float], base: float | None) -> dict:
+def _estatisticas(retornos, base: float | None) -> dict:
     r = np.asarray(retornos, dtype=float)
     if not len(r):
         return {"n": 0}
@@ -49,87 +45,114 @@ def _estatisticas(retornos: list[float], base: float | None) -> dict:
     }
 
 
-class Backtest:
-    def __init__(self):
-        # (mercado, tf, lado, familia, variante, H) -> retornos ; (mercado, tf, H) -> [soma, n] da base
-        self.retornos = defaultdict(list)
-        self.base_mercado = defaultdict(lambda: [0.0, 0])
-        self.por_ativo: dict[str, dict] = {}
+def _sem_sobreposicao(indices: np.ndarray, passo: int) -> np.ndarray:
+    """Sinais aproveitados: depois de um, o próximo só vale `passo` candles depois."""
+    sel, i = [], 0
+    while i < len(indices):
+        sel.append(indices[i])
+        i = int(np.searchsorted(indices, indices[i] + passo, side="left"))
+    return np.asarray(sel, dtype=int)
 
-    def adicionar(self, ticker: str, mercado: str, historico: dict) -> None:
-        frames, eventos = historico["frames"], historico["eventos"]
-        bases, ativo = {}, defaultdict(lambda: defaultdict(list))
-        for tf, f in frames.items():
-            abre, fecha = f["Open"].to_numpy(dtype=float), f["Close"].to_numpy(dtype=float)
-            for h in HORIZONTES[tf]:
-                # retorno de "qualquer dia": entra na abertura seguinte e sai h candles depois
-                if len(f) > h + 1:
-                    # sinal no candle i: entrada abre[i + 1], saída fecha[i + h]
-                    r = fecha[h:] / abre[1:len(f) - h + 1] - 1
-                    r = r[np.isfinite(r)]
-                    bases[(tf, h)] = float(r.mean()) if len(r) else None
-                    soma = self.base_mercado[(mercado, tf, h)]
-                    soma[0] += float(r.sum()); soma[1] += len(r)
 
-        ultimo_usado: dict[tuple, int] = {}
-        posicoes = {tf: {d: i for i, d in enumerate(f.index)} for tf, f in frames.items()}
-        for data, tf, lado, familia, texto in sorted(eventos, key=lambda e: (e[0], e[1])):
-            i = posicoes[tf].get(data)
-            if i is None:
+def por_ativo(frames: dict[str, pd.DataFrame], sinais: dict[str, dict[str, np.ndarray]], vies: dict[str, str]) -> dict:
+    """Backtest de um ativo (roda no processo do ativo). sinais: {tf: {setup: bool por candle}}.
+
+    Devolve os retornos por (tf, setup, H) e a base de "qualquer dia" por (tf, H), para o
+    agregado do mercado, e o resumo do ativo no prazo principal por tf e setup."""
+    out = {"retornos": {}, "base": {}, "resumo": {}}
+    for tf, f in frames.items():
+        abre, fecha = f["Open"].to_numpy(dtype=float), f["Close"].to_numpy(dtype=float)
+        n, P = len(f), PRINCIPAL[tf]
+        bases = {}
+        for h in HORIZONTES[tf]:
+            # retorno de "qualquer dia": sinal no candle i, entrada abre[i + 1], saída fecha[i + h]
+            if n > h + 1:
+                r = fecha[h:] / abre[1:n - h + 1] - 1
+                r = r[np.isfinite(r)]
+                bases[h] = float(r.mean()) if len(r) else None
+                out["base"][(tf, h)] = (float(r.sum()), len(r))
+        for sid, cond in sinais.get(tf, {}).items():
+            # só conta o sinal que tem pelo menos o prazo mais curto pela frente
+            idx = np.flatnonzero(cond)
+            idx = _sem_sobreposicao(idx[idx + min(HORIZONTES[tf]) < n], P)
+            if not len(idx):
                 continue
-            chave = (tf, lado, familia)
-            if chave in ultimo_usado and i - ultimo_usado[chave] < PRINCIPAL[tf]:
-                continue  # mesmo movimento: não conta de novo
-            f = frames[tf]
-            sinal = 1 if lado == "compra" else -1
-            usado = False
+            s = SINAL[vies[sid]]
             for h in HORIZONTES[tf]:
-                if i + h >= len(f):
-                    continue
-                entrada, saida = f["Open"].iat[i + 1], f["Close"].iat[i + h]
-                if not (entrada > 0 and np.isfinite(saida)):
-                    continue
-                r = sinal * (saida / entrada - 1)
-                self.retornos[(mercado, tf, lado, familia, variante(familia, texto), h)].append(r)
-                if h == PRINCIPAL[tf]:
-                    ativo[(tf, familia, lado)][h].append(r)
-                    usado = True
-            if usado:
-                ultimo_usado[chave] = i
+                ok = idx[idx + h < n]
+                r = s * (fecha[ok + h] / abre[ok + 1] - 1)
+                out["retornos"][(tf, sid, h)] = r[np.isfinite(r)]
+            rp = out["retornos"][(tf, sid, P)]
+            if len(rp):
+                base = bases.get(P)
+                out["resumo"].setdefault(tf, {})[sid] = _estatisticas(rp, None if base is None else s * base)
+    return out
 
-        resumo = {}
-        for (tf, familia, lado), por_h in ativo.items():
-            base = bases.get((tf, PRINCIPAL[tf]))
-            base = None if base is None else (base if lado == "compra" else -base)
-            resumo.setdefault(tf, {}).setdefault(familia, {})[lado] = _estatisticas(por_h[PRINCIPAL[tf]], base)
-        self.por_ativo[ticker] = resumo
 
-    def do_sinal(self, ticker: str, tf: str, familia: str, lado: str) -> list | None:
-        """[casos, acerto %, retorno médio %, vantagem %] do ativo nesta estratégia, se houver casos suficientes."""
-        e = self.por_ativo.get(ticker, {}).get(tf, {}).get(familia, {}).get(lado)
-        if not e or e["n"] < MIN_CASOS:
-            return [e["n"], None, None, None] if e else None
-        return [e["n"], e["acerto"], e["medio"], e["vantagem"]]
+def selo(bt: dict | None, tf: str, sid: str) -> list | None:
+    """[casos, acerto %, retorno médio %, vantagem %] do setup neste ativo (só casos, se forem poucos)."""
+    e = (bt or {}).get("resumo", {}).get(tf, {}).get(sid)
+    if not e:
+        return None
+    if e["n"] < MIN_CASOS:
+        return [e["n"], None, None, None]
+    return [e["n"], e["acerto"], e["medio"], e["vantagem"]]
+
+
+class Backtest:
+    """Junta o backtest de todos os ativos por mercado (e no geral, para o catálogo)."""
+
+    def __init__(self, vies: dict[str, str]):
+        self.vies = vies
+        self.retornos = defaultdict(list)            # (mercado, tf, setup, H) -> [arrays]
+        self.base = defaultdict(lambda: [0.0, 0])    # (mercado, tf, H) -> [soma, n]
+        self.ativos: dict[str, dict] = {}
+
+    def adicionar(self, ticker: str, mercado: str, bt: dict) -> None:
+        for (tf, sid, h), r in bt["retornos"].items():
+            self.retornos[(mercado, tf, sid, h)].append(r)
+        for (tf, h), (soma, n) in bt["base"].items():
+            b = self.base[(mercado, tf, h)]
+            b[0] += soma
+            b[1] += n
+        self.ativos[ticker] = bt["resumo"]
+
+    def _base(self, mercados, tf, h, sid) -> float | None:
+        soma = sum(self.base[(m, tf, h)][0] for m in mercados)
+        n = sum(self.base[(m, tf, h)][1] for m in mercados)
+        return SINAL[self.vies[sid]] * soma / n if n else None
 
     def resultado(self) -> dict:
         mercados = {}
-        for (mercado, tf, lado, familia, var, h), rets in self.retornos.items():
-            soma, n = self.base_mercado[(mercado, tf, h)]
-            base = soma / n if n else None
-            base = None if base is None else (base if lado == "compra" else -base)
-            linhas = mercados.setdefault(mercado, {}).setdefault(tf, {}).setdefault(lado, {})
-            linha = linhas.setdefault((familia, var), {"familia": familia, "variante": var, "h": {}})
-            linha["h"][str(h)] = _estatisticas(rets, base)
+        for (mercado, tf, sid, h), rets in self.retornos.items():
+            linhas = mercados.setdefault(mercado, {}).setdefault(tf, {})
+            linhas.setdefault(sid, {"setup": sid, "h": {}})["h"][str(h)] = _estatisticas(
+                np.concatenate(rets), self._base([mercado], tf, h, sid))
+
         def ordem(x, tf):
             e = x["h"].get(str(PRINCIPAL[tf]), {})
-            # estratégias com poucos casos vão para o fim, por mais bonitas que pareçam
+            # setups com poucos casos vão para o fim, por mais bonitos que pareçam
             return (e.get("n", 0) < MIN_CASOS, -(e.get("vantagem") if e.get("vantagem") is not None else -1e9))
-        saida = {m: {tf: {lado: sorted(l.values(), key=lambda x: ordem(x, tf))
-                          for lado, l in por_lado.items()} for tf, por_lado in por_tf.items()} for m, por_tf in mercados.items()}
+        saida = {m: {tf: sorted(l.values(), key=lambda x: ordem(x, tf)) for tf, l in por_tf.items()}
+                 for m, por_tf in mercados.items()}
         base = {}
-        for (mercado, tf, h), (soma, n) in self.base_mercado.items():
+        for (mercado, tf, h), (soma, n) in self.base.items():
             base.setdefault(mercado, {}).setdefault(tf, {})[str(h)] = round(soma / n * 100, 2) if n else None
         return {
             "horizontes": HORIZONTES, "principal": PRINCIPAL, "min_casos": MIN_CASOS,
-            "mercados": saida, "base": base, "ativos": self.por_ativo,
+            "mercados": saida, "base": base, "ativos": self.ativos,
         }
+
+    def por_setup(self) -> dict[str, dict]:
+        """Todos os mercados juntos, no prazo principal: {setup: {tf: estatísticas}} (para data/setups.json)."""
+        todos = {m for m, *_ in self.base}
+        juntos = defaultdict(list)
+        for (mercado, tf, sid, h), rets in self.retornos.items():
+            if h == PRINCIPAL[tf]:
+                juntos[(tf, sid)] += rets
+        out = {}
+        for (tf, sid), rets in juntos.items():
+            r = np.concatenate(rets)
+            if len(r):
+                out.setdefault(sid, {})[tf] = _estatisticas(r, self._base(todos, tf, PRINCIPAL[tf], sid))
+        return out

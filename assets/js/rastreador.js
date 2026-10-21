@@ -1,12 +1,14 @@
-/* Rastreador da Multitela: o usuário escolhe um modelo pronto (tendência de alta, pullback na
- * MME 9, IFR sobrevendido...) ou monta as próprias regras, no diário ou no semanal, e a grade
- * mostra todos os ativos que atendem a TODAS as regras. Os indicadores vêm prontos de
- * data/rastreador.json (scripts/rastreador.py), sempre com candles fechados.
+/* Condições das regras (CONDICOES) e a avaliação das regras personalizadas do usuário no
+ * navegador, no diário ou no semanal: um ativo atende quando TODAS as regras valem. Os setups
+ * prontos ficam no catálogo único (data/setups.json, avaliado em Python por scripts/setups.py,
+ * com a MESMA semântica destas condições: scripts/testar_paridade.py confere). Os indicadores vêm
+ * prontos de data/rastreador.json (scripts/rastreador.py), sempre com candles fechados.
  *
  * Séries (preço, médias, osciladores) vêm com os últimos 10 valores, do mais antigo para o mais
- * recente; volume relativo, variação, máximas anteriores e percentil da Bollinger vêm como lista
- * dos últimos 5 candles. Assim dá para avaliar as regras em cada um dos 5 últimos candles
- * ("aconteceu no último pregão" ou "nos últimos N"). */
+ * recente; volume relativo, variação, máximas anteriores, percentil da Bollinger e as condições
+ * calculadas no Python (boca, multitempo, ranking) vêm como lista dos últimos 5 candles. Assim dá
+ * para avaliar as regras em cada um dos 5 últimos candles ("aconteceu no último pregão" ou "nos
+ * últimos N"). */
 
 const carregarRastreador = () => buscarJSON("data/rastreador.json");
 
@@ -33,7 +35,7 @@ function janelaProxima(lista, v) {
 // ------------------------------------------------------------- regras
 
 const OP = [["acima", "acima de"], ["abaixo", "abaixo de"]];
-// pullback: o quanto o candle pode ficar da média, em ATR (iguais aos de scripts/estrategias.py)
+// pullback: o quanto o candle pode ficar da média, em ATR (iguais aos de scripts/setups.py)
 const PB_TOQUE_ATR = 0.25, PB_FECHAMENTO_ATR = 1, PB_VIOLACAO_ATR = 1;
 const campo = {
   media: (k, rot = "") => ({ k, tipo: "media", rot }),
@@ -302,105 +304,57 @@ const CONDICOES = {
     texto: (p) => `Volume ${p.op} de ${br(p.valor)}× a média de 20 candles`,
     valor: (s) => `volume ${br(s.vr)}× a média`,
   },
+  // calculadas no Python (scripts/setups.py) e publicadas por candle nas fotos: aqui só se lê
+  boca: {
+    nome: "Boca de jacaré", grupo: "Volatilidade",
+    campos: [campo.sel("lado", [["compra", "Boca de jacaré para cima"], ["venda", "Boca de jacaré para baixo"]])],
+    padrao: { lado: "compra" },
+    avaliar: (s, p) => (s.boca?.[p.lado] == null ? null : s.boca[p.lado] === 1),
+    texto: (p) => `Boca de jacaré para ${p.lado === "compra" ? "cima" : "baixo"}: Bollinger comprimida abre com fechamento ${p.lado === "compra" ? "acima da banda superior" : "abaixo da banda inferior"}`,
+    valor: (s) => `bandas ${br(ult(s.bbi), casasPreco(ult(s.c)))} – ${br(ult(s.bbs), casasPreco(ult(s.c)))}`,
+  },
+  multitempo: {
+    nome: "Multitempo", grupo: "Osciladores",
+    campos: [campo.sel("lado", [["compra", "Multitempo de compra"], ["venda", "Multitempo de venda"]])],
+    padrao: { lado: "compra" },
+    avaliar: (s, p) => (s.mtf?.[p.lado] == null ? null : s.mtf[p.lado] === 1),
+    texto: (p, tf) => `Multitempo de ${p.lado}: ${tf === "W" ? "semanal" : "diário"} em ${p.lado === "compra" ? "alta" : "baixa"} + exaustão ` +
+      `${p.lado === "compra" ? "de queda" : "de alta"} no ${tf === "W" ? "diário ou no 4 horas" : "60 min"}`,
+  },
+  ranking: {
+    nome: "Maiores quedas/altas do mercado", grupo: "Preço",
+    campos: [campo.sel("lado", [["quedas", "Entre as maiores quedas do mercado"], ["altas", "Entre as maiores altas do mercado"]])],
+    padrao: { lado: "quedas" },
+    avaliar: (s, p) => (s.rk?.[p.lado] == null ? null : s.rk[p.lado] === 1),
+    texto: (p, tf) => `Entre as 8% maiores ${p.lado} do mercado em ${tf === "W" ? "13 semanas" : "21 pregões"} ` +
+      `(pelo menos ${tf === "W" ? "12" : "8"}%)`,
+    valor: (s, p, tf, F) => { const n = janelaProxima(F.janelas[tf].var, tf === "W" ? 13 : 21); return `${fmtPct(s.var?.[n])} em ${unid(tf, n)}`; },
+  },
 };
-
-// ------------------------------------------------------------- modelos prontos
-
-const r = (t, p = {}) => ({ t, ...CONDICOES[t].padrao, ...p });
-const MODELOS = [
-  { grupo: "Tendência", itens: [
-    { id: "tend-alta", nome: "Tendência de alta", vies: "compra", desc: "Fechamento acima da MMS 20 e da MMS 50 (a regra padrão do terminal).",
-      regras: [r("preco_media", { media: "sma20" }), r("preco_media", { media: "sma50" })] },
-    { id: "tend-baixa", nome: "Tendência de baixa", vies: "venda", desc: "Fechamento abaixo da MMS 20 e da MMS 50.",
-      regras: [r("preco_media", { lado: "abaixo", media: "sma20" }), r("preco_media", { lado: "abaixo", media: "sma50" })] },
-    { id: "tend-alta-forte", nome: "Alta forte (médias alinhadas)", vies: "compra",
-      desc: "Fechamento acima da MMS 20, com MMS 20 > MMS 50 > MMS 200 e a MMS 50 subindo.",
-      regras: [r("preco_media", { media: "sma20" }), r("media_media", { a: "sma20", b: "sma50" }), r("media_media", { a: "sma50", b: "sma200" }),
-        r("inclinacao", { media: "sma50" })] },
-    { id: "tend-baixa-forte", nome: "Baixa forte (médias alinhadas)", vies: "venda",
-      desc: "Fechamento abaixo da MMS 20, com MMS 20 < MMS 50 < MMS 200 e a MMS 50 caindo.",
-      regras: [r("preco_media", { lado: "abaixo", media: "sma20" }), r("media_media", { a: "sma20", lado: "abaixo", b: "sma50" }),
-        r("media_media", { a: "sma50", lado: "abaixo", b: "sma200" }), r("inclinacao", { media: "sma50", dir: "cai" })] },
-    { id: "tend-curta", nome: "Alta curta (MME 9, MMS 25, MMS 50)", vies: "compra",
-      desc: "Fechamento acima da MME 9, da MMS 25 e da MMS 50.",
-      regras: [r("preco_media", { media: "ema9" }), r("preco_media", { media: "sma25" }), r("preco_media", { media: "sma50" })] },
-  ] },
-  { grupo: "Pullback de compra", itens: [
-    { id: "pb-mme9", nome: "Pullback de compra na MME 9", vies: "compra", desc: "Em alta (MMS 20 > MMS 50, fechamento acima da MMS 50), a mínima testa a MME 9 e fecha acima.",
-      regras: [r("pullback", { media: "ema9" }), r("media_media", { a: "sma20", b: "sma50" }), r("preco_media", { media: "sma50" })] },
-    { id: "pb-mm20", nome: "Pullback de compra na MMS 20", vies: "compra", desc: "MMS 20 acima da MMS 50 e subindo; a mínima testa a MMS 20 e fecha acima.",
-      regras: [r("pullback", { media: "sma20" }), r("media_media", { a: "sma20", b: "sma50" }), r("inclinacao", { media: "sma20" })] },
-    { id: "pb-mm50", nome: "Pullback de compra na MMS 50", vies: "compra", desc: "MMS 50 acima da MMS 200; a mínima testa a MMS 50 e fecha acima.",
-      regras: [r("pullback", { media: "sma50" }), r("media_media", { a: "sma50", b: "sma200" })] },
-  ] },
-  { grupo: "Pullback de venda", itens: [
-    { id: "pb-mme9-venda", nome: "Pullback de venda na MME 9", vies: "venda", desc: "Em baixa (MMS 20 < MMS 50, fechamento abaixo da MMS 50), a máxima testa a MME 9 e fecha abaixo.",
-      regras: [r("pullback", { lado: "venda", media: "ema9" }), r("media_media", { a: "sma20", lado: "abaixo", b: "sma50" }),
-        r("preco_media", { lado: "abaixo", media: "sma50" })] },
-    { id: "pb-mm20-venda", nome: "Pullback de venda na MMS 20", vies: "venda", desc: "MMS 20 abaixo da MMS 50 e caindo; a máxima testa a MMS 20 e fecha abaixo.",
-      regras: [r("pullback", { lado: "venda", media: "sma20" }), r("media_media", { a: "sma20", lado: "abaixo", b: "sma50" }),
-        r("inclinacao", { media: "sma20", dir: "cai" })] },
-    { id: "pb-mm50-venda", nome: "Pullback de venda na MMS 50", vies: "venda", desc: "MMS 50 abaixo da MMS 200; a máxima testa a MMS 50 e fecha abaixo.",
-      regras: [r("pullback", { lado: "venda", media: "sma50" }), r("media_media", { a: "sma50", lado: "abaixo", b: "sma200" })] },
-  ] },
-  { grupo: "Exaustão e extremos", itens: [
-    { id: "bb-inf", nome: "Fechou abaixo da Bollinger", vies: "compra", desc: "Fechamento abaixo da banda inferior (20, 2): esticado para baixo.",
-      regras: [r("bollinger", { pos: "fechou_abaixo" })] },
-    { id: "bb-sup", nome: "Fechou acima da Bollinger", vies: "venda", desc: "Fechamento acima da banda superior (20, 2): esticado para cima.",
-      regras: [r("bollinger", { pos: "fechou_acima" })] },
-    { id: "ifr-sv", nome: "IFR sobrevendido", vies: "compra", desc: "IFR 14 abaixo de 30.", regras: [r("ifr")] },
-    { id: "ifr-sc", nome: "IFR sobrecomprado", vies: "venda", desc: "IFR 14 acima de 70.", regras: [r("ifr", { op: "acima", valor: 70 })] },
-    { id: "ifr-estoc", nome: "IFR e estocástico sobrevendidos", vies: "compra", desc: "IFR 14 abaixo de 30 e estocástico lento %K abaixo de 20.",
-      regras: [r("ifr"), r("estocastico")] },
-    { id: "ifr2", nome: "IFR 2 extremo em alta longa", vies: "compra", desc: "IFR 2 abaixo de 10 com o fechamento acima da MMS 200 (queda curta dentro de alta longa).",
-      regras: [r("ifr", { n: 2, valor: 10 }), r("preco_media", { media: "sma200" })] },
-    { id: "longe-baixo", nome: "Muito abaixo da MMS 20", vies: "compra", desc: "Distância da MMS 20 de pelo menos 2,5× o normal do próprio ativo.",
-      regras: [r("distancia")] },
-    { id: "longe-cima", nome: "Muito acima da MMS 20", vies: "venda", desc: "Distância da MMS 20 de pelo menos 2,5× o normal do próprio ativo.",
-      regras: [r("distancia", { lado: "acima" })] },
-    { id: "queda-forte", nome: "Queda forte no mês", vies: "compra", desc: "Caiu mais de 10% em 21 pregões (4 semanas no semanal).",
-      regras: [r("variacao")] },
-  ] },
-  { grupo: "Volatilidade e rompimento", itens: [
-    { id: "comprimida", nome: "Bollinger comprimida", vies: "neutro", desc: "Largura das bandas entre as 10% mais estreitas dos últimos 120 candles.",
-      regras: [r("comprimida")] },
-    { id: "comprimida-alta", nome: "Compressão em tendência de alta", vies: "compra", desc: "Bandas entre as 15% mais estreitas, com fechamento acima da MMS 50.",
-      regras: [r("comprimida", { valor: 15 }), r("preco_media", { media: "sma50" })] },
-    { id: "romp-max", nome: "Rompeu a máxima de 20 candles", vies: "compra", desc: "Fechamento acima da máxima dos 20 candles anteriores.",
-      regras: [r("rompimento")] },
-    { id: "romp-max-vol", nome: "Rompimento com volume", vies: "compra", desc: "Fechou acima da máxima de 20 candles com volume 1,5× a média.",
-      regras: [r("rompimento"), r("volume")] },
-    { id: "perde-min", nome: "Perdeu a mínima de 20 candles", vies: "venda", desc: "Fechamento abaixo da mínima dos 20 candles anteriores.",
-      regras: [r("rompimento", { tipo: "min" })] },
-    { id: "max52", nome: "Perto da máxima de 52 semanas", vies: "compra", desc: "Até 3% da máxima de 52 semanas.", regras: [r("perto_extremo")] },
-    { id: "cruzou-mm20", nome: "Cruzou a MMS 20 para cima", vies: "compra", desc: "Fechou acima da MMS 20 depois de fechar abaixo dela.",
-      regras: [r("cruzamento")] },
-    { id: "golden", nome: "MMS 50 cruzou a MMS 200 para cima", vies: "compra", desc: "Cruzamento de médias longas nos últimos 2 candles.",
-      regras: [r("cruzamento_medias")] },
-  ] },
-];
-const MODELO_POR_ID = new Map(MODELOS.flatMap((g) => g.itens).map((m) => [m.id, m]));
 
 // ------------------------------------------------------------- avaliação
 
+// campos com um valor por candle (os 5 últimos): listas e mapas de listas
+const POR_CANDLE = ["vr", "bbp", "bbl"], POR_CANDLE_MAPA = ["var", "max", "min", "boca", "mtf", "rk"];
+const mapa = (o, f) => o && Object.fromEntries(Object.entries(o).map(([n, a]) => [n, f(a)]));
+/** As listas por candle viram o valor do candle k candles atrás. */
+function porCandle(s, k) {
+  const pega = (a) => (Array.isArray(a) ? a[a.length - 1 - k] ?? null : a);
+  return Object.fromEntries([...POR_CANDLE.map((c) => [c, pega(s[c])]), ...POR_CANDLE_MAPA.map((c) => [c, mapa(s[c], pega)])]);
+}
 /** A foto vista k candles atrás (k = 0 é o último candle fechado). */
 function deslocar(s, k) {
   if (!s || !k) return s;
   const corta = (a) => (Array.isArray(a) ? a.slice(0, a.length - k) : a);
-  const pega = (a) => (Array.isArray(a) ? a[a.length - 1 - k] ?? null : a);
-  const mapa = (o, f) => o && Object.fromEntries(Object.entries(o).map(([n, a]) => [n, f(a)]));
   return {
     ...s, d: s.datas?.[s.datas.length - 1 - k] ?? s.d,
     o: corta(s.o), h: corta(s.h), l: corta(s.l), c: corta(s.c), sma: mapa(s.sma, corta), ema: mapa(s.ema, corta),
     ifr: mapa(s.ifr, corta), k: corta(s.k), kd: corta(s.kd), bbs: corta(s.bbs), bbi: corta(s.bbi),
-    vr: pega(s.vr), bbp: pega(s.bbp), bbl: pega(s.bbl), var: mapa(s.var, pega), max: mapa(s.max, pega), min: mapa(s.min, pega),
+    ...porCandle(s, k),
   };
 }
 /** O mesmo, mas a foto do último candle (listas por candle viram o valor de hoje). */
-const atual = (s) => (s && Array.isArray(s.vr) ? { ...s, ...deslocar(s, 0), vr: ult(s.vr), bbp: ult(s.bbp), bbl: ult(s.bbl),
-  var: s.var && Object.fromEntries(Object.entries(s.var).map(([n, a]) => [n, ult(a)])),
-  max: s.max && Object.fromEntries(Object.entries(s.max).map(([n, a]) => [n, ult(a)])),
-  min: s.min && Object.fromEntries(Object.entries(s.min).map(([n, a]) => [n, ult(a)])) } : s);
+const atual = (s) => (s && Array.isArray(s.vr) ? { ...s, ...porCandle(s, 0) } : s);
 
 /**
  * Em qual dos últimos `periodos` candles TODAS as regras foram atendidas: devolve k (0 = último
@@ -470,11 +424,11 @@ function legendaSobreposicao(sob) {
 
 /**
  * Informações que ajudam a decidir entre os ativos que passaram no filtro: o que está a favor
- * (tendência no outro tempo gráfico, força no ano, perto da máxima, volume, sinais das
- * estratégias) e o que pede cuidado (IFR/estocástico esticados, longe da média, fora da
+ * (tendência no outro tempo gráfico, força no ano, perto da máxima, volume, setups que
+ * dispararam; `nomeSetup(id)` dá o nome do setup pelo catálogo) e o que pede cuidado (IFR/estocástico esticados, longe da média, fora da
  * Bollinger, contra o tempo maior, volume fraco, dado não conferido).
  */
-function contextoDecisao(a, fotos0, tf, vies, sinais) {
+function contextoDecisao(a, fotos0, tf, vies, sinais, nomeSetup = (id) => id) {
   const favor = [], cuidado = [], info = [];
   const fotos = fotos0 && { D: atual(fotos0.D), W: atual(fotos0.W) };
   const s = fotos?.[tf], outroTf = tf === "D" ? "W" : "D", o = fotos?.[outroTf];
@@ -542,16 +496,14 @@ function contextoDecisao(a, fotos0, tf, vies, sinais) {
     if (ult(s.o) < ult(s.l, 1)) (compra ? cuidado : info).push(`Gap de baixa de ${fmtPct(pct(ult(s.o), ult(s.l, 1)))}`);
   }
 
-  // sinais das estratégias do radar nos últimos dias
-  const tfSinal = tf === "W" ? "S" : "D";
-  const recentes = (sinais ?? []).filter((x) => x.tf === tfSinal).sort((x, y) => y.data.localeCompare(x.data));
+  // eventos recentes dos setups do catálogo (data/radar.json: {setup, tf "D"|"W", lado, data})
+  const recentes = (sinais ?? []).filter((x) => x.tf === tf && x.lado !== "neutro").sort((x, y) => y.data.localeCompare(x.data));
   const vistos = new Set();
   for (const x of recentes) {
-    const chave = `${x.lado}:${x.familia}`;
-    if (vistos.has(chave) || vistos.size >= 3) continue;
-    vistos.add(chave);
+    if (vistos.has(x.setup) || vistos.size >= 3) continue;
+    vistos.add(x.setup);
     const aFavor = !vies || vies === "neutro" || x.lado === vies;
-    (aFavor ? favor : cuidado).push(`Sinal de ${x.lado}: ${nomeFamilia(x.familia, x.lado)} (${fmtData(x.data)})`);
+    (aFavor ? favor : cuidado).push(`Sinal de ${x.lado}: ${nomeSetup(x.setup)} (${fmtData(x.data)})`);
   }
 
   if (!a.liquido) cuidado.push("Pouca liquidez");
