@@ -2,7 +2,7 @@
  * oportunidades (compra/venda por estratégia), um filtro de estado ou os dados só do ativo aberto. */
 
 const estado = {
-  mercado: "", visao: "oportunidades", tf: "D", periodo: 1, lado: "compra", categoria: "prioridade",
+  mercado: "", visao: "oportunidades", tf: "D", periodo: 1, lado: "compra", estilo: "tendencia", categoria: "todas", soConfluencia: false,
   filtro: "forte-alta", ordem: "padrao", bbTf: "D", ordemOp: "confluencia", ticker: null,
 };
 let R, porTicker, painel;
@@ -58,12 +58,14 @@ function preencherLista(itens, render, vazio) {
 
 const MODALIDADES = [
   { chave: "tendencia", nome: "A favor da tendência", familias: ["pullback", "boca", "mtf"],
-    dica: { compra: "Para quem compra alta que continua.", venda: "Para quem vende baixa que continua." } },
+    dica: { compra: "Comprar uma alta que continua: pullbacks nas médias, rompimentos, multitempo.",
+      venda: "Vender uma baixa que continua: pullbacks nas médias, rompimentos para baixo, multitempo." } },
   { chave: "contra", nome: "Contra a tendência", familias: ["ifr", "bb_fora", "distancia", "quedas"],
-    dica: { compra: "Para quem compra a faca caindo.", venda: "Para quem vende o que esticou demais." } },
+    dica: { compra: "Comprar a virada depois de uma queda forte: IFR extremo, fora da Bollinger, longe da média.",
+      venda: "Vender a virada depois de uma alta forte: IFR extremo, fora da Bollinger, longe da média." } },
 ];
 const ORDEM_FAMILIAS = MODALIDADES.flatMap((m) => m.familias);
-const NOME_CATEGORIA = { prioridade: "★ Confluência", todas: "Todas" };
+const NOME_CATEGORIA = { todas: "Todas" };
 
 /** Explicação de cada estratégia, conforme o lado (compra/venda) e o sinal (diário/semanal). */
 function descricaoCategoria(c, lado, tf) {
@@ -104,7 +106,7 @@ function itemOportunidade(item) {
   return el("li", { class: `item ${n >= 2 ? "confluencia" : ""}`, "data-tk": item.ticker, onclick: () => selecionar(item.ticker) },
     cabecalhoItem(a),
     el("div", { class: "chips" },
-      n >= 2 ? el("span", { class: "chip destaque" }, `★ ${n}`) : null,
+      n >= 2 ? el("span", { class: "chip destaque" }, `${n} estratégias`) : null,
       chipsFamilias(item.familias, estado.lado),
       a.tendencia_forte === (estado.lado === "compra" ? "alta" : "baixa") ? el("span", { class: "chip ctx" }, "tendência forte D+S") : null),
     el("ul", { class: "motivos" }, sinais.map((s) =>
@@ -116,45 +118,72 @@ function calcularOportunidades() {
   const { sinais, ultima } = sinaisDoPeriodo(R, estado.tf, estado.periodo);
   const g = agruparSinais(sinais, { tf: estado.tf });
   grupos = { compra: g.compra.filter((i) => visivel(i.ticker)), venda: g.venda.filter((i) => visivel(i.ticker)) };
-  document.getElementById("n-compra").textContent = grupos.compra.length;
-  document.getElementById("n-venda").textContent = grupos.venda.length;
 
   const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto" };
   const mercados = [...ultima.keys()].filter((m) => !estado.mercado || m === estado.mercado);
   const rot = estado.tf === "D" ? "pregão" : "semana";
+  // rótulos do período conforme o tempo do sinal (pregões ou semanas)
+  document.querySelectorAll("#f-periodo button").forEach((b) => {
+    const n = +b.dataset.v;
+    b.textContent = n === 99 ? "Todos" : n === 1 ? (estado.tf === "D" ? "Último pregão" : "Última semana") : `${n} ${rot}s`;
+  });
   document.getElementById("f-descricao").textContent =
     `${estado.periodo === 1 ? `Último ${rot}` : estado.periodo === 99 ? "Todos os sinais recentes" : `Últimos ${estado.periodo} ${rot}s`}` +
     ` · ${mercados.map((m) => `${nomes[m]} ${fmtData(ultima.get(m), estado.tf === "D")}`).join(" · ")}` +
     (estado.tf === "S" ? " (semana em andamento)" : "");
 }
 
-function renderOportunidades() {
-  const itens = grupos[estado.lado];
-  const contagem = { prioridade: itens.filter((i) => i.familias.size >= 2).length, todas: itens.length };
-  for (const f of ORDEM_FAMILIAS) contagem[f] = itens.filter((i) => i.familias.has(f)).length;
-  if (!contagem[estado.categoria]) estado.categoria = contagem.prioridade ? "prioridade" : "todas";
+/** Os itens de um lado só com as estratégias de um estilo (a favor ou contra a tendência). */
+function doEstilo(itens, estilo) {
+  const fams = new Set(MODALIDADES.find((m) => m.chave === estilo).familias);
+  return itens.map((i) => {
+    const sinais = i.sinais.filter((x) => fams.has(x.familia));
+    return sinais.length ? { ...i, sinais, familias: new Set(sinais.map((x) => x.familia)) } : null;
+  }).filter(Boolean);
+}
 
+function renderOportunidades() {
+  const m = MODALIDADES.find((x) => x.chave === estado.estilo) ?? MODALIDADES[0];
+  estado.estilo = m.chave;
+  const itens = doEstilo(grupos[estado.lado], m.chave);
+  document.getElementById("n-compra").textContent = doEstilo(grupos.compra, m.chave).length;
+  document.getElementById("n-venda").textContent = doEstilo(grupos.venda, m.chave).length;
+
+  // 1) estilo: a favor ou contra a tendência (nunca misturados)
+  document.getElementById("f-estilo").replaceChildren(...MODALIDADES.map((x) =>
+    el("button", { class: `estilo ${x.chave === m.chave ? "ativo" : ""}`, role: "tab", "aria-selected": x.chave === m.chave,
+      onclick: () => { estado.estilo = x.chave; estado.categoria = "todas"; salvar(); renderOportunidades(); abrirPrimeiro(); } },
+    x.nome, el("span", { class: "contagem" }, doEstilo(grupos[estado.lado], x.chave).length))));
+  document.getElementById("dica-estilo").textContent = m.dica[estado.lado];
+
+  // 2) estratégias do estilo
+  const contagem = { todas: itens.length };
+  for (const f of m.familias) contagem[f] = itens.filter((i) => i.familias.has(f)).length;
+  if (!(estado.categoria in contagem) || !contagem[estado.categoria]) estado.categoria = "todas";
   const botao = (c) => el("button", {
     class: `cat ${c === estado.categoria ? "ativo" : ""} ${c in FAMILIA_CURTA ? "fam-" + c : "cat-" + c}`,
     disabled: !contagem[c], onclick: () => { estado.categoria = c; salvar(); renderOportunidades(); abrirPrimeiro(); } },
   NOME_CATEGORIA[c] ?? (c === "quedas" && estado.lado === "venda" ? "Maiores altas" : R.familias[c]?.nome ?? c),
   " ", el("span", { class: "contagem" }, contagem[c]));
+  const nConfluencia = itens.filter((i) => estado.categoria === "todas" || i.familias.has(estado.categoria))
+    .filter((i) => i.familias.size >= 2).length;
   document.getElementById("categorias").replaceChildren(
-    el("div", { class: "grupo-cat" }, botao("prioridade"), botao("todas")),
-    ...MODALIDADES.map((m) => el("div", { class: `grupo-cat modalidade-${m.chave}` },
-      el("div", { class: "grupo-titulo" }, el("b", {}, m.nome), el("span", {}, m.dica[estado.lado])),
-      m.familias.map(botao))));
-  document.getElementById("cat-descricao").textContent = descricaoCategoria(estado.categoria, estado.lado, estado.tf);
+    el("div", { class: "grupo-cat" }, botao("todas"), ...m.familias.map(botao)),
+    el("div", { class: "grupo-cat opcoes-lista" },
+      el("label", { class: "opcao", title: "Ativos com 2 ou mais estratégias deste estilo ao mesmo tempo" },
+        el("input", { type: "checkbox", checked: estado.soConfluencia ? true : null,
+          onchange: (e) => { estado.soConfluencia = e.target.checked; salvar(); renderOportunidades(); abrirPrimeiro(); } }),
+        `Só com 2+ estratégias (${nConfluencia})`),
+      el("label", { class: "ordem-op" }, "Ordenar ",
+        el("select", { onchange: (e) => { estado.ordemOp = e.target.value; salvar(); renderOportunidades(); } },
+          [["confluencia", "Mais estratégias"], ["historico", "Melhor histórico"]].map(([k, rot]) =>
+            el("option", { value: k, selected: estado.ordemOp === k ? true : null }, rot))))));
+  document.getElementById("cat-descricao").textContent = estado.categoria === "todas"
+    ? `Ativos com sinal de ${estado.lado} ${m.chave === "tendencia" ? "a favor" : "contra"} da tendência no período.`
+    : descricaoCategoria(estado.categoria, estado.lado, estado.tf);
 
-  document.getElementById("categorias").append(el("div", { class: "grupo-cat ordem-op" },
-    el("span", { class: "filtro-rotulo" }, "Ordenar"),
-    ...[["confluencia", "Confluência"], ["historico", "Melhor histórico"]].map(([k, rot]) =>
-      el("button", { class: `ordem ${estado.ordemOp === k ? "ativo" : ""}`,
-        title: k === "historico" ? "Quem teve a maior vantagem no backtest deste ativo com estas estratégias" : "Mais estratégias ao mesmo tempo",
-        onclick: () => { estado.ordemOp = k; salvar(); renderOportunidades(); } }, rot))));
-
-  let lista = itens.filter((i) => estado.categoria === "todas" ? true
-    : estado.categoria === "prioridade" ? i.familias.size >= 2 : i.familias.has(estado.categoria));
+  let lista = itens.filter((i) => (estado.categoria === "todas" || i.familias.has(estado.categoria))
+    && (!estado.soConfluencia || i.familias.size >= 2));
   if (estado.ordemOp === "historico") {
     // melhor vantagem histórica entre os sinais da categoria (só conta com casos suficientes)
     const nota = (i) => Math.max(-1e9, ...i.sinais
@@ -162,7 +191,9 @@ function renderOportunidades() {
       .map((s) => s.bt[3]));
     lista = [...lista].sort((a, b) => nota(b) - nota(a));
   }
-  preencherLista(lista, itemOportunidade, "Nenhum sinal no período.");
+  preencherLista(lista, itemOportunidade, estado.soConfluencia
+    ? "Nenhum ativo com 2+ estratégias deste estilo no período. Desmarque a opção ou aumente o período."
+    : "Nenhum sinal deste estilo no período.");
 }
 
 // ------------------------------------------------------------- filtros de estado
@@ -375,6 +406,7 @@ function renderRetidos() {
 
 // "Este ativo" não fica salvo: o Radar volta a abrir na última lista usada
 const salvar = () => guardar.gravar("radar-v2", {
+  estilo: estado.estilo, soConfluencia: estado.soConfluencia,
   mercado: estado.mercado, visao: estado.visao === "ativo" ? guardar.ler("radar-v2", {}).visao : estado.visao, tf: estado.tf, periodo: estado.periodo,
   lado: estado.lado, categoria: estado.categoria, filtro: estado.filtro, bbTf: estado.bbTf, ordemOp: estado.ordemOp,
 });
@@ -395,6 +427,7 @@ async function iniciar() {
   painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
   Object.assign(estado, guardar.ler("radar-v2", {}));
   if (!FILTROS[estado.filtro]) estado.filtro = "forte-alta";  // filtro salvo que deixou de existir
+  if (estado.categoria === "prioridade") { estado.categoria = "todas"; estado.soConfluencia = true; }
   // vindo da Multitela ou do Backtest (radar.html?ativo#PETR4.SA): abre direto nos dados do ativo
   if (new URLSearchParams(location.search).has("ativo")) estado.visao = "ativo";
   const doHash = decodeURIComponent(location.hash.slice(1));

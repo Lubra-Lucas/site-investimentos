@@ -18,35 +18,40 @@ function renderKPIs(c) {
       el("div", { class: "kpi-valor" }, valor),
       extra ? el("div", { class: `kpi-extra ${classe}` }, extra) : null);
   document.getElementById("kpis").replaceChildren(
-    kpi("Patrimônio", fmtBRL.format(c.patrimonio_brl)),
+    kpi("Patrimônio", fmtBRL.format(c.patrimonio_brl), `capital inicial ${fmtBRL.format(c.capital_inicial)}`),
     kpi("Resultado", fmtBRL.format(c.resultado_brl), fmtPct(c.resultado_pct), cor(c.resultado_brl)),
-    kpi("Investido", fmtBRL.format(c.investido_brl)),
+    kpi("Investido", fmtBRL.format(c.investido_brl), `${c.posicoes.length} ${c.posicoes.length === 1 ? "posição" : "posições"}`),
     kpi("Caixa disponível", fmtBRL.format(c.caixa_brl)),
-    kpi("Capital inicial", fmtBRL.format(c.capital_inicial)),
   );
 }
 
+/** Sinais dos últimos 5 pregões nos ativos acompanhados, separados por lado e por estilo. */
 function renderSinais() {
   const daCarteira = sinaisDoPeriodo(R, "D", 5).sinais.filter((s) => porTicker.get(s.ticker)?.carteira);
-  const grupos = agruparSinais(daCarteira, { tf: "D" });
-  const bloco = (lado, titulo) => {
-    const itens = grupos[lado];
-    return el("div", { class: `bloco-lado lado-${lado}` },
-      el("h3", {}, titulo, " ", el("span", { class: "contagem" }, itens.length)),
-      itens.length ? el("ol", { class: "cartoes" }, itens.map((i) => {
-        const a = porTicker.get(i.ticker);
-        return el("li", { class: `cartao ${i.familias.size >= 2 ? "confluencia" : ""}`, "data-tk": i.ticker, onclick: () => selecionar(i.ticker) },
-          el("div", { class: "cartao-topo" },
-            el("div", {}, el("span", { class: "cartao-ticker" }, semSufixo(i.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
-            el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct))),
-          el("div", { class: "chips" },
-            i.familias.size >= 2 ? el("span", { class: "chip destaque" }, `★ ${i.familias.size} estratégias`) : null,
-            chipsFamilias(i.familias, lado)),
-          el("ul", { class: "motivos" }, i.sinais.map((s) => el("li", {}, el("span", { class: "data" }, fmtData(s.data)), s.texto))));
-      })) : el("p", { class: "vazio" }, "Nenhum sinal."));
-  };
+  const blocos = [];
+  for (const lado of ["compra", "venda"]) {
+    for (const [estilo, nome] of [["tendencia", "a favor da tendência"], ["contra", "contra a tendência"]]) {
+      const doEstilo = daCarteira.filter((s) => s.lado === lado && R.familias[s.familia]?.modalidade === estilo);
+      const itens = agruparSinais(doEstilo, { tf: "D" })[lado];
+      if (!itens.length) continue;
+      blocos.push(el("div", { class: `bloco-lado lado-${lado}` },
+        el("h3", {}, `${lado === "compra" ? "▲ Compra" : "▼ Venda"} `, el("span", { class: "estilo-nome" }, nome), " ",
+          el("span", { class: "contagem" }, itens.length)),
+        el("ol", { class: "cartoes" }, itens.map((i) => {
+          const a = porTicker.get(i.ticker);
+          return el("li", { class: `cartao ${i.familias.size >= 2 ? "confluencia" : ""}`, "data-tk": i.ticker, onclick: () => selecionar(i.ticker) },
+            el("div", { class: "cartao-topo" },
+              el("div", {}, el("span", { class: "cartao-ticker" }, semSufixo(i.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
+              el("span", { class: `mono ${cor(a.var_dia_pct)}` }, fmtPct(a.var_dia_pct))),
+            el("div", { class: "chips" },
+              i.familias.size >= 2 ? el("span", { class: "chip destaque" }, `${i.familias.size} estratégias`) : null,
+              chipsFamilias(i.familias, lado)),
+            el("ul", { class: "motivos" }, i.sinais.slice(0, 3).map((s) => el("li", {}, el("span", { class: "data" }, fmtData(s.data)), s.texto))));
+        }))));
+    }
+  }
   document.getElementById("sinais-carteira").replaceChildren(
-    bloco("compra", "▲ Compra"), bloco("venda", "▼ Venda"),
+    ...(blocos.length ? blocos : [el("p", { class: "vazio" }, "Nenhum sinal nos seus ativos nos últimos 5 pregões.")]),
     el("a", { class: "link-radar", href: "radar.html" }, "Ver todas as oportunidades no Radar →"));
 }
 
@@ -72,8 +77,9 @@ const celTicker = (l) => el("span", { class: "ticker-cel" },
   el("b", {}, semSufixo(l.ticker)), el("span", {}, porTicker.get(l.ticker)?.nome ?? ""));
 
 function renderPosicoes(c) {
-  const vazio = el("span", {}, "Nenhuma posição ainda. Registre suas compras em ",
-    el("code", {}, "config/carteira.json"), " → ", el("code", {}, "transacoes"), ".");
+  const vazio = el("span", {}, "Você ainda não tem posições registradas. Enquanto isso, treine com ",
+    el("b", {}, "Simular"), " no gráfico. (As compras e vendas reais ficam no arquivo de configuração do site, ",
+    el("code", {}, "config/carteira.json"), ".)");
   tabela("tabela-posicoes", [
     { rotulo: "Ativo", valor: celTicker },
     { rotulo: "Mercado", valor: (l) => el("span", { class: "tag" }, l.mercado) },
@@ -98,7 +104,7 @@ function renderPosicoes(c) {
   if (c.historico.length > 1) {
     const g = LWC.createChart(alvo, {
       autoSize: true,
-      layout: { background: { type: "solid", color: "transparent" }, textColor: css("--texto-fraco"), fontFamily: "JetBrains Mono, monospace", fontSize: 11 },
+      layout: { background: { type: "solid", color: "transparent" }, textColor: css("--texto-fraco"), fontFamily: "Inter, system-ui, sans-serif", fontSize: 11 },
       grid: { vertLines: { color: "rgba(31,39,51,0.5)" }, horzLines: { color: "rgba(31,39,51,0.5)" } },
       rightPriceScale: { borderColor: css("--borda") },
       timeScale: { borderColor: css("--borda"), fixLeftEdge: true, fixRightEdge: true },
@@ -125,8 +131,10 @@ function renderAcompanhados() {
     { rotulo: "Dia", num: true, valor: (l) => fmtPct(l.var_dia_pct), classe: (l) => cor(l.var_dia_pct) },
     { rotulo: "Mês", num: true, valor: (l) => fmtPct(l.var_mes_pct), classe: (l) => cor(l.var_mes_pct) },
     { rotulo: "Ano", num: true, valor: (l) => fmtPct(l.var_ano_pct), classe: (l) => cor(l.var_ano_pct) },
-    { rotulo: "Tendência", valor: (l) => l.tendencia_forte ? `forte ${l.tendencia_forte}` : `D ${l.tend_d} · S ${l.tend_s}`,
-      classe: (l) => (l.tendencia_forte === "alta" ? "alta" : l.tendencia_forte === "baixa" ? "baixa" : "") },
+    { rotulo: "Tendência (diário · semanal)", valor: (l) => {
+        const t = (x) => el("span", { class: x === "alta" ? "alta" : x === "baixa" ? "baixa" : "fraco" }, x === "alta" ? "▲ alta" : x === "baixa" ? "▼ baixa" : "lateral");
+        return el("span", { title: "Alta: acima da MM20 e da MM50; baixa: abaixo das duas" }, t(l.tend_d), " · ", t(l.tend_s));
+      } },
     { rotulo: "IFR D", num: true, valor: (l) => fmtNum(l.ifr_d, 0), classe: (l) => ifrCls(l.ifr_d) },
     { rotulo: "IFR S", num: true, valor: (l) => fmtNum(l.ifr_s, 0), classe: (l) => ifrCls(l.ifr_s) },
     { rotulo: "IFR M", num: true, valor: (l) => fmtNum(l.ifr_m, 0), classe: (l) => ifrCls(l.ifr_m) },

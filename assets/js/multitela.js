@@ -5,7 +5,7 @@
 
 // abas do topo; as oportunidades das estratégias estão ocultas por enquanto (o código segue abaixo)
 const FONTES = [
-  ["rastreador", "⌕ Rastreador", "Ativos que atendem às regras escolhidas"],
+  ["rastreador", "Rastreador", "Ativos que atendem às regras escolhidas"],
   ["carteira", "Minha carteira", "As posições registradas na Carteira"],
   ["simulacoes", "Minhas simulações", "Os ativos com simulações salvas no gráfico do Radar"],
   ["personalizada", "Minha lista", "Os ativos que você digitar"],
@@ -136,9 +136,11 @@ function blocoContexto(a) {
   const { favor, cuidado, info } = contextoDecisao(a, fotos, tf, viesAtual(), R.sinais.filter((s) => s.ticker === a.ticker));
   const lista = (itens, cls, simbolo, max) => (itens.length ? el("ul", { class: `contexto-lista ${cls}` },
     itens.slice(0, max).map((t) => el("li", {}, el("span", { class: "simbolo" }, simbolo), t)),
-    itens.length > max ? el("li", { class: "mais", title: itens.slice(max).join("\n") }, `+${itens.length - max}`) : null) : null);
+    itens.length > max ? el("li", { class: "mais", title: itens.slice(max).join("\n") }, `+${itens.length - max} outros`) : null) : null);
+  // enxuto: até 3 a favor e 3 de cuidado; o resto fica em "Mais"
   return el("div", { class: "contexto-decisao" },
-    lista(favor, "favor", "✓", 4), lista(cuidado, "cuidado", "⚠", 4), lista(info, "info", "·", 4));
+    lista(favor, "favor", "✓", 3), lista(cuidado, "cuidado", "⚠", 3),
+    info.length ? el("details", { class: "contexto-mais" }, el("summary", {}, "Mais informações"), lista(info, "info", "·", 8)) : null);
 }
 
 /** O que a condição desenha no gráfico deste ativo (null = usar os indicadores do usuário). */
@@ -175,15 +177,15 @@ function celula(item) {
         botaoTelaCheia(() => cel),
         el("a", { class: "abrir-radar", href: `radar.html?ativo#${encodeURIComponent(item.ticker)}`, title: "Abrir no Radar com os dados deste ativo" }, "↗"))),
     item.familias ? el("div", { class: "chips" },
-      item.familias.size >= 2 ? el("span", { class: "chip destaque" }, `★ ${item.familias.size}`) : null,
+      item.familias.size >= 2 ? el("span", { class: "chip destaque" }, `${item.familias.size} estratégias`) : null,
       chipsFamilias(item.familias, item.lado)) : null,
     item.sinais ? el("ul", { class: "motivos celula-motivos" }, item.sinais.slice(0, 3).map((s) =>
       el("li", {}, el("span", { class: "data" }, fmtData(s.data)), s.texto))) : null,
     blocoRegras(a),
-    blocoContexto(a),
-    chipsSimulacoes(a),
+    corpo,
     legenda(sob),
-    corpo);
+    blocoContexto(a),
+    chipsSimulacoes(a));
   corpo.abrir = () => {
     const g = new Grafico(corpo, { mini: true });
     g.sinais = R.sinais.filter((s) => s.ticker === a.ticker);
@@ -265,7 +267,7 @@ function renderRastreador() {
   if (estado.rcat === "minhas" && !meus.length) estado.rcat = categoriaAtual();
 
   // categorias (abas) e os modelos da categoria (chips)
-  const categorias = [...MODELOS.map((g) => [g.grupo, g.grupo]), ...(meus.length ? [["minhas", "★ Minhas regras"]] : [])];
+  const categorias = [...MODELOS.map((g) => [g.grupo, g.grupo]), ...(meus.length ? [["minhas", "Minhas regras"]] : [])];
   document.getElementById("r-categorias").replaceChildren(...categorias.map(([k, rot]) =>
     el("button", { class: `cat-modelo ${k === estado.rcat ? "ativo" : ""} ${k === categoriaAtual() ? "tem-escolhido" : ""}`,
       role: "tab", "aria-selected": k === estado.rcat, onclick: () => { estado.rcat = k; salvar(); renderRastreador(); } }, rot)));

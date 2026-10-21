@@ -437,7 +437,7 @@ class Desenhos {
     novo("line", { x1: x, x2: x + w, y1: r.ye, y2: r.ye, stroke: "#8a94a6", "stroke-width": sel ? 2 : 1.5 });
     const texto = (tx, ty, t, ancora = "start") => {
       const n = novo("text", { x: tx, y: ty, fill: "#fff", stroke: "rgba(0,0,0,.65)", "stroke-width": 3, "paint-order": "stroke",
-        "font-size": 11, "font-family": "JetBrains Mono, monospace", "text-anchor": ancora });
+        "font-size": 11, "font-family": "Inter, system-ui, sans-serif", "text-anchor": ancora });
       n.textContent = t;
     };
     const acima = (y1, y2) => Math.min(y1, y2) - 5, abaixo = (y1, y2) => Math.max(y1, y2) + 13;
