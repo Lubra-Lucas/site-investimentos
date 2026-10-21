@@ -36,24 +36,35 @@
         </div>
       </div>
 
-      <div class="linha-menu" id="menu-oportunidades">
-        <div class="filtro">
-          <span class="filtro-rotulo">Sinais do</span>
-          <div class="segmento" id="f-tf">
-            <button data-v="D" class="ativo" title="Sinais no gráfico diário">Diário</button>
-            <button data-v="S" title="Sinais no gráfico semanal">Semanal</button>
-          </div>
+      <div class="menu-op" id="menu-oportunidades">
+        <div class="abas-lado" role="tablist" aria-label="Compra ou venda">
+          <button role="tab" data-lado="compra" class="aba-compra ativo">▲ Oportunidades de compra <span class="contagem" id="n-compra">0</span></button>
+          <button role="tab" data-lado="venda" class="aba-venda">▼ Oportunidades de venda <span class="contagem" id="n-venda">0</span></button>
         </div>
-        <div class="filtro">
-          <span class="filtro-rotulo">De quando</span>
-          <div class="segmento" id="f-periodo">
-            <button data-v="1" class="ativo">Último pregão</button>
-            <button data-v="3">3 pregões</button>
-            <button data-v="5">5 pregões</button>
-            <button data-v="99">Todos</button>
-          </div>
+        <div class="op-estilo">
+          <div class="estilos" id="f-estilo" role="tablist" aria-label="Estilo de operação"></div>
+          <p class="sub dica-estilo" id="dica-estilo"></p>
         </div>
-        <p class="sub" id="f-descricao"></p>
+        <div class="categorias" id="categorias" role="group" aria-label="Estratégia"></div>
+        <div class="linha-menu op-tempo">
+          <div class="filtro">
+            <span class="filtro-rotulo">Sinais do</span>
+            <div class="segmento" id="f-tf">
+              <button data-v="D" class="ativo" title="Sinais no gráfico diário">Diário</button>
+              <button data-v="S" title="Sinais no gráfico semanal">Semanal</button>
+            </div>
+          </div>
+          <div class="filtro">
+            <span class="filtro-rotulo">De quando</span>
+            <div class="segmento" id="f-periodo">
+              <button data-v="1" class="ativo">Último pregão</button>
+              <button data-v="3">3 pregões</button>
+              <button data-v="5">5 pregões</button>
+              <button data-v="99">Todos</button>
+            </div>
+          </div>
+          <p class="sub" id="f-descricao"></p>
+        </div>
       </div>
 
       <div class="linha-menu" id="menu-ativo" hidden>
@@ -84,14 +95,9 @@
       <div class="painel painel-grafico" id="painel-grafico"></div>
 
       <aside class="painel lista-sinais" aria-label="Lista de ativos">
-        <div id="cab-oportunidades">
-          <div class="abas-lado" role="tablist">
-            <button role="tab" data-lado="compra" class="aba-compra ativo">▲ Compra <span class="contagem" id="n-compra">0</span></button>
-            <button role="tab" data-lado="venda" class="aba-venda">▼ Venda <span class="contagem" id="n-venda">0</span></button>
-          </div>
-          <div class="estilos" id="f-estilo" role="tablist" aria-label="Estilo de operação"></div>
-          <p class="sub dica-estilo" id="dica-estilo"></p>
-          <div class="categorias" id="categorias" role="group" aria-label="Estratégia"></div>
+        <div id="cab-oportunidades" class="cab-lista">
+          <h2 id="titulo-lista"></h2>
+          <span class="contagem" id="n-lista"></span>
         </div>
         <div id="cab-estado" class="cab-estado" hidden>
           <div class="cab-estado-titulo">

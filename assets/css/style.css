@@ -276,6 +276,23 @@ b.aviso { color: var(--aviso); font-weight: 500; }
 .abas-lado button:hover { color: var(--texto); }
 .abas-lado .aba-compra.ativo { color: var(--alta); border-bottom-color: var(--alta); background: rgba(38, 194, 129, 0.06); }
 .abas-lado .aba-venda.ativo { color: var(--baixa); border-bottom-color: var(--baixa); background: rgba(240, 80, 110, 0.06); }
+/* oportunidades: escolhas no menu de cima, em passos */
+.menu-op { display: grid; gap: 12px; }
+.menu-op .abas-lado { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border: 0; }
+.menu-op .abas-lado button {
+  border: 1px solid var(--borda-forte); border-radius: 10px; background: var(--bg-elev);
+  font: 600 15px Inter, sans-serif; padding: 12px 14px; color: var(--texto-fraco);
+}
+.menu-op .abas-lado .aba-compra.ativo { color: var(--alta); border-color: var(--alta); background: rgba(34, 176, 125, 0.1); }
+.menu-op .abas-lado .aba-venda.ativo { color: var(--baixa); border-color: var(--baixa); background: rgba(229, 72, 77, 0.1); }
+.op-estilo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.op-estilo .estilos { margin: 0; flex: 0 1 460px; }
+.op-estilo .dica-estilo { padding: 0; margin: 0; flex: 1 1 260px; }
+.menu-op .categorias { padding: 0; }
+.op-tempo { border-top: 1px solid var(--borda); padding-top: 10px; }
+.cab-lista { display: flex; align-items: center; gap: 8px; padding: 14px 14px 4px; }
+.cab-lista h2 { font-size: 14px; }
+.cab-lista h2.compra { color: var(--alta); } .cab-lista h2.venda { color: var(--baixa); }
 .estilos { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 12px 14px 0; background: var(--bg); border: 1px solid var(--borda); border-radius: 8px; padding: 3px; }
 .estilo {
   background: transparent; border: 0; border-radius: 6px; color: var(--texto-fraco); cursor: pointer;

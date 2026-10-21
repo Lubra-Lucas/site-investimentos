@@ -178,6 +178,10 @@ function renderOportunidades() {
         el("select", { onchange: (e) => { estado.ordemOp = e.target.value; salvar(); renderOportunidades(); } },
           [["confluencia", "Mais estratégias"], ["historico", "Melhor histórico"]].map(([k, rot]) =>
             el("option", { value: k, selected: estado.ordemOp === k ? true : null }, rot))))));
+  const nomeEstr = estado.categoria === "todas" ? "" : ` · ${NOME_CATEGORIA[estado.categoria] ?? (estado.categoria === "quedas" && estado.lado === "venda" ? "Maiores altas" : R.familias[estado.categoria]?.nome)}`;
+  document.getElementById("titulo-lista").textContent =
+    `${estado.lado === "compra" ? "▲ Compra" : "▼ Venda"} ${m.chave === "tendencia" ? "a favor" : "contra"} da tendência${nomeEstr}`;
+  document.getElementById("titulo-lista").className = estado.lado;
   document.getElementById("cat-descricao").textContent = estado.categoria === "todas"
     ? `Ativos com sinal de ${estado.lado} ${m.chave === "tendencia" ? "a favor" : "contra"} da tendência no período.`
     : descricaoCategoria(estado.categoria, estado.lado, estado.tf);
@@ -191,6 +195,7 @@ function renderOportunidades() {
       .map((s) => s.bt[3]));
     lista = [...lista].sort((a, b) => nota(b) - nota(a));
   }
+  document.getElementById("n-lista").textContent = lista.length;
   preencherLista(lista, itemOportunidade, estado.soConfluencia
     ? "Nenhum ativo com 2+ estratégias deste estilo no período. Desmarque a opção ou aumente o período."
     : "Nenhum sinal deste estilo no período.");
