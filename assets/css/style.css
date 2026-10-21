@@ -1018,6 +1018,7 @@ main.pagina-setups { padding-top: 10px; gap: 10px; }
 .area-setups .cab-lista h2.neutro { color: var(--aviso); }
 .area-setups .cab-lista h2.minhas { color: var(--acento); }
 .area-setups .cat-descricao { min-height: 0; }
+.menu-setups > .cat-descricao { margin: 0; padding: 0; min-height: 0; font-size: 12.5px; }
 .chip.setup { color: var(--texto); }
 .chip.setup .data { color: var(--texto-fraco); margin-left: 2px; }
 .chip.setup.vies-compra { border-color: rgba(34, 176, 125, 0.4); }

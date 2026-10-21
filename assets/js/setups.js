@@ -1,21 +1,22 @@
 /* Setups: une o antigo Radar e a antiga Multitela. Escolhe-se um setup do catálogo
  * (data/setups.json: lado → a favor/contra a tendência → setup) ou as "Minhas regras", e o mesmo
- * resultado aparece em duas visões: lista + gráfico grande, ou grade de gráficos para comparar.
+ * resultado aparece numa grade de gráficos para comparar (1, 2×2, 3×3 ou 4×3).
  * Os eventos dos setups vêm de data/radar.json (sinais: {ticker, setup, tf, data, lado, preco, bt});
  * as minhas regras são avaliadas aqui mesmo, sobre as fotos de data/rastreador.json. */
 
 const estado = Object.assign({
   mercado: "", tf: "D", periodo: 1, lado: "compra", estilo: "tendencia", setup: "todos",
-  so2: false, ordem: "confluencia", visao: "lista", grade: "3", tfGrafico: "D", camadas: "condicoes",
+  so2: false, ordem: "confluencia", grade: "3", tfGrafico: "D", camadas: "condicoes",
   pagina: 0, arvore: true, verVazios: false, editando: false, minhas: null,
 }, guardar.ler("setups-v1", {}));
 estado.ticker = null;  // o ativo aberto vem do endereço (#PETR4.SA), não fica salvo
+delete estado.visao;   // a antiga visão "lista + gráfico" saiu: só a grade
 const salvar = () => guardar.gravar("setups-v1", { ...estado, ticker: undefined });
 
-let R, F, porTicker, painel;
+let R, F, porTicker;
 let SETUPS = [], SETUP = new Map(), NEUTROS = [], EVENTOS = [], eventosLocais = false;
 let P = { eventos: [], ultima: new Map(), porSetup: new Map() };  // eventos do período escolhido
-let lista = [];        // resultado filtrado e ordenado (o mesmo nas duas visões)
+let lista = [];        // resultado filtrado e ordenado
 const abertos = [];    // gráficos da grade
 const $ = (id) => document.getElementById(id);
 
@@ -287,103 +288,22 @@ function blocoContexto(a) {
 const linkAtivo = (tk, txt = "↗") => el("a", { class: "abrir-radar", href: `ativo.html#${encodeURIComponent(tk)}`,
   title: "Abrir a página do ativo", onclick: (e) => e.stopPropagation() }, txt);
 
-// ------------------------------------------------------------- visão: lista + gráfico
-
-function itemLista(i) {
-  const a = porTicker.get(i.ticker);
-  return el("li", { class: `item ${i.setups.size >= 2 ? "confluencia" : ""}`, "data-tk": i.ticker, onclick: () => selecionar(i.ticker) },
-    el("div", { class: "item-topo" },
-      el("div", { class: "item-nome" }, el("b", { class: "mono" }, semSufixo(a.ticker)), selosBandeja(a.ticker), " ", el("span", { class: "cartao-nome" }, a.nome)),
-      precoComFormacao(a, "cartao-preco"), window.Arrastar?.menu(a.ticker)),
-    linhaSetups(i, false));
-}
-
-/** Contexto do ativo selecionado, aberto dentro do item da lista. */
-function contextoNoItem() {
-  document.querySelectorAll(".item-contexto").forEach((n) => n.remove());
-  const li = document.querySelector(`#lista-ativos [data-tk="${CSS.escape(estado.ticker ?? "")}"]`);
-  const a = porTicker.get(estado.ticker);
-  if (!li || !a) return;
-  const i = lista.find((x) => x.ticker === a.ticker);
-  const ctx = blocoContexto(a);
-  const valores = i && !ehMinhas() ? valoresRegras(i) : [];
-  li.append(el("div", { class: "item-contexto" },
-    valores.length ? el("p", { class: "valores-regra" }, valores.join(" · ")) : null,
-    ctx?.enxuto, chipsSimulacoes(a), el("p", { class: "item-links" }, linkAtivo(a.ticker, "Abrir a página do ativo ↗"))));
-}
-
 function marcarSelecionado() {
   document.querySelectorAll("[data-tk]").forEach((n) => n.classList.toggle("selecionado", n.dataset.tk === estado.ticker));
 }
 
-let tickerNoPainel = null;
-async function selecionar(tk, rolar = true) {
-  const a = porTicker.get(tk);
-  if (!a) return;
-  estado.ticker = tk;
-  atualizarURL();
-  marcarSelecionado();
-  if (estado.visao !== "lista") return;
-  contextoNoItem();
-  const i = lista.find((x) => x.ticker === tk);
-  painel.grafico.sinais = sinaisGrafico(i);
-  if (tickerNoPainel === tk) {
-    // mesmo ativo: só atualiza as setas e o destaque, sem reenquadrar o gráfico
-    if (painel.grafico.c) painel.grafico.marcar(painel.grafico.c);
-    destacarNoPainel();
-  } else {
-    tickerNoPainel = tk;
-    await painel.selecionar(a, painel.grafico.sinais);
-  }
-  // no desktop a lista fica ao lado do gráfico; só no celular é preciso rolar até ele
-  if (rolar && innerWidth < 1100) $("painel-grafico").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-/** Marca o candle do setup (quando o gráfico está no mesmo tempo do sinal). */
-function destacarNoPainel() {
-  const g = painel.grafico;
-  const data = dataFoco(lista.find((x) => x.ticker === estado.ticker));
-  if (data && g.tf === estado.tf) g.destacar(data);
-  else { g.dataDestaque = null; g.destaque.hidden = true; }
-}
-
-function mover(passo) {
-  if (!lista.length) return;
-  const i = lista.findIndex((x) => x.ticker === estado.ticker);
-  const prox = lista[Math.max(0, Math.min(lista.length - 1, i < 0 ? 0 : i + passo))];
-  selecionar(prox.ticker, false);
-  document.querySelector(`#lista-ativos [data-tk="${CSS.escape(prox.ticker)}"]`)?.scrollIntoView({ block: "nearest" });
-}
-
-function tituloLista() {
+/** O que o setup (ou as minhas regras) procura, com o atalho para ajustar as regras. */
+function descricaoSetup() {
   const x = setupAtual();
-  const t = $("titulo-lista");
   if (ehMinhas()) {
     const m = minhas();
-    t.textContent = `✎ ${regraSalva()?.nome ?? "Minhas regras"}${m.editado ? " (editado)" : ""}`;
-    t.className = m.vies;
     $("cat-descricao").replaceChildren(m.regras.map((r) => textoRegra(r, estado.tf, F)).join(" · ") || "Nenhuma condição.");
     return;
   }
-  const lado = estado.lado === "compra" ? "▲ Compra" : "▼ Venda";
-  const estilo = estado.estilo === "tendencia" ? "a favor da tendência" : "contra a tendência";
-  if (x?.vies === "neutro") { t.textContent = `◆ ${x.nome}`; t.className = "neutro"; }
-  else { t.textContent = `${lado} ${estilo}${x ? ` · ${nomeCurto(x)}` : ""}`; t.className = estado.lado; }
   const copiar = x && suportado(x) ? el("button", { class: "botao-link", title: "Copiar estas regras para Minhas regras e ajustar",
     onclick: () => copiarParaMinhas(x) }, "✎ ajustar as regras") : null;
   $("cat-descricao").replaceChildren(x ? x.desc : `Ativos com algum setup de ${estado.lado} ${estado.estilo === "tendencia" ? "a favor" : "contra"} da tendência no período.`,
     copiar ? " " : "", copiar ?? "");
-}
-
-function renderLista() {
-  tituloLista();
-  $("n-lista").textContent = lista.length;
-  const vazio = ehMinhas()
-    ? (F ? "Nenhum ativo atende a todas as regras no período. Tente afrouxar alguma condição ou aumentar o período." : "Não consegui carregar os indicadores das regras.")
-    : estado.so2 ? "Nenhum ativo com 2+ setups no período. Desmarque a opção ou aumente o período."
-      : "Nenhum ativo com este setup no período. Tente outro período ou outro mercado.";
-  $("lista-ativos").replaceChildren(...(lista.length ? lista.map(itemLista) : [el("li", { class: "vazio" }, vazio)]));
-  marcarSelecionado();
 }
 
 // ------------------------------------------------------------- visão: grade
@@ -411,7 +331,7 @@ function celula(i) {
     ctx.painel,
     ctx.enxuto,
     chipsSimulacoes(a));
-  // clicar no card escolhe o ativo (é ele que abre ao voltar para a lista); mexer no gráfico recolhe o painel
+  // clicar no card escolhe o ativo (fica no endereço); mexer no gráfico recolhe o painel
   cel.addEventListener("pointerdown", () => { if (estado.ticker !== i.ticker) { estado.ticker = i.ticker; atualizarURL(); marcarSelecionado(); } });
   corpo.addEventListener("pointerdown", () => cel.classList.add("sem-painel"));
   cel.addEventListener("mouseleave", () => cel.classList.remove("sem-painel"));
@@ -445,7 +365,6 @@ function renderGrade() {
   observador.disconnect();
   abertos.splice(0).forEach((g) => g.remover());
   const grade = $("grade");
-  if (estado.visao !== "grade") { grade.replaceChildren(); $("paginacao").replaceChildren(); return; }
   const n = porPagina();
   totalPaginas = Math.max(1, Math.ceil(lista.length / n));
   estado.pagina = Math.max(0, Math.min(estado.pagina, totalPaginas - 1));
@@ -481,7 +400,7 @@ function renderGrade() {
 function irParaPagina(x, topo = false) {
   if (x < 0 || x >= totalPaginas || x === estado.pagina) return;
   estado.pagina = x;
-  // o ativo escolhido acompanha a página (é ele que abre ao voltar para a lista)
+  // o ativo escolhido acompanha a página (é ele que fica no endereço)
   const n = porPagina();
   const naPagina = lista.slice(x * n, (x + 1) * n);
   if (naPagina.length && !naPagina.some((i) => i.ticker === estado.ticker)) { estado.ticker = naPagina[0].ticker; atualizarURL(); }
@@ -499,23 +418,21 @@ function paginaDoAtivo() {
 // ------------------------------------------------------------- encaixe na janela
 
 const telaLarga = matchMedia("(min-width: 1101px)");
-/** Em telas largas, a visão ocupa a altura que sobra abaixo do menu: a grade inteira cabe sem rolar
- *  (zoom 100%) e a lista rola por dentro. Em telas estreitas, a página rola normalmente. */
+/** Em telas largas, a grade ocupa a altura que sobra abaixo do menu e cabe inteira sem rolar
+ *  (zoom 100%). Em telas estreitas, a página rola normalmente. */
 function encaixar() {
-  const grade = $("grade"), area = $("vista-lista");
+  const grade = $("grade");
   const larga = telaLarga.matches;
   const sobra = (alvo) => Math.floor(innerHeight - (alvo.getBoundingClientRect().top + scrollY) - 12);
-  const naGrade = larga && estado.visao === "grade" && !!grade.querySelector(".celula");
+  const naGrade = larga && !!grade.querySelector(".celula");
   grade.classList.toggle("encaixar", naGrade);
   if (naGrade) {
     const linhas = LINHAS[estado.grade] ?? 3;
     grade.style.setProperty("--altura-grade", `${Math.max(sobra(grade), linhas * (estado.grade === "1" ? 300 : 112))}px`);
     grade.style.setProperty("--linhas", linhas);
   }
-  if (larga && estado.visao === "lista") area.style.height = `${Math.max(sobra(area), 380)}px`;
-  else area.style.height = "";
 }
-addEventListener("resize", () => { aplicarCompacto(); encaixar(); });
+addEventListener("resize", encaixar);
 telaLarga.addEventListener("change", encaixar);
 // o menu muda de altura (editor de regras, árvore recolhida, aviso de formação): a visão acompanha
 new ResizeObserver(() => encaixar()).observe($("menu-setups"));
@@ -732,7 +649,7 @@ function ligarRegras() {
     const id = atualS && atualS.nome === nome ? atualS.id : `${Date.now()}`;
     guardar.gravar(SALVOS, [...lista.filter((x) => x.id !== id), { id, nome, vies: m.vies, regras: structuredClone(m.regras) }]);
     Object.assign(m, { modelo: `u:${id}`, editado: false, base: undefined });
-    salvar(); renderRegras(); renderArvore(); tituloLista();
+    salvar(); renderRegras(); renderArvore(); descricaoSetup();
   });
   $("r-excluir").addEventListener("click", () => {
     const s = regraSalva();
@@ -771,15 +688,10 @@ function renderBarra() {
   $("rot-so2").textContent = estado.so2 ? "Só com 2+ setups" : `Só com 2+ setups (${so2})`;
   $("f-so2").checked = estado.so2;
   $("f-ordem").replaceChildren(...Object.entries(ORDENS).map(([k, [r]]) => el("option", { value: k, selected: k === estado.ordem ? true : null }, r)));
-  const grade = estado.visao === "grade";
-  document.querySelectorAll(".so-grade").forEach((x) => { x.hidden = !grade; });
-  $("f-indicadores").hidden = !grade || estado.camadas === "condicoes";
-  $("f-grade").hidden = !grade;
-  aplicarCompacto();
+  $("f-indicadores").hidden = estado.camadas === "condicoes";
+  descricaoSetup();
 }
 
-/** Árvore compacta (sem as dicas dos estilos) na grade e em telas baixas, para a visão caber na janela. */
-const aplicarCompacto = () => $("menu-setups").classList.toggle("compacto", estado.visao === "grade" || innerHeight < 1000);
 
 // ------------------------------------------------------------- ciclo
 
@@ -795,22 +707,9 @@ function atualizarURL() {
 function atualizar() {
   lista = listar();
   renderBarra();
-  $("vista-lista").hidden = estado.visao !== "lista";
-  $("vista-grade").hidden = estado.visao !== "grade";
-  if (estado.visao === "lista") {
-    renderLista();
-    renderGrade();  // desmonta a grade
-    encaixar();
-    // o ativo aberto continua se ainda estiver na lista; senão, abre o primeiro
-    const tk = lista.some((i) => i.ticker === estado.ticker) || manterTicker ? estado.ticker : lista[0]?.ticker ?? estado.ticker;
-    manterTicker = false;
-    if (tk) selecionar(tk, false);
-  } else {
-    paginaDoAtivo();
-    renderGrade();
-  }
+  paginaDoAtivo();
+  renderGrade();
 }
-let manterTicker = false;  // o ativo do endereço abre mesmo fora da lista
 
 /** Mudou o setup, o período, o mercado...: árvore, regras e resultado. */
 function mudou() {
@@ -841,10 +740,7 @@ function acharTicker(txt) {
 
 document.addEventListener("keydown", (e) => {
   if (e.altKey || e.ctrlKey || e.metaKey || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
-  if (estado.visao === "lista" && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-    e.preventDefault();
-    mover(e.key === "ArrowDown" ? 1 : -1);
-  } else if (estado.visao === "grade" && !e.shiftKey && !document.fullscreenElement && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+  if (!e.shiftKey && !document.fullscreenElement && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
     e.preventDefault();
     irParaPagina(estado.pagina + (e.key === "ArrowRight" ? 1 : -1));
   }
@@ -866,23 +762,18 @@ async function iniciar() {
   if (!["todos", "minhas"].includes(estado.setup) && !SETUP.has(estado.setup)) estado.setup = "todos";
   if (!ORDENS[estado.ordem]) estado.ordem = "confluencia";
   if (!["D", "W"].includes(estado.tf)) estado.tf = "D";
-  // endereço: ?setup=pb-mm20 escolhe o setup, ?visao=grade a visão, #PETR4.SA o ativo
+  // endereço: ?setup=pb-mm20 escolhe o setup, #PETR4.SA o ativo
   const q = new URLSearchParams(location.search);
   if (SETUP.has(q.get("setup"))) {
     const x = SETUP.get(q.get("setup"));
     estado.setup = x.id;
     if (x.vies !== "neutro") { estado.lado = x.vies; estado.estilo = x.estilo; }
   }
-  if (["lista", "grade"].includes(q.get("visao"))) estado.visao = q.get("visao");
   const doHash = location.hash.length > 1 ? acharTicker(location.hash.slice(1)) : null;
-  if (doHash) { estado.ticker = doHash; manterTicker = true; }
+  if (doHash) estado.ticker = doHash;
 
   $("lugar-aviso").replaceWith(avisoFormacao(R));
   $("f-indicadores").replaceChildren(atalhosIndicadores({ comSinais: true, comIFR: false }));
-  painel = painelGrafico($("painel-grafico"), { simular: true });
-  // o simulador usa o aoMostrar; o destaque do candle do setup vem depois dele
-  const antes = painel.grafico.aoMostrar;
-  painel.grafico.aoMostrar = () => { antes?.(); destacarNoPainel(); };
 
   const ligar = (id, chave, conv, depois) =>
     segmento(id, ({ v }) => { estado[chave] = conv(v); depois(); }).marcar("v", String(estado[chave]));
@@ -891,10 +782,8 @@ async function iniciar() {
   ligar("f-tf", "tf", String, () => {
     estado.tfGrafico = estado.tf;  // o gráfico acompanha o tempo do sinal (dá para trocar depois)
     document.querySelectorAll("#f-tf-grafico button").forEach((b) => b.classList.toggle("ativo", b.dataset.v === estado.tf));
-    painel.mudarTf(estado.tf);
     mudou();
   });
-  ligar("f-visao", "visao", String, () => { salvar(); renderArvore(); atualizar(); });
   ligar("f-grade", "grade", String, () => { salvar(); paginaDoAtivo(); atualizar(); });
   ligar("f-tf-grafico", "tfGrafico", String, () => { salvar(); renderGrade(); });
   ligar("f-camadas", "camadas", String, () => { salvar(); renderBarra(); renderGrade(); });

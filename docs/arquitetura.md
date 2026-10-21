@@ -55,8 +55,8 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
 ## Páginas
 
 - **Setups** (`setups.html`): substitui Radar e Multitela. Escolhe mercado, setup (pelo catálogo: lado →
-  a favor/contra → setups) ou "Minhas regras", tempo (D/W) e quando (último pregão, 2, 3, 5). Duas visões
-  do mesmo resultado: **Lista + gráfico grande** e **Grade** (1, 2×2, 3×3, 4×3). Cada ativo mostra os
+  a favor/contra → setups) ou "Minhas regras", tempo (D/W) e quando (último pregão, 2, 3, 5). O resultado
+  aparece numa **grade** de gráficos (1, 2×2, 3×3, 4×3). Cada ativo mostra os
   setups que disparou, o selo do histórico e o contexto a favor/cuidado. `radar.html` e `multitela.html`
   redirecionam para cá.
 - **Carteira** (`index.html`): posições, simulações e a minha lista (o que eu tenho e acompanho).

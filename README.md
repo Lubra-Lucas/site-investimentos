@@ -8,11 +8,9 @@ comparar os gráficos dos ativos na mesma condição e decidir as entradas do di
 - **Setups** (`setups.html`): ~420 ativos (todas as ações da B3 com volume médio acima de R$ 1 mi/dia, as 150
   maiores dos EUA, 30 criptos e 40 de macro). Escolha o setup pela árvore **Compra | Venda** → **A favor** ou
   **Contra a tendência** → setups (ou "Todos os setups" do lado), ou monte **Minhas regras**. Escolha também o
-  tempo do sinal (diário ou semanal) e de quando (último pregão, 2, 3 ou 5). O mesmo resultado em duas visões:
-  - **Lista + gráfico:** um ativo por vez num gráfico grande, a lista ao lado (<kbd>↑</kbd> <kbd>↓</kbd> navegam);
-    o item aberto mostra os setups, o selo do histórico e o contexto (✓ a favor, ⚠ cuidado).
-  - **Grade** (1, 2×2, 3×3 ou 4×3): vários gráficos lado a lado para comparar, cabendo na tela no zoom 100%.
-    O card é só gráfico; passe o mouse para o contexto entrar deslizando. Clique no nome para tela cheia.
+  tempo do sinal (diário ou semanal) e de quando (último pregão, 2, 3 ou 5). O resultado aparece numa **grade**
+  (1, 2×2, 3×3 ou 4×3) de gráficos lado a lado para comparar, cabendo na tela no zoom 100%. O card é só
+  gráfico; passe o mouse para o contexto (✓ a favor, ⚠ cuidado) entrar deslizando. Clique no nome para tela cheia.
 
   "Só com 2+ setups" mostra os ativos com vários setups ao mesmo tempo; dá para ordenar por melhor histórico,
   mais setups juntos, variação etc. As setas no gráfico marcam os candles em que o setup disparou.
