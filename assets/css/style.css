@@ -951,7 +951,7 @@ main.larga:has(> .menu-multi) { padding-top: 10px; gap: 10px; }
 .bt-numeros b.baixa, .bt-numeros .baixa { color: var(--baixa); }
 @media (max-width: 1100px) { .grade-backtest { grid-template-columns: 1fr; } }
 
-/* ==============================================================
+/* =======================================================
    Setups (setups.html / setups.js): Radar + Multitela numa página só.
    Reaproveita a árvore do Radar (.fluxo-op, .estilo-card, .ramos), a lista
    (.area-radar, .lista-ativos) e a grade da Multitela (.grade-graficos, .celula).
@@ -1179,3 +1179,8 @@ td .chips-linha { flex-wrap: wrap; min-width: 220px; max-width: 380px; white-spa
 @media (max-width: 1000px) {
   .grade-carteira .painel-lateral { position: static; max-height: 640px; }
 }
+=======
+/* ---- Backtest por setup (backtest.html): cabeçalho de grupo do catálogo e link para os ativos ---- */
+.tabela-bt tr.grupo-bt td { padding-top: 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--texto-fraco); cursor: default; }
+.tabela-bt .bt-ver { font-size: 11px; color: var(--texto-fraco); text-decoration: none; margin-left: 4px; }
+.tabela-bt .bt-ver:hover { color: var(--texto); text-decoration: underline; }

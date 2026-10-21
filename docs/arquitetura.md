@@ -42,6 +42,15 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
 - `data/rastreador.json`: as fotos de sempre (para regras personalizadas, contexto e valores do card),
   mais os campos por candle das condições novas.
 - `data/backtest.json`: por setup (id do catálogo) em vez de família.
+- `data/paridade.json`: os setups que disparam no último candle de cada ativo segundo o Python (D e W),
+  para o teste de paridade.
+
+## Testes
+
+- `scripts/testar_paridade.py`: compara `data/paridade.json` com `quandoAtende(foto, regras, tf, F, 1) === 0`
+  rodado no node (`scripts/paridade.js`) sobre `data/rastreador.json`. Tem que dar zero diferenças.
+- `scripts/rodar_offline.py`: o pipeline inteiro sem rede, com dados sintéticos determinísticos.
+- `.github/workflows/testes.yml`: roda os dois em todo push e pull request (não publica nada).
 
 ## Páginas
 
