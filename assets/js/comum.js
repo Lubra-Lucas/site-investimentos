@@ -572,8 +572,9 @@ class Grafico {
     const m = [...porDia.values()].sort((a, b) => a.data.localeCompare(b.data)).map((s) => ({
       time: s.data,
       position: s.lado === "compra" ? "belowBar" : "aboveBar",
-      shape: s.lado === "compra" ? "arrowUp" : "arrowDown",
-      color: s.lado === "compra" ? p.corAlta : p.corBaixa,
+      // setups sem lado (ex.: Bollinger comprimida) ganham um ponto em vez de seta
+      shape: s.lado === "compra" ? "arrowUp" : s.lado === "venda" ? "arrowDown" : "circle",
+      color: s.lado === "compra" ? p.corAlta : s.lado === "venda" ? p.corBaixa : css("--aviso"),
     }));
     if (this.parcial) {
       m.push({ time: this.parcial, position: "aboveBar", shape: "circle", size: 0.5, color: css("--texto-fraco"),
@@ -589,11 +590,12 @@ class Grafico {
     if (!sinais?.length) { this.balao.hidden = true; return; }
     const tfNome = this.tf === "W" ? "semanal" : "diário";
     const semana = this.tf === "W" ? "semana de " : "";
-    this.balao.replaceChildren(...["compra", "venda"].flatMap((lado) => {
+    const rotulo = { compra: "▲ Sinal de compra", venda: "▼ Sinal de venda", neutro: "◆ Setup sem lado" };
+    this.balao.replaceChildren(...["compra", "venda", "neutro"].flatMap((lado) => {
       const doLado = sinais.filter((s) => s.lado === lado);
       if (!doLado.length) return [];
       return [el("div", { class: `balao-bloco ${lado}` },
-        el("b", {}, `${lado === "compra" ? "▲ Sinal de compra" : "▼ Sinal de venda"} · ${semana}${fmtData(doLado[0].data)} · ${tfNome}`),
+        el("b", {}, `${rotulo[lado]} · ${semana}${fmtData(doLado[0].data)} · ${tfNome}`),
         el("ul", {}, doLado.map((s) => el("li", {}, el("span", { class: `chip fam-${s.familia}` }, nomeFamilia(s.familia, lado)), " ", s.texto,
           s.bt ? el("div", {}, seloHistorico(s.bt, s.tf)) : null))))];
     }));
@@ -679,6 +681,12 @@ const AJUDA = {
     "Escolha um modelo (tendência, pullback, extremos...) ou edite as regras: a grade mostra todos os ativos que atendem, lado a lado.",
     "Cada gráfico já desenha o que a regra usa (médias, Bollinger, IFR). \"Meus indicadores\" volta ao seu padrão.",
     "No card: ✓ o que está a favor, ⚠ o que pede cuidado. O ✎ abre as ferramentas de desenho, inclusive risco/retorno.",
+  ]],
+  setups: ["Setups", [
+    "Escolha Compra ou Venda, depois \"A favor\" ou \"Contra a tendência\" e um setup (ou todos). Os chips mostram quantos ativos dispararam cada um no período.",
+    "\"Minhas regras\" monta um filtro próprio (médias, IFR, Bollinger...), salvo neste navegador.",
+    "Lista + gráfico: ↑ ↓ passam pelos ativos e o contexto (✓ a favor, ⚠ cuidado) aparece no item aberto. Grade: vários gráficos para comparar; passe o mouse no gráfico para ver o contexto e use ← → para trocar de página.",
+    "As setas no gráfico são os setups escolhidos neste ativo; a faixa azul marca o candle do sinal. Os sinais só saem com o pregão fechado.",
   ]],
   backtest: ["Backtest", ["Como cada estratégia se saiu nos últimos 6 anos, por mercado, lado e prazo."]],
 };

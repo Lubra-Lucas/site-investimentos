@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setups</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topo" id="topo"></header>
+
+  <main class="larga pagina-setups">
+    <section class="painel menu-setups" id="menu-setups">
+      <div class="linha-topo">
+        <div class="segmento" id="f-mercado" aria-label="Mercado">
+          <button data-v="" class="ativo">Todos</button>
+          <button data-v="BR">Brasil</button>
+          <button data-v="US">EUA</button>
+          <button data-v="CRIPTO">Cripto</button>
+          <button data-v="MACRO" title="Índices, moedas e commodities">Macro</button>
+        </div>
+        <div class="filtro">
+          <span class="filtro-rotulo">Sinal no</span>
+          <div class="segmento" id="f-tf" aria-label="Tempo do sinal">
+            <button data-v="D" class="ativo" title="Setups no gráfico diário">Diário</button>
+            <button data-v="W" title="Setups no gráfico semanal">Semanal</button>
+          </div>
+        </div>
+        <div class="filtro">
+          <span class="filtro-rotulo">Quando</span>
+          <div class="segmento" id="f-periodo" aria-label="Quando o setup aconteceu">
+            <button data-v="1" class="ativo">Último pregão</button>
+            <button data-v="2">2 pregões</button>
+            <button data-v="3">3 pregões</button>
+            <button data-v="5">5 pregões</button>
+          </div>
+        </div>
+        <span id="lugar-aviso"></span>
+        <div class="visao">
+          <div class="segmento segmento-forte" id="f-visao" aria-label="Visão">
+            <button data-v="lista" class="ativo" title="Um gráfico grande e a lista ao lado (↑ ↓ navegam)">☰ Lista + gráfico</button>
+            <button data-v="grade" title="Vários gráficos lado a lado para comparar (← → trocam de página)">▦ Grade</button>
+          </div>
+          <div class="segmento" id="f-grade" aria-label="Tamanho da grade">
+            <button data-v="1" title="Um gráfico grande por vez; ← → passam para o próximo">1</button>
+            <button data-v="2" title="2×2">2×2</button>
+            <button data-v="3" class="ativo" title="3×3">3×3</button>
+            <button data-v="4" title="4×3">4×3</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- árvore: compra/venda → a favor / contra a tendência → setups do catálogo (mesmo desenho do antigo Radar) -->
+      <div class="menu-op" id="menu-op">
+        <div class="abas-lado" role="tablist" aria-label="Compra ou venda">
+          <button role="tab" data-lado="compra" class="aba-compra ativo">▲ Setups de compra <span class="contagem" id="n-compra">0</span></button>
+          <button role="tab" data-lado="venda" class="aba-venda">▼ Setups de venda <span class="contagem" id="n-venda">0</span></button>
+        </div>
+        <div class="fluxo-op" id="fluxo-op" data-lado="compra" data-estilo="tendencia">
+          <div class="ramos" aria-hidden="true">
+            <span class="tronco"></span><span class="barra"></span>
+            <span class="braco b-tendencia"></span><span class="braco b-contra"></span>
+          </div>
+          <div class="estilos" id="f-estilo" role="tablist" aria-label="Estilo de operação"></div>
+          <div class="ramos ramos-cat" aria-hidden="true">
+            <span class="braco b-tendencia"></span><span class="braco b-contra"></span>
+          </div>
+          <div class="categorias" id="categorias" role="group" aria-label="Setup"></div>
+        </div>
+      </div>
+      <!-- árvore recolhida: só o caminho escolhido -->
+      <div class="trilha" id="trilha" hidden></div>
+
+      <!-- Minhas regras: editor de regras avaliadas no navegador sobre data/rastreador.json -->
+      <div class="caixa-rastreador caixa-regras" id="caixa-regras" hidden>
+        <div class="lista-modelos" id="r-salvos"></div>
+        <div class="linha-regras">
+          <div class="segmento" id="r-vies" aria-label="Lado das regras">
+            <button data-v="compra" title="O contexto do card trata como compra">▲ Compra</button>
+            <button data-v="venda" title="O contexto do card trata como venda">▼ Venda</button>
+            <button data-v="neutro" title="Sem lado: só informações">◆ Neutro</button>
+          </div>
+          <p class="resumo-regras" id="r-resumo"></p>
+          <button class="botao botao-editar" id="r-editar" aria-expanded="false">✎ Editar regras</button>
+        </div>
+        <div class="editor-regras" id="r-editor" hidden>
+          <ol class="regras" id="r-regras"></ol>
+          <div class="regras-acoes">
+            <select id="r-adicionar" aria-label="Adicionar condição"></select>
+            <select id="r-base" aria-label="Copiar as regras de um setup do catálogo"></select>
+            <button class="botao" id="r-salvar" title="Guarda estas regras neste navegador, em Minhas regras">Salvar regras</button>
+            <button class="botao" id="r-restaurar" hidden>Desfazer edição</button>
+            <button class="botao perigo" id="r-excluir" hidden>Excluir</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="barra-setups">
+        <p class="contagem-multi" id="f-descricao"></p>
+        <label class="opcao" id="caixa-so2" title="Ativos com 2 ou mais setups deste ramo ao mesmo tempo">
+          <input type="checkbox" id="f-so2"> <span id="rot-so2">Só com 2+ setups</span>
+        </label>
+        <label class="ordem-multi">Ordenar <select id="f-ordem"></select></label>
+        <div class="multi-grafico so-grade">
+          <span class="rotulo-mini">Gráfico</span>
+          <div class="segmento" id="f-tf-grafico" aria-label="Tempo do gráfico">
+            <button data-v="60">60m</button>
+            <button data-v="240">4h</button>
+            <button data-v="D" class="ativo">D</button>
+            <button data-v="W">S</button>
+          </div>
+          <div class="segmento" id="f-camadas" aria-label="O que aparece no gráfico">
+            <button data-v="condicoes" class="ativo" title="Desenha nos gráficos as médias, bandas e níveis que o setup usa">Condições</button>
+            <button data-v="meus" title="Usa os seus indicadores (MM20/50/200, Bollinger...)">Meus indicadores</button>
+          </div>
+        </div>
+        <nav class="paginacao-topo so-grade" id="paginacao-topo" aria-label="Páginas"></nav>
+      </div>
+      <div class="linha-indicadores so-grade" id="f-indicadores" hidden></div>
+    </section>
+
+    <!-- visão 1: gráfico grande + lista -->
+    <section class="area-radar area-setups" id="vista-lista">
+      <div class="painel painel-grafico" id="painel-grafico"></div>
+      <aside class="painel lista-sinais" aria-label="Lista de ativos">
+        <div class="cab-lista">
+          <h2 id="titulo-lista"></h2>
+          <span class="contagem" id="n-lista"></span>
+        </div>
+        <div class="sub cat-descricao" id="cat-descricao"></div>
+        <ol class="lista-ativos" id="lista-ativos"></ol>
+        <p class="dica"><kbd>↑</kbd> <kbd>↓</kbd> navegam pela lista · <kbd>Alt</kbd>+<kbd>C</kbd> centraliza o gráfico</p>
+      </aside>
+    </section>
+
+    <!-- visão 2: grade de gráficos -->
+    <section id="vista-grade" class="vista-grade" hidden>
+      <div id="grade" class="grade-graficos"></div>
+      <nav class="paginacao" id="paginacao"></nav>
+    </section>
+
+    <details class="painel retidos">
+      <summary><h2>Dados retidos na verificação</h2><span class="sub" id="retidos-resumo"></span></summary>
+      <p class="sub">Estes ativos não aparecem aqui porque o dado do dia não passou na checagem de integridade.</p>
+      <ul id="lista-retidos"></ul>
+    </details>
+  </main>
+
+  <footer>
+    Em cada gráfico: arraste para navegar, roda do mouse dá zoom, ✎ abre as ferramentas de desenho e ⛶ a tela cheia.
+    <kbd>Alt</kbd>+<kbd>C</kbd> centraliza. Uso pessoal: os setups são filtros técnicos automáticos, não recomendação de investimento.
+  </footer>
+
+  <script src="assets/js/comum.js"></script>
+  <script src="assets/js/desenhos.js"></script>
+  <script src="assets/js/simulador.js"></script>
+  <script src="assets/js/rastreador.js"></script>
+  <script src="assets/js/setups.js"></script>
+</body>
+</html>

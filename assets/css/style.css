@@ -950,3 +950,104 @@ main.larga:has(> .menu-multi) { padding-top: 10px; gap: 10px; }
 .bt-numeros b.alta, .bt-numeros .alta { color: var(--alta); }
 .bt-numeros b.baixa, .bt-numeros .baixa { color: var(--baixa); }
 @media (max-width: 1100px) { .grade-backtest { grid-template-columns: 1fr; } }
+
+/* =====================================================================
+   Setups (setups.html / setups.js): Radar + Multitela numa página só.
+   Reaproveita a árvore do Radar (.fluxo-op, .estilo-card, .ramos), a lista
+   (.area-radar, .lista-ativos) e a grade da Multitela (.grade-graficos, .celula).
+   ===================================================================== */
+main.pagina-setups { padding-top: 10px; gap: 10px; }
+.menu-setups { display: grid; gap: 10px; padding: 10px 14px; }
+.menu-setups .segmento button, .menu-setups select { padding-top: 5px; padding-bottom: 5px; }
+.linha-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.linha-topo .visao { display: inline-flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.linha-topo .aviso-formacao { flex: 1 1 0; min-width: 0; gap: 2px 8px; font-size: 11px; line-height: 1.3; }
+.linha-topo .formacao-item { padding: 1px 8px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.linha-topo .segmento-forte button { font-size: 13px; padding: 5px 12px; }
+/* setups dentro da ponta do braço: todos, os do estilo, os neutros e as minhas regras */
+.menu-setups .categorias .grupo-cat { align-items: center; }
+.cat.so-python { font-style: italic; }
+.cat-mais { border-style: dashed; }
+.sep-cat { width: 1px; align-self: stretch; min-height: 18px; background: var(--borda-forte); margin: 0 4px; }
+.cat.cat-neutro:not(.ativo) { color: var(--aviso); border-color: rgba(227, 162, 59, 0.4); }
+.fluxo-op .cat.cat-neutro.ativo { background: var(--aviso); border-color: var(--aviso); color: var(--bg); }
+.cat.cat-minhas:not(.ativo) { color: var(--acento); border-color: rgba(76, 141, 255, 0.45); }
+.fluxo-op .cat.cat-minhas.ativo { background: var(--acento); border-color: var(--acento); color: #fff; }
+.recolher {
+  margin-left: auto; background: transparent; border: 1px solid var(--borda-forte); border-radius: 6px; color: var(--texto-fraco);
+  font-size: 12px; line-height: 1; padding: 4px 8px; cursor: pointer;
+}
+.recolher:hover { color: var(--texto); border-color: var(--texto-fraco); }
+/* árvore recolhida: o caminho escolhido numa linha */
+.trilha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.trilha .botao { padding: 4px 10px; }
+.trilha-passos { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13.5px; }
+.trilha-passos b { font-weight: 600; }
+.trilha-sep { color: var(--texto-fraco); }
+.trilha-passos.compra b:first-child { color: var(--alta); }
+.trilha-passos.venda b:first-child { color: var(--baixa); }
+.trilha-passos.neutro b { color: var(--aviso); }
+.trilha-passos.minhas b:first-child { color: var(--acento); }
+/* na grade a árvore fica compacta (sem as dicas), para os gráficos caberem na tela */
+.menu-setups.compacto .menu-op { gap: 8px; }
+.menu-setups.compacto .fluxo-op { margin-top: -8px; }
+.menu-setups.compacto .menu-op .abas-lado button { padding: 6px 12px; font-size: 13.5px; }
+.menu-setups.compacto .ramos { height: 22px; }
+.menu-setups.compacto .ramos .braco { bottom: 6px; }
+.menu-setups.compacto .ramos-cat { height: 16px; }
+.menu-setups.compacto .estilo-card { padding: 6px 10px; gap: 0; }
+.menu-setups.compacto :is(.estilo-dica, .estilo-fams) { display: none; }
+.menu-setups.compacto .estilo-icone { width: 24px; height: 24px; }
+.menu-setups.compacto .estilo-icone svg { width: 16px; height: 16px; }
+.menu-setups.compacto .estilo-topo { font-size: 13.5px; }
+.menu-setups.compacto .fluxo-op .categorias { padding: 6px 10px; }
+/* minhas regras */
+.caixa-regras { border-top: 1px solid var(--borda); padding-top: 8px; }
+.chip-modelo.nova { border-style: dashed; color: var(--texto-fraco); }
+.chip-modelo.vies-neutro::first-letter { color: var(--aviso); }
+#r-base { max-width: 260px; }
+/* barra do resultado: contagem, 2+, ordem e (na grade) o tempo do gráfico e a paginação */
+.barra-setups {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; border-top: 1px solid var(--borda); padding-top: 8px;
+}
+.barra-setups .opcao { font-size: 12.5px; color: var(--texto-fraco); }
+.barra-setups .contagem-multi { font-size: 13px; }
+.botao-link { background: none; border: 0; padding: 0; color: var(--acento); font: inherit; cursor: pointer; text-decoration: underline dotted; }
+/* lista + gráfico: a altura vem do encaixe (setups.js) */
+.area-setups { height: auto; min-height: 0; }
+.area-setups .cab-lista h2.neutro { color: var(--aviso); }
+.area-setups .cab-lista h2.minhas { color: var(--acento); }
+.area-setups .cat-descricao { min-height: 0; }
+.chip.setup { color: var(--texto); }
+.chip.setup .data { color: var(--texto-fraco); margin-left: 2px; }
+.chip.setup.vies-compra { border-color: rgba(34, 176, 125, 0.4); }
+.chip.setup.vies-venda { border-color: rgba(229, 72, 77, 0.4); }
+.chip.setup.vies-neutro { border-color: rgba(227, 162, 59, 0.45); }
+.chip.setup.foco.vies-compra { background: rgba(34, 176, 125, 0.14); border-color: var(--alta); }
+.chip.setup.foco.vies-venda { background: rgba(229, 72, 77, 0.14); border-color: var(--baixa); }
+.chip.setup.foco.vies-neutro { background: rgba(227, 162, 59, 0.14); border-color: var(--aviso); }
+.lista-ativos .chips .hist { align-self: center; }
+.item-contexto { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--borda-forte); display: grid; gap: 4px; cursor: default; }
+.item-contexto .contexto-decisao { margin: 0; padding: 0; border: 0; }
+.item-contexto .valores-regra { margin: 0; }
+.item-links { margin: 2px 0 0; font-size: 12px; }
+.item-links .abrir-radar { font-size: 12px; color: var(--acento); }
+/* grade: a linha dos setups fica numa linha só, acima do gráfico */
+.celula > .celula-setups { margin-top: 4px; flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+.celula > .celula-setups .chip { flex: none; }
+.encaixar .celula > .celula-setups { grid-row: 2; }
+.celula.selecionado { border-color: rgba(76, 141, 255, 0.55); }
+.vista-grade { display: grid; gap: 10px; }
+@media (max-width: 1100px) {
+  .linha-topo .visao { margin-left: 0; }
+  .linha-topo .aviso-formacao { flex-basis: 100%; flex-wrap: wrap; }
+  .linha-topo .formacao-item { white-space: normal; }
+}
+@media (max-width: 600px) {
+  .menu-setups { padding: 10px; }
+  .linha-topo { gap: 8px; }
+  .menu-op .abas-lado button { font-size: 13px; padding: 9px 8px; }
+  .sep-cat { display: none; }
+  #r-base { max-width: 100%; }
+  .celula > .celula-setups { flex-wrap: wrap; white-space: normal; }
+}
