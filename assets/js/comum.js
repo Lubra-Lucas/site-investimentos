@@ -682,7 +682,7 @@ const AJUDA = {
   setups: ["Setups", [
     "Escolha Compra ou Venda, depois \"A favor\" ou \"Contra a tendência\" e um setup (ou todos). Os chips mostram quantos ativos dispararam cada um no período.",
     "\"Minhas regras\" monta um filtro próprio (médias, IFR, Bollinger...), salvo neste navegador.",
-    "Grade: vários gráficos lado a lado para comparar (1, 2×2, 3×3 ou 4×3); passe o mouse no gráfico para ver o contexto (✓ a favor, ⚠ cuidado) e use ← → para trocar de página.",
+    "Grade: vários gráficos lado a lado para comparar (1, 2×2, 3×3 ou 4×3); clique no selo ✓/⚠ do card para ver o contexto (✓ a favor, ⚠ cuidado; Esc fecha) e use ← → para trocar de página.",
     "As setas no gráfico são os setups escolhidos neste ativo; a faixa azul marca o candle do sinal. Os sinais só saem com o pregão fechado.",
     "Segure um card parado por meio segundo (até em cima do gráfico) ou arraste pelo cabeçalho: aparecem Comparar, Plano de amanhã e Anotar nas bordas; solte num deles. O ⋯ do card faz o mesmo.",
   ]],

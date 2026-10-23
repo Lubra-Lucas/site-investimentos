@@ -271,19 +271,45 @@ function blocoContexto(a) {
   const enxuto = el("div", { class: "contexto-decisao" },
     lista(favor, "favor", "✓", 4), lista(cuidado, "cuidado", "⚠", 4),
     info.length ? el("details", { class: "contexto-mais" }, el("summary", {}, "Mais informações"), lista(info, "info", "·", 8)) : null);
-  // grade larga: o card é só gráfico e o contexto entra deslizando ao passar o mouse, um item de cada vez (--i)
+  // grade larga: o card é só gráfico; o contexto entra deslizando quando se clica no selo ✓/⚠ do cabeçalho
+  // (nunca sozinho, para não atrapalhar a análise), um item de cada vez (--i)
   let n = 0;
   const grupo = (titulo, itens, cls, simbolo) => (itens.length ? el("section", { class: `painel-grupo ${cls}` },
     el("h4", { style: `--i:${n++}` }, titulo),
     el("ul", { class: `contexto-lista ${cls}` }, itens.map((t) =>
       el("li", { style: `--i:${n++}` }, el("span", { class: "simbolo" }, simbolo), t)))) : null);
-  const painelCtx = favor.length + cuidado.length + info.length ? el("aside", { class: "contexto-painel", "aria-label": "Contexto" },
-    grupo("A favor", favor, "favor", "✓"), grupo("Cuidado", cuidado, "cuidado", "⚠"), grupo("Informações", info, "info", "·")) : null;
-  const dica = favor.length + cuidado.length ? el("span", { class: "contexto-dica", title: "Passe o mouse no gráfico para ver o contexto" },
+  if (!favor.length && !cuidado.length && !info.length) return { enxuto, painel: null, dica: null };
+  const painelCtx = el("aside", { class: "contexto-painel", "aria-label": "Contexto" },
+    el("button", { type: "button", class: "fechar-contexto", title: "Fechar (Esc)", "aria-label": "Fechar o contexto",
+      onclick: (e) => alternarContexto(e.currentTarget.closest(".celula"), false) }, "✕"),
+    grupo("A favor", favor, "favor", "✓"), grupo("Cuidado", cuidado, "cuidado", "⚠"), grupo("Informações", info, "info", "·"));
+  const dica = el("button", { type: "button", class: "contexto-dica", "aria-expanded": "false",
+    title: "Ver o contexto: o que está a favor e o que pede cuidado", onclick: (e) => alternarContexto(e.currentTarget.closest(".celula")) },
     favor.length ? el("span", { class: "favor" }, `✓ ${favor.length}`) : null,
-    cuidado.length ? el("span", { class: "cuidado" }, `⚠ ${cuidado.length}`) : null) : null;
+    cuidado.length ? el("span", { class: "cuidado" }, `⚠ ${cuidado.length}`) : null,
+    !favor.length && !cuidado.length ? el("span", {}, "ⓘ contexto") : null);
   return { enxuto, painel: painelCtx, dica };
 }
+
+/** Abre ou fecha o contexto de um card (um aberto por vez). */
+function alternarContexto(cel, abrir) {
+  if (!cel) return;
+  const vai = abrir ?? !cel.classList.contains("ctx-aberto");
+  document.querySelectorAll(".celula.ctx-aberto").forEach((c) => { if (c !== cel || !vai) fecharContexto(c); });
+  if (!vai) return;
+  cel.classList.add("ctx-aberto");
+  cel.querySelector(".contexto-dica")?.setAttribute("aria-expanded", "true");
+}
+function fecharContexto(cel) {
+  cel.classList.remove("ctx-aberto");
+  cel.querySelector(".contexto-dica")?.setAttribute("aria-expanded", "false");
+}
+// Esc ou clique fora do painel fecha o contexto aberto
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll(".celula.ctx-aberto").forEach(fecharContexto); });
+document.addEventListener("pointerdown", (e) => {
+  if (!(e.target instanceof Element) || e.target.closest(".contexto-painel, .contexto-dica")) return;
+  document.querySelectorAll(".celula.ctx-aberto").forEach(fecharContexto);
+});
 
 const linkAtivo = (tk, txt = "↗") => el("a", { class: "abrir-radar", href: `ativo.html#${encodeURIComponent(tk)}`,
   title: "Abrir a página do ativo", onclick: (e) => e.stopPropagation() }, txt);
@@ -331,10 +357,8 @@ function celula(i) {
     ctx.painel,
     ctx.enxuto,
     chipsSimulacoes(a));
-  // clicar no card escolhe o ativo (fica no endereço); mexer no gráfico recolhe o painel
+  // clicar no card escolhe o ativo (fica no endereço)
   cel.addEventListener("pointerdown", () => { if (estado.ticker !== i.ticker) { estado.ticker = i.ticker; atualizarURL(); marcarSelecionado(); } });
-  corpo.addEventListener("pointerdown", () => cel.classList.add("sem-painel"));
-  cel.addEventListener("mouseleave", () => cel.classList.remove("sem-painel"));
   corpo.abrir = () => {
     const g = new Grafico(corpo, { mini: true });
     g.sinais = sinaisGrafico(i);
