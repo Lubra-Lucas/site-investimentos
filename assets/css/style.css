@@ -746,7 +746,7 @@ main.larga { max-width: 1800px; }
 .encaixar[data-grade="1"] .celula { padding: 12px 56px; }
 .encaixar[data-grade="1"] .celula > .valores-regra { font-size: 13px; }
 /* card = gráfico: o contexto fica num painel que entra deslizando pela direita só com o mouse sobre o gráfico,
-   com os itens surgindo um a um (--i). Clicar no gráfico recolhe o painel (.sem-painel) para mexer nele. */
+   com os itens surgindo um a um (--i). Só abre clicando no selo ✓/⚠ do cabeçalho (.ctx-aberto); Esc, ✕ ou clique fora fecha. */
 .encaixar .celula > .contexto-decisao { display: none; }
 .contexto-painel { display: none; }
 .encaixar .celula > .contexto-painel {
@@ -758,7 +758,7 @@ main.larga { max-width: 1800px; }
   transform: translateX(104%); opacity: 0; transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s;
 }
 .encaixar[data-grade="1"] .celula > .contexto-painel { margin-right: -56px; font-size: 13px; }
-.encaixar .celula:has(> .mini-grafico:hover, > .contexto-painel:hover):not(.sem-painel) > .contexto-painel { transform: none; opacity: 1; pointer-events: auto; }
+.encaixar .celula.ctx-aberto > .contexto-painel { transform: none; opacity: 1; pointer-events: auto; }
 .contexto-painel .painel-grupo + .painel-grupo { margin-top: 10px; }
 .contexto-painel h4 {
   margin: 0 0 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-fraco);
@@ -770,13 +770,23 @@ main.larga { max-width: 1800px; }
   opacity: 0; transform: translateX(14px);
   transition: opacity 0.25s, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); transition-delay: 0s;
 }
-.encaixar .celula:has(> .mini-grafico:hover, > .contexto-painel:hover):not(.sem-painel) .contexto-painel :is(h4, li) {
+.encaixar .celula.ctx-aberto .contexto-painel :is(h4, li) {
   opacity: 1; transform: none; transition-delay: calc(80ms + min(var(--i), 14) * 35ms);
 }
 /* aviso discreto no cabeçalho de que há contexto (o painel abre com o mouse) */
 .contexto-dica { display: none; }
-.encaixar .contexto-dica { display: inline-flex; gap: 6px; font-size: 11px; cursor: help; transition: opacity 0.2s; }
-.encaixar .celula:has(> .mini-grafico:hover, > .contexto-painel:hover):not(.sem-painel) .contexto-dica { opacity: 0.35; }
+.encaixar .contexto-dica {
+  display: inline-flex; gap: 6px; font: 600 11px Inter, sans-serif; cursor: pointer; color: var(--texto-fraco);
+  background: var(--bg-elev); border: 1px solid var(--borda-forte); border-radius: 99px; padding: 1px 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.encaixar .contexto-dica:hover { border-color: var(--acento); }
+.encaixar .celula.ctx-aberto .contexto-dica { border-color: var(--acento); background: color-mix(in srgb, var(--acento) 18%, var(--bg-elev)); }
+.contexto-painel .fechar-contexto {
+  position: sticky; top: 0; float: right; margin: -4px -6px 0 6px; background: none; border: 0; color: var(--texto-fraco);
+  font-size: 13px; cursor: pointer; padding: 2px 4px; line-height: 1;
+}
+.contexto-painel .fechar-contexto:hover { color: var(--texto); }
 .contexto-dica .favor { color: var(--alta); } .contexto-dica .cuidado { color: var(--aviso); }
 .celula-nome { cursor: zoom-in; }
 .celula:fullscreen .celula-nome { cursor: zoom-out; }

@@ -10,7 +10,7 @@ comparar os gráficos dos ativos na mesma condição e decidir as entradas do di
   **Contra a tendência** → setups (ou "Todos os setups" do lado), ou monte **Minhas regras**. Escolha também o
   tempo do sinal (diário ou semanal) e de quando (último pregão, 2, 3 ou 5). O resultado aparece numa **grade**
   (1, 2×2, 3×3 ou 4×3) de gráficos lado a lado para comparar, cabendo na tela no zoom 100%. O card é só
-  gráfico; passe o mouse para o contexto (✓ a favor, ⚠ cuidado) entrar deslizando. Clique no nome para tela cheia.
+  gráfico; clique no selo ✓/⚠ do cabeçalho para o contexto (✓ a favor, ⚠ cuidado) entrar deslizando. Clique no nome para tela cheia.
 
   "Só com 2+ setups" mostra os ativos com vários setups ao mesmo tempo; dá para ordenar por melhor histórico,
   mais setups juntos, variação etc. As setas no gráfico marcam os candles em que o setup disparou.
