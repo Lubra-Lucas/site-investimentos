@@ -59,10 +59,20 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
   aparece numa **grade** de gráficos (1, 2×2, 3×3, 4×3). Cada ativo mostra os
   setups que disparou, o selo do histórico e o contexto a favor/cuidado. `radar.html` e `multitela.html`
   redirecionam para cá.
+- **Início** (`index.html`, `assets/js/inicio.js`): o que o terminal faz e os 3 passos (encontrar → simular → registrar,
+  recolhíveis; `inicio-intro-v1`), oportunidades de hoje (contagem de ativos com setup de compra/venda no último pregão fechado
+  de cada mercado, a partir de `radar.json`, `tf: "D"`; setups de entrada mais frequentes, excluindo o grupo "Tendência", que é
+  estado; ativos com mais setups, com "Simular trade") e meus trades (abertos e R do mês, por `Diario` ou, sem ele, `Simulacoes`).
+- **Navegação** (`montarTopo`/`navegacao` em `comum.js`): Início · Oportunidades (`setups.html`) · Diário (`diario.html`) · Mais
+  (Triagem, Backtest, Carteira). No celular o mesmo `<nav>` vira barra de abas na base da tela (só CSS).
+- **Simular trade** (`simularTrade(ctx, {grafico})` em `comum.js`): `Diario.registrar` se existir (carregado sob demanda de
+  `assets/js/diario-dados.js`), senão `ativo.html?simular=compra|venda&setup=ID&tf=D#TICKER`, que abre um rascunho no gráfico
+  do ativo (`simulador.contexto = {setup, tf, origem}`). Pontos de entrada: botão do card, menu ⋯ e alvo de arrastar
+  (`arrastar.js`), cabeçalho do Ativo, Triagem (Hoje) e Início.
 - **Triagem** (`triagem.html`): um "Tinder" dos setups do dia. Baralho de compra ou de venda com os ativos que
   deram sinal no último pregão do seu mercado; → gostei, ↑ super, ← descartar (só naquele pregão). As decisões
   ficam no navegador (`triagem-v1`, por data do pregão e lado), com o resultado do dia e os dias anteriores.
-- **Carteira** (`index.html`): posições, simulações e a minha lista (o que eu tenho e acompanho).
+- **Carteira** (`carteira.html`, em "Mais"; era o `index.html`): posições, simulações e a minha lista (o que eu tenho e acompanho).
 - **Ativo** (`ativo.html#TICKER`): tudo sobre um papel. Gráfico, setups recentes, simulações, como cada
   setup se saiu nele e contexto. Clicar num ticker em qualquer página abre aqui.
 - **Backtest** (`backtest.html`): o histórico de cada setup do catálogo.

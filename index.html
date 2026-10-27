@@ -3,113 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Carteira Terminal</title>
+  <title>Início · Carteira Terminal</title>
+  <meta name="description" content="Encontre ativos em bom momento de compra ou venda, simule o trade e registre no seu diário de trading.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
-  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
   <header class="topo" id="topo"></header>
 
-  <main class="pagina-carteira">
-    <section class="kpis" id="kpis"></section>
+  <main class="pagina-inicio">
+    <!-- o que é o terminal e os 3 passos (recolhível: lembra a escolha neste navegador) -->
+    <section class="inicio-intro" id="inicio-intro" aria-labelledby="inicio-titulo"></section>
 
-    <section class="painel">
-      <div class="painel-cab">
-        <div>
-          <h2>Posições</h2>
-          <p class="sub">Valores convertidos para BRL pelo câmbio do dia. Clique em um ativo para abrir a página dele.</p>
-        </div>
-        <div class="alocacao" id="alocacao"></div>
-      </div>
-      <div class="tabela-wrap"><table id="tabela-posicoes"></table></div>
-      <div id="grafico-patrimonio"></div>
-    </section>
-
-    <section class="grade grade-carteira">
-      <div class="coluna-carteira">
-        <section class="painel" id="secao-plano">
-          <div class="painel-cab">
-            <div>
-              <h2>Plano de amanhã</h2>
-              <p class="sub">O que você planejou operar no próximo pregão, com entrada, stop, alvo e a quantidade pelo risco por operação.</p>
-            </div>
-            <button class="botao primario" id="plano-abrir">Abrir plano</button>
-          </div>
-          <div id="plano-resumo"></div>
-        </section>
-
-        <div class="painel" id="secao-lista">
-          <div class="painel-cab">
-            <div>
-              <h2>Minha lista</h2>
-              <p class="sub">Os ativos que você acompanha, com os setups dos últimos 5 pregões. Fica salva neste navegador.</p>
-            </div>
-            <form class="lista-adicionar" id="lista-adicionar">
-              <input id="lista-campo" type="search" list="lista-tickers" spellcheck="false" autocomplete="off"
-                placeholder="Ticker: PETR4, NVDA, BTC" aria-label="Ticker para adicionar à lista">
-              <datalist id="lista-tickers"></datalist>
-              <button class="botao primario" type="submit">Adicionar</button>
-            </form>
-          </div>
-          <div class="tabela-wrap"><table id="tabela-lista"></table></div>
-        </div>
-
-        <section class="painel" id="secao-simulacoes">
-          <div class="painel-cab">
-            <div>
-              <h2>Minhas simulações</h2>
-              <p class="sub">Posições simuladas no gráfico, reavaliadas a cada atualização. Ficam salvas neste navegador. Clique para abrir o ativo.</p>
-            </div>
-            <div class="controles">
-              <button class="botao" id="sim-exportar">Exportar</button>
-              <label class="botao">Importar<input type="file" accept="application/json" id="sim-importar" hidden></label>
-            </div>
-          </div>
-          <div id="lista-simulacoes"></div>
-        </section>
-
-        <section class="painel" id="secao-notas">
-          <div class="painel-cab">
-            <div>
-              <h2>Minhas anotações</h2>
-              <p class="sub">O que você viu em cada ativo, preso à data e ao preço, e o que o preço fez desde então. Clique para abrir.</p>
-            </div>
-            <div class="controles" title="Plano de amanhã e anotações num arquivo JSON">
-              <button class="botao" id="bandejas-exportar">Exportar plano + notas</button>
-              <label class="botao">Importar<input type="file" accept="application/json" id="bandejas-importar" hidden></label>
-            </div>
-          </div>
-          <div id="notas-lista"></div>
-        </section>
-      </div>
-
-      <aside class="painel painel-lateral">
-        <div class="painel-cab">
-          <div>
-            <h2>Setups nos meus ativos</h2>
-            <p class="sub" id="setups-sub">Posições, minha lista e acompanhados</p>
-          </div>
-          <div class="segmento" id="f-tf-setups">
-            <button data-v="D" class="ativo" title="Setups no diário, últimos 5 pregões">Diário</button>
-            <button data-v="W" title="Setups no semanal, últimas 2 semanas">Semanal</button>
-          </div>
-        </div>
-        <div id="setups-carteira"></div>
-      </aside>
-    </section>
-
-    <section class="painel">
-      <div class="painel-cab">
-        <div>
-          <h2>Ativos acompanhados</h2>
-          <p class="sub">Os ativos da configuração da carteira. IFR acima de 70 está esticado para cima; abaixo de 30, para baixo.</p>
-        </div>
-      </div>
-      <div class="tabela-wrap"><table id="tabela-acompanhados"></table></div>
-    </section>
+    <div class="inicio-grade">
+      <section class="painel inicio-trades" id="inicio-trades" aria-labelledby="trades-titulo"></section>
+      <section class="painel inicio-hoje" id="hoje" aria-labelledby="hoje-titulo"></section>
+    </div>
   </main>
 
   <footer>
@@ -119,10 +30,6 @@
   <script src="assets/js/comum.js"></script>
   <script src="assets/js/simulador.js"></script>
   <script src="assets/js/eventos.js"></script>
-  <script src="assets/js/plano.js"></script>
-  <script src="assets/js/notas.js"></script>
-  <script src="assets/js/comparar.js"></script>
-  <script src="assets/js/arrastar.js"></script>
-  <script src="assets/js/carteira.js"></script>
+  <script src="assets/js/inicio.js"></script>
 </body>
 </html>

@@ -1,11 +1,18 @@
 # Carteira Terminal
 
 Terminal pessoal de análise técnica, feito para a rotina **depois do fechamento**: ver quais setups se formaram,
-comparar os gráficos dos ativos na mesma condição e decidir as entradas do dia seguinte. Cinco páginas:
+comparar os gráficos dos ativos na mesma condição, simular o trade e registrar no Diário. Páginas:
 
-- **Carteira** (`index.html`): o que você tem e acompanha. Patrimônio em BRL, posições, **Minha lista** (os
+- **Início** (`index.html`): o que o terminal faz e os 3 passos (encontre uma oportunidade → simule o trade → registre no Diário), as oportunidades de hoje por mercado, os seus trades abertos e o R do mês, e um glossário.
+- **Oportunidades** (`setups.html`): a grade de setups, descrita abaixo (antes "Setups"). Cada card tem **Simular**.
+- **Diário** (`diario.html`): os trades simulados, o resultado em R por dia e as estatísticas por estratégia.
+- **Mais ▾**: **Triagem**, **Backtest** e **Carteira** (`carteira.html`, antes `index.html`).
+
+Detalhes de cada uma:
+
+- **Carteira** (`carteira.html`): o que você tem e acompanha. Patrimônio em BRL, posições, **Minha lista** (os
   ativos que você acompanha, salva neste navegador), **Minhas simulações** e os setups que dispararam nesses ativos.
-- **Setups** (`setups.html`): ~420 ativos (todas as ações da B3 com volume médio acima de R$ 1 mi/dia, as 150
+- **Oportunidades / Setups** (`setups.html`): ~420 ativos (todas as ações da B3 com volume médio acima de R$ 1 mi/dia, as 150
   maiores dos EUA, 30 criptos e 40 de macro). Escolha o setup pela árvore **Compra | Venda** → **A favor** ou
   **Contra a tendência** → setups (ou "Todos os setups" do lado), ou monte **Minhas regras**. Escolha também o
   tempo do sinal (diário ou semanal) e de quando (último pregão, 2, 3 ou 5). O resultado aparece numa **grade**
