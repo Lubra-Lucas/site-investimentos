@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preload" as="fetch" crossorigin href="data/radar.json">
+  <link rel="preload" as="fetch" crossorigin href="data/setups.json">
 </head>
 <body>
   <header class="topo" id="topo"></header>
@@ -27,9 +30,9 @@
     Uso pessoal. Os setups são filtros técnicos automáticos, não recomendação de investimento.
   </footer>
 
-  <script src="assets/js/comum.js"></script>
-  <script src="assets/js/simulador.js"></script>
-  <script src="assets/js/eventos.js"></script>
-  <script src="assets/js/inicio.js"></script>
+  <script defer src="assets/js/comum.js"></script>
+  <script defer src="assets/js/simulador.js"></script>
+  <script defer src="assets/js/eventos.js"></script>
+  <script defer src="assets/js/inicio.js"></script>
 </body>
 </html>

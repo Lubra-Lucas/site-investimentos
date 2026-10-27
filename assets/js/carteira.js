@@ -223,6 +223,7 @@ function renderAcompanhados() {
 // ------------------------------------------------------------- início
 
 async function iniciar() {
+  aguardarPagina();
   try { [R, C] = await Promise.all([carregarRadar(), carregarResumo()]); }
   catch (e) { montarTopo("carteira"); return erroDados(e); }
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
@@ -247,6 +248,7 @@ async function iniciar() {
   listarSimulacoes();
   document.addEventListener("simulacoes", listarSimulacoes);  // ex.: "Virar simulação" no plano de amanhã
   // vindo de outra página com #secao-simulacoes: a seção só tem altura depois de montada
+  paginaPronta();
   if (location.hash) document.querySelector(location.hash.replace(/[^#\w-]/g, ""))?.scrollIntoView();
 }
 

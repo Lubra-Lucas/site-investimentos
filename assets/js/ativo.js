@@ -3,7 +3,8 @@
  * como cada setup do catálogo se saiu neste ativo e o panorama dos indicadores. */
 
 const ficha = { ticker: null, tfCtx: "D", vies: null };
-let R, F, porTicker, painel;
+let R, porTicker, painel;
+let F;  // rastreador: undefined enquanto carrega (é grande, 700 KB), null se falhou
 
 // ------------------------------------------------------------- troca de ativo
 
@@ -22,10 +23,12 @@ function abrirAtivo(tk, historico = true) {
   document.getElementById("f-ativo").value = "";
   renderCabecalho(a);
   renderLateral(a);
+  // o gráfico pede os candles antes do histórico pedir o backtest (430 KB): o gráfico é o que a pessoa veio ver
+  const pronto = mudou ? painel.selecionar(a, eventosDoAtivo(R, tk).map(eventoParaGrafico)).then(() => definirContextoSimulacao(a))
+    : Promise.resolve();
   renderHistorico(a);
   renderPanorama(a);
-  if (!mudou) return Promise.resolve();
-  return painel.selecionar(a, eventosDoAtivo(R, tk).map(eventoParaGrafico)).then(() => definirContextoSimulacao(a));
+  return pronto;
 }
 
 // ------------------------------------------------------------- simular trade
@@ -186,7 +189,8 @@ function blocoContexto(a) {
     opcoes([["D", "Diário"], ["W", "Semanal"]], ficha.tfCtx, (v) => { ficha.tfCtx = v; renderLateral(a); }),
     opcoes([["compra", "▲ Compra"], ["neutro", "Neutro"], ["venda", "▼ Venda"]], vies, (v) => { ficha.vies = v; renderLateral(a); }));
   if (!fotos) return el("li", { class: "ficha-bloco" }, tituloBloco("Contexto"),
-    el("p", { class: "sub" }, F ? "Sem os indicadores do rastreador para este ativo." : "Indicadores do rastreador indisponíveis."));
+    el("p", { class: "sub contexto-carregando" }, F === undefined ? "Carregando os indicadores do rastreador…"
+      : F ? "Sem os indicadores do rastreador para este ativo." : "Indicadores do rastreador indisponíveis."));
   const { favor, cuidado, info } = contextoDecisao(a, fotos, ficha.tfCtx, vies, eventos, nomeSetup);
   const lista = (titulo, itens, cls, simbolo) => (itens.length ? el("div", { class: `contexto-grupo ${cls}` },
     el("h4", {}, titulo),
@@ -290,11 +294,13 @@ document.addEventListener("keydown", (e) => {
 });
 
 async function iniciar() {
+  aguardarPagina();
+  const catalogo = carregarCatalogoSetups().catch(() => null);  // em paralelo com o radar, não depois dele
   try { R = await carregarRadar(); } catch (e) { montarTopo("ativo"); return erroDados(e); }
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
   montarTopo("ativo", R);
   document.querySelector(".cab-ativo").append(avisoFormacao(R));
-  [F] = await Promise.all([carregarRastreador().catch(() => null), carregarCatalogoSetups().catch(() => null)]);
+  await catalogo;
   painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
   // diário: o trade salvo no gráfico leva o setup mais recente do mesmo lado e o tempo do gráfico
   if (painel.simulador) painel.simulador.contexto = (p) => {
@@ -329,6 +335,13 @@ async function iniciar() {
     .find((t) => porTicker.has(t));
   await abrirAtivo(inicial, false);
   if (pedido && !achado) avisoNaoAchado(pedido);
+  paginaPronta();
+  // o rastreador (700 KB) só alimenta o bloco "Contexto": pede-se depois dos candles do gráfico e o bloco se refaz quando ele chega
+  carregarRastreador().catch(() => null).then((f) => {
+    F = f;
+    const a = porTicker.get(ficha.ticker);
+    if (a) renderLateral(a);
+  });
   await abrirSimulacaoDoEndereco();
 }
 
