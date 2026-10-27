@@ -447,9 +447,11 @@
           el("button", { class: `tri-mini mover-${d}`, title: `Mover para ${def.nome}`, "aria-label": `Mover ${semSufixo(tk)} para ${def.nome}`, onclick: () => mover(d) }, def.icone)),
         x.d === "descartado" ? el("button", { class: "tri-mini", title: "Voltar para o baralho", onclick: devolver }, "↺ baralho") : null,
         el("span", { class: "tri-sep" }),
-        el("button", { class: "tri-mini", title: "Comparar", onclick: () => acao("comparar", tk) }, "⇆"),
-        window.Plano ? el("button", { class: "tri-mini", title: "Plano de amanhã", onclick: () => acao("plano", tk) }, "☰") : null,
-        window.Notas ? el("button", { class: "tri-mini", title: "Anotar", onclick: () => acao("notas", tk) }, "✎") : null));
+        el("button", { class: "tri-mini tri-simular", title: "Simular um trade neste ativo: entrada, stop e alvo", "aria-label": `Simular trade em ${semSufixo(tk)}`,
+          onclick: () => acao("simular", tk) }, "⊕ Simular"),
+        el("button", { class: "tri-mini", title: "Comparar com outros ativos", "aria-label": `Comparar ${semSufixo(tk)}`, onclick: () => acao("comparar", tk) }, "⇆"),
+        window.Plano ? el("button", { class: "tri-mini", title: "Pôr no plano de amanhã", "aria-label": `Plano de amanhã: ${semSufixo(tk)}`, onclick: () => acao("plano", tk) }, "☰") : null,
+        window.Notas ? el("button", { class: "tri-mini", title: "Anotar o que você viu", "aria-label": `Anotar ${semSufixo(tk)}`, onclick: () => acao("notas", tk) }, "✎") : null));
     if (corpo) {
       corpo.abrir = () => {
         const g = new Grafico(corpo, { mini: true });
@@ -541,8 +543,10 @@
               desde(tk, x, lado) ?? el("span", { class: "sub" }, "sem variação"),
               el("span", { class: "tri-dia-setups sub" }, (x.setups ?? []).map(nomeCurto).join(" · ")),
               el("span", { class: "tri-dia-acoes" },
-                el("button", { class: "tri-mini", title: "Comparar", onclick: () => acao("comparar", tk) }, "⇆"),
-                window.Plano ? el("button", { class: "tri-mini", title: "Plano de amanhã", onclick: () => acao("plano", tk) }, "☰") : null));
+                el("button", { class: "tri-mini tri-simular", title: "Simular um trade neste ativo: entrada, stop e alvo", "aria-label": `Simular trade em ${semSufixo(tk)}`,
+          onclick: () => acao("simular", tk) }, "⊕ Simular"),
+        el("button", { class: "tri-mini", title: "Comparar com outros ativos", "aria-label": `Comparar ${semSufixo(tk)}`, onclick: () => acao("comparar", tk) }, "⇆"),
+                window.Plano ? el("button", { class: "tri-mini", title: "Pôr no plano de amanhã", "aria-label": `Plano de amanhã: ${semSufixo(tk)}`, onclick: () => acao("plano", tk) }, "☰") : null));
           })));
       }) : el("p", { class: "sub" }, "Os Super e Gostei de hoje aparecem aqui a partir do próximo pregão, com o quanto o preço andou desde a triagem."));
   }

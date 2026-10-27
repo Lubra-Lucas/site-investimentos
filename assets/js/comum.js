@@ -655,6 +655,15 @@ class Grafico {
   }
 }
 
+// Tela cheia: um botão "Sair" sempre visível (além do Esc), em qualquer elemento que entre em tela cheia
+document.addEventListener("fullscreenchange", () => {
+  document.querySelectorAll(".sair-tela-cheia").forEach((b) => b.remove());
+  const alvo = document.fullscreenElement;
+  if (!alvo) return;
+  alvo.append(el("button", { type: "button", class: "sair-tela-cheia", "aria-label": "Sair da tela cheia",
+    onclick: (e) => { e.stopPropagation(); document.exitFullscreen(); } }, "✕ Sair da tela cheia"));
+});
+
 document.addEventListener("keydown", (e) => {
   if (e.altKey && e.code === "KeyC") {
     e.preventDefault();
@@ -666,6 +675,13 @@ document.addEventListener("keydown", (e) => {
 
 /** Guia rápido de cada página (botão "?" do topo). */
 const AJUDA = {
+  inicio: ["Início", [
+    "O terminal serve a um ciclo só: encontrar uma boa oportunidade de compra ou venda, simular o trade (entrada, stop e alvo) e registrar no Diário para aprender com o resultado.",
+    "Oportunidades de hoje: quantos setups dispararam no último pregão fechado de cada mercado. Clique num setup para ver os ativos dele, ou em Simular trade para treinar a entrada.",
+    "R é a unidade de risco: o stop vale −1R (você perde o que se dispôs a arriscar) e um alvo com o dobro da distância vale +2R. Assim os trades ficam comparáveis, seja qual for o preço do ativo.",
+    "Meus trades: os trades que você simulou, o resultado de cada um em R e o total do mês. O Diário guarda o histórico e as estatísticas.",
+    "Os três passos podem ser recolhidos depois que você pegar o jeito; o botão \"Como funciona\" os traz de volta.",
+  ]],
   carteira: ["Carteira", [
     "O que você tem e acompanha: posições, simulações e a sua lista de ativos, com os setups que dispararam em cada um.",
     "Clique em um ativo para abrir a página dele (gráfico, setups recentes, contexto e histórico).",
@@ -677,14 +693,16 @@ const AJUDA = {
     "Tudo de um ativo: gráfico, setups recentes, contexto, suas simulações e como cada setup se saiu nele.",
     "Clique num setup recente para ver no gráfico o que o preço fez depois.",
     "Use a busca no topo ou as setas ← → para trocar de ativo.",
+    "⊕ Simular trade abre uma simulação no gráfico: arraste entrada, stop e alvo e salve. Ela entra no Diário e é reavaliada a cada atualização.",
     "+ Plano de amanhã põe o ativo no plano do próximo pregão com níveis sugeridos; ✎ Anotar guarda o que você viu, preso à data e ao preço.",
   ]],
-  setups: ["Setups", [
+  setups: ["Oportunidades", [
     "Escolha Compra ou Venda, depois \"A favor\" ou \"Contra a tendência\" e um setup (ou todos). Os chips mostram quantos ativos dispararam cada um no período.",
     "\"Minhas regras\" monta um filtro próprio (médias, IFR, Bollinger...), salvo neste navegador.",
     "Grade: vários gráficos lado a lado para comparar (1, 2×2, 3×3 ou 4×3); clique no selo ✓/⚠ do card para ver o contexto (✓ a favor, ⚠ cuidado; Esc fecha) e use ← → para trocar de página.",
     "As setas no gráfico são os setups escolhidos neste ativo; a faixa azul marca o candle do sinal. Os sinais só saem com o pregão fechado.",
-    "Segure um card parado por meio segundo (até em cima do gráfico) ou arraste pelo cabeçalho: aparecem Comparar, Plano de amanhã e Anotar nas bordas; solte num deles. O ⋯ do card faz o mesmo.",
+    "Simular: o botão \"⊕ Simular\" do card abre a simulação do trade (entrada, stop e alvo) com o setup e o lado do card. Também dá para arrastar o card até \"Simular trade\" (borda esquerda).",
+    "Segure um card parado por meio segundo (até em cima do gráfico) ou arraste pelo cabeçalho: aparecem Comparar, Simular trade, Plano de amanhã e Anotar nas bordas; solte num deles. O ⋯ do card faz o mesmo.",
   ]],
   triagem: ["Triagem", [
     "Um card por ativo que deu sinal de compra (ou de venda) no último pregão fechado do mercado dele: gráfico, setups do dia, histórico e contexto.",
@@ -693,7 +711,29 @@ const AJUDA = {
     "Em \"Hoje\" ficam as três colunas (Super, Gostei, Descartados): mude de coluna, devolva ao baralho ou mande para Comparar e Plano de amanhã. Os descartados voltam no próximo pregão; Super e Gostei ficam em \"Dias anteriores\" com o quanto o preço andou desde a triagem.",
   ]],
   backtest: ["Backtest", ["Como cada setup se saiu nos últimos 6 anos, por mercado, lado e prazo."]],
+  diario: ["Diário", [
+    "O seu registro de trades: tudo o que você simula (e fecha) vira um trade aqui. R é o resultado em unidades do risco: +2R = ganhou 2× o que arriscou; o stop vale −1R.",
+    "Calendário: cada dia mostra o R dos trades encerrados nele. Clique (ou Enter) num dia para ver os trades, a foto, o setup, a entrada e a saída. Setas movem entre os dias; PageUp e PageDown trocam o mês.",
+    "Clique num trade para editar: estratégia, tese (por que entrei), revisão (o que aprendi), nota, etiquetas, níveis, saída manual e fotos (capturar o gráfico, anexar ou colar com Ctrl+V).",
+    "Estatísticas por estratégia ou por setup: % de acerto, R médio (expectativa), fator de lucro, sequência de perdas, drawdown e a curva de R acumulado.",
+    "Exporte uma planilha (CSV) ou um backup JSON com as fotos. Tudo fica salvo neste navegador: faça backup de vez em quando.",
+  ]],
 };
+/** Glossário em português simples (Início e botão "?"): o que cada sigla quer dizer. */
+const GLOSSARIO = [
+  ["Setup", "Um padrão técnico que se formou no gráfico e costuma marcar um bom momento de compra ou de venda. Não é garantia."],
+  ["Stop", "O preço em que você admite que errou e sai do trade para limitar a perda."],
+  ["Alvo", "O preço em que você realiza o lucro."],
+  ["R", "Unidade de risco: a distância entre a entrada e o stop. Perder no stop é −1R; ganhar o dobro do risco é +2R."],
+  ["R:R", "Relação retorno/risco: 1 : 2 significa que o alvo está duas vezes mais longe que o stop."],
+  ["MMS / MME", "Média móvel simples / exponencial: o preço médio dos últimos N candles (MMS 20 = 20 candles). A MME pesa mais os candles recentes."],
+  ["Pullback", "Recuo do preço até uma média durante uma tendência, para comprar mais barato (na alta) ou vender mais caro (na baixa)."],
+  ["IFR", "Índice de força relativa (RSI): de 0 a 100. Abaixo de 30, o preço caiu rápido demais; acima de 70, subiu rápido demais."],
+  ["Bollinger", "Faixa em volta da MMS 20 que acompanha a volatilidade. Fechar fora da faixa indica movimento esticado."],
+  ["Multitempo", "O mesmo sinal confirmado em mais de um tempo gráfico (por exemplo diário e semanal)."],
+  ["Confluência", "Vários setups ao mesmo tempo no mesmo ativo (aparece como “2+ setups”)."],
+  ["Pregão", "Um dia de negociação. “Último pregão fechado” é o dia mais recente que já terminou."],
+];
 const ATALHOS = [
   ["Alt", "C", "centraliza os gráficos"], ["Alt", "T", "segmento de reta"], ["Alt", "H", "linha horizontal"],
   ["Alt", "R", "retângulo"], ["Alt", "B", "pincel"], ["Ctrl", "Z", "desfaz o último desenho"],
@@ -701,10 +741,9 @@ const ATALHOS = [
 ];
 
 function montarTopo(pagina, dados) {
-  const link = (href, id, txt) => el("a", { href, class: pagina === id ? "ativo" : null, "aria-current": pagina === id ? "page" : null }, txt);
   const topo = document.getElementById("topo");
   const v = dados?.verificacao;
-  const marca = el("a", { class: "marca", href: "index.html", "aria-label": "Carteira Terminal" });
+  const marca = el("a", { class: "marca", href: "index.html", "aria-label": "Carteira Terminal: página inicial" });
   marca.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="4" height="9" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="11" width="4" height="6" rx="1"/></svg><span>Carteira <b>Terminal</b></span>';
 
   // status dos dados: data do último pregão e, no detalhe, a verificação
@@ -720,6 +759,8 @@ function montarTopo(pagina, dados) {
   const painelAjuda = el("div", { class: "ajuda", hidden: true, role: "dialog", "aria-label": "Como usar" },
     el("h3", {}, `Como usar: ${titulo}`),
     el("ul", {}, linhas.map((l) => el("li", {}, l))),
+    el("details", { class: "ajuda-glossario" }, el("summary", {}, "Glossário: o que significam as siglas"),
+      el("dl", { class: "glossario" }, GLOSSARIO.flatMap(([t, d]) => [el("dt", {}, t), el("dd", {}, d)]))),
     el("h3", {}, "Atalhos"),
     el("dl", { class: "atalhos" }, ATALHOS.flatMap(([a, b, t]) => [el("dt", {}, el("kbd", {}, a), el("kbd", {}, b)), el("dd", {}, t)])),
     el("p", { class: "sub" }, "Uso pessoal. Os sinais são filtros técnicos automáticos, não recomendação de investimento."));
@@ -730,11 +771,118 @@ function montarTopo(pagina, dados) {
 
   topo.replaceChildren(
     marca,
-    el("nav", { "aria-label": "Páginas" }, link("index.html", "carteira", "Carteira"), link("setups.html", "setups", "Setups"),
-      link("triagem.html", "triagem", "Triagem"), link("backtest.html", "backtest", "Backtest")),
+    navegacao(pagina),
     buscaTopo(dados?.ativos ?? []),
     el("div", { class: "topo-info" }, status, dolar, botaoAjuda, painelAjuda),
   );
+}
+
+// ------------------------------------------------------------- navegação principal
+
+/** Páginas do menu. Três destinos principais (o ciclo: achar → simular → registrar) e o resto em "Mais". */
+const NAV_PRINCIPAL = [
+  { id: "inicio", href: "index.html", rot: "Início", icone: "M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" },
+  { id: "setups", href: "setups.html", rot: "Oportunidades", dica: "Os setups que se formaram: ativos em bom momento de compra ou de venda",
+    icone: "M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 100 8 4 4 0 000-8z" },
+  { id: "diario", href: "diario.html", rot: "Diário", dica: "Seus trades simulados, resultado em R e estatísticas",
+    icone: "M6 3h12a1 1 0 011 1v16a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1zM9 8h6M9 12h6M9 16h3" },
+];
+const NAV_MAIS = [
+  { id: "triagem", href: "triagem.html", rot: "Triagem", dica: "Passe os sinais do dia, um a um, como num baralho" },
+  { id: "backtest", href: "backtest.html", rot: "Backtest", dica: "Como cada setup se saiu nos últimos 6 anos" },
+  { id: "carteira", href: "carteira.html", rot: "Carteira", dica: "Posições, minha lista e plano de amanhã" },
+];
+
+function iconeSvg(d) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add("nav-icone");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", d);
+  svg.append(path);
+  return svg;
+}
+
+/**
+ * Menu das páginas. No computador é a barra do topo; no celular (≤ 600 px) o CSS leva o mesmo <nav> para
+ * a base da tela (barra de abas ao alcance do polegar). "Mais" é um botão de revelar (aria-expanded) que abre
+ * uma lista de links; Esc fecha e devolve o foco ao botão; clicar fora ou sair com Tab também fecha.
+ */
+function navegacao(pagina) {
+  const noMais = NAV_MAIS.some((x) => x.id === pagina);
+  const link = (x) => el("a", { href: x.href, class: pagina === x.id ? "ativo" : null, "aria-current": pagina === x.id ? "page" : null,
+    title: x.dica ?? null }, x.icone ? iconeSvg(x.icone) : null, el("span", { class: "nav-rotulo" }, x.rot));
+  const lista = el("ul", { class: "nav-mais-lista", id: "nav-mais-lista", hidden: true },
+    NAV_MAIS.map((x) => el("li", {},
+      el("a", { href: x.href, class: pagina === x.id ? "ativo" : null, "aria-current": pagina === x.id ? "page" : null },
+        el("b", {}, x.rot), el("span", { class: "sub" }, x.dica)))));
+  const ponto = "M5 12h.01M12 12h.01M19 12h.01";
+  const botao = el("button", { type: "button", class: `nav-mais-botao ${noMais ? "ativo" : ""}`, "aria-expanded": "false", "aria-controls": "nav-mais-lista",
+    title: "Triagem, Backtest e Carteira" }, iconeSvg(ponto), el("span", { class: "nav-rotulo" }, "Mais"), el("i", { class: "nav-seta", "aria-hidden": "true" }, "▾"));
+  const caixa = el("div", { class: "nav-mais" }, botao, lista);
+  const abrir = (aberto, focar = false) => {
+    lista.hidden = !aberto;
+    botao.setAttribute("aria-expanded", String(aberto));
+    if (aberto && focar) lista.querySelector("a")?.focus();
+  };
+  botao.addEventListener("click", (e) => { e.stopPropagation(); abrir(lista.hidden); });
+  botao.addEventListener("keydown", (e) => { if (e.key === "ArrowDown") { e.preventDefault(); abrir(true, true); } });
+  caixa.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !lista.hidden) { e.stopPropagation(); abrir(false); botao.focus(); }
+    else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && e.target.closest("a")) {
+      e.preventDefault();
+      const itens = [...lista.querySelectorAll("a")], i = itens.indexOf(document.activeElement);
+      itens[(i + (e.key === "ArrowDown" ? 1 : -1) + itens.length) % itens.length].focus();
+    }
+  });
+  caixa.addEventListener("focusout", (e) => { if (e.relatedTarget && !caixa.contains(e.relatedTarget)) abrir(false); });
+  document.addEventListener("click", (e) => { if (!caixa.contains(e.target)) abrir(false); });
+  return el("nav", { "aria-label": "Páginas", class: "nav-principal" }, NAV_PRINCIPAL.map(link), caixa);
+}
+
+// ------------------------------------------------------------- simular trade (ponto de entrada comum)
+
+/** O Diário (assets/js/diario-dados.js) pode não estar na página: carrega sob demanda; sem ele, resolve null. */
+let _diarioPromessa = null;
+function carregarDiario() {
+  const api = () => (typeof Diario !== "undefined" ? Diario : window.Diario) ?? null;
+  if (api()) return Promise.resolve(api());
+  _diarioPromessa ??= new Promise((ok) => {
+    const s = document.createElement("script");
+    s.src = "assets/js/diario-dados.js";
+    s.onload = () => ok(api());
+    s.onerror = () => ok(null);
+    document.head.append(s);
+  });
+  return _diarioPromessa;
+}
+
+/** compra/venda a partir de um contexto qualquer (setups sem lado, "neutro", viram compra). */
+const ladoDoContexto = (ctx) => (ctx?.lado === "venda" ? "venda" : "compra");
+
+/** Endereço da página do ativo já em modo "simular" (o plano B quando o Diário não está disponível). */
+function urlSimular(ctx) {
+  const q = new URLSearchParams({ simular: ladoDoContexto(ctx) });
+  if (ctx.setup) q.set("setup", ctx.setup);
+  if (ctx.tf) q.set("tf", ctx.tf);
+  if (ctx.origem) q.set("origem", ctx.origem);
+  return `ativo.html?${q}#${encodeURIComponent(ctx.ticker)}`;
+}
+
+/**
+ * Começa a simular um trade de um ativo: com o Diário, `Diario.registrar(ctx, { grafico })` cria o trade e abre o
+ * editor (com a foto do gráfico, se `grafico` vier); sem ele, abre a página do ativo no modo simular.
+ * ctx = { ticker, lado, setup?, tf?, data?, preco?, origem }.
+ */
+async function simularTrade(ctx, { grafico } = {}) {
+  const c = { origem: "manual", ...ctx, lado: ladoDoContexto(ctx) };
+  const D = await carregarDiario();
+  if (D?.registrar) {
+    try { return await D.registrar(c, { grafico }); } catch (e) { console.warn("Diario.registrar falhou; abrindo o ativo", e); }
+  }
+  location.href = urlSimular(c);
 }
 
 /** Acha o ativo pelo que foi digitado: PETR4, PETR4.SA, BTC, BRK.B... (null se não achar). */
@@ -753,9 +901,19 @@ function buscaTopo(ativos) {
   const campo = el("input", { type: "search", list: "busca-topo-tickers", spellcheck: "false", autocomplete: "off",
     placeholder: "Buscar ativo", "aria-label": "Buscar ativo (atalho: /)", title: "Digite o ticker e tecle Enter (atalho: /)" });
   const form = el("form", { class: "busca-topo", role: "search" });
+  const aviso = el("p", { class: "busca-aviso", role: "status", "aria-live": "polite", hidden: true });
+  campo.addEventListener("input", () => { aviso.hidden = true; campo.removeAttribute("aria-invalid"); });
   const abrir = () => {
     const tk = acharAtivo(ativos, campo.value) ?? (ativos.length ? null : campo.value.trim().toUpperCase());
-    if (!tk) { campo.setCustomValidity("Ativo não encontrado"); campo.reportValidity(); campo.setCustomValidity(""); return; }
+    if (!tk) {
+      const txt = campo.value.trim();
+      aviso.textContent = txt ? `Não encontrei “${txt}”. Tente PETR4, VALE3, AAPL ou BTC.` : "Digite o código do ativo, por exemplo PETR4, VALE3, AAPL ou BTC.";
+      aviso.hidden = false;
+      campo.setAttribute("aria-invalid", "true");
+      clearTimeout(aviso._t);
+      aviso._t = setTimeout(() => { aviso.hidden = true; campo.removeAttribute("aria-invalid"); }, 5000);
+      return;
+    }
     campo.value = "";
     form.classList.remove("aberta");
     location.href = `ativo.html#${encodeURIComponent(tk)}`;
@@ -775,7 +933,7 @@ function buscaTopo(ativos) {
     if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
     e.preventDefault(); form.classList.add("aberta"); campo.focus();
   });
-  form.append(lupa, campo, lista);
+  form.append(lupa, campo, lista, aviso);
   return form;
 }
 
@@ -806,7 +964,7 @@ function segmento(id, aoMudar) {
 
 /** Botão que põe o elemento (painel do gráfico ou célula da multitela) em tela cheia. */
 function botaoTelaCheia(elemento) {
-  return el("button", { class: "botao-tela-cheia", title: "Tela cheia (Esc para sair)", "aria-label": "Tela cheia",
+  return el("button", { class: "botao-tela-cheia", title: "Tela cheia (Esc ou ✕ para sair)", "aria-label": "Tela cheia",
     onclick: (e) => {
       e.stopPropagation();
       const alvo = elemento();

@@ -18,6 +18,7 @@ let SETUPS = [], SETUP = new Map(), NEUTROS = [], EVENTOS = [], eventosLocais = 
 let P = { eventos: [], ultima: new Map(), porSetup: new Map() };  // eventos do período escolhido
 let lista = [];        // resultado filtrado e ordenado
 const abertos = [];    // gráficos da grade
+const graficoPorTk = new Map();  // ticker -> gráfico do card (para a foto do trade no Diário)
 const $ = (id) => document.getElementById(id);
 
 // ------------------------------------------------------------- catálogo
@@ -213,6 +214,16 @@ window.ctxArrasto = (tk) => {
     : { ticker: tk, tf: estado.tf, data: i.data, lado: ehMinhas() ? minhas().vies : undefined, preco: porTicker.get(tk)?.ultimo };
 };
 
+/** Para arrastar.js (Simular trade): o gráfico do card do ativo, se já foi aberto. */
+window.graficoDoAtivo = (tk) => graficoPorTk.get(tk) ?? null;
+
+/** O contexto do trade a simular a partir do card: o setup em destaque, o lado dele (ou o da aba) e o tempo do sinal. */
+function ctxSimular(tk) {
+  const c = window.ctxArrasto(tk) ?? { ticker: tk };
+  const lado = c.lado === "compra" || c.lado === "venda" ? c.lado : viesAtual() === "venda" ? "venda" : "compra";
+  return { ...c, ticker: tk, lado, tf: c.tf ?? estado.tf, origem: "setups" };
+}
+
 const dataFoco = (i) => (!i ? null : ehMinhas() ? i.data : eventoFoco(i)?.data) || null;
 
 // ------------------------------------------------------------- pedaços do ativo
@@ -284,10 +295,12 @@ function blocoContexto(a) {
       onclick: (e) => alternarContexto(e.currentTarget.closest(".celula"), false) }, "✕"),
     grupo("A favor", favor, "favor", "✓"), grupo("Cuidado", cuidado, "cuidado", "⚠"), grupo("Informações", info, "info", "·"));
   const dica = el("button", { type: "button", class: "contexto-dica", "aria-expanded": "false",
-    title: "Ver o contexto: o que está a favor e o que pede cuidado", onclick: (e) => alternarContexto(e.currentTarget.closest(".celula")) },
+    title: "Ver o contexto: o que está a favor (✓) e o que pede cuidado (⚠)", "aria-label": `Contexto: ${favor.length} a favor, ${cuidado.length} pedem cuidado`,
+    onclick: (e) => alternarContexto(e.currentTarget.closest(".celula")) },
+    el("span", { class: "ctx-rot" }, "Contexto"),
     favor.length ? el("span", { class: "favor" }, `✓ ${favor.length}`) : null,
     cuidado.length ? el("span", { class: "cuidado" }, `⚠ ${cuidado.length}`) : null,
-    !favor.length && !cuidado.length ? el("span", {}, "ⓘ contexto") : null);
+    el("span", { class: "ctx-seta", "aria-hidden": "true" }, "▾"));
   return { enxuto, painel: painelCtx, dica };
 }
 
@@ -312,7 +325,7 @@ document.addEventListener("pointerdown", (e) => {
 });
 
 const linkAtivo = (tk, txt = "↗") => el("a", { class: "abrir-radar", href: `ativo.html#${encodeURIComponent(tk)}`,
-  title: "Abrir a página do ativo", onclick: (e) => e.stopPropagation() }, txt);
+  title: "Abrir a página do ativo: gráfico grande, setups recentes e histórico", "aria-label": `Abrir a página de ${semSufixo(tk)}`, onclick: (e) => e.stopPropagation() }, txt);
 
 function marcarSelecionado() {
   document.querySelectorAll("[data-tk]").forEach((n) => n.classList.toggle("selecionado", n.dataset.tk === estado.ticker));
@@ -346,10 +359,17 @@ function celula(i) {
   const ctx = blocoContexto(a) ?? {};
   const cel = el("article", { class: `celula ${i.setups.size >= 2 ? "confluencia" : ""}`, "data-tk": i.ticker },
     el("header", {},
-      el("div", { class: "celula-nome", title: "Abrir o gráfico em tela cheia",
+      el("div", { class: "celula-nome", title: "Abrir o gráfico em tela cheia (Esc ou ✕ para sair)",
         onclick: () => (document.fullscreenElement ? document.exitFullscreen() : cel.requestFullscreen?.()) },
       el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
-      el("div", { class: "celula-acoes" }, selosBandeja(a.ticker), ctx.dica, precoComFormacao(a, "celula-preco"), botaoTelaCheia(() => cel), linkAtivo(a.ticker), window.Arrastar?.menu(a.ticker))),
+      precoComFormacao(a, "celula-preco"),
+      el("div", { class: "celula-acoes" }, selosBandeja(a.ticker), ctx.dica, botaoTelaCheia(() => cel), linkAtivo(a.ticker),
+        el("button", { type: "button", class: "botao-simular-card", "data-simular": a.ticker,
+          title: `Simular um trade em ${semSufixo(a.ticker)}: entrada, stop e alvo, com o setup deste card`,
+          "aria-label": `Simular trade em ${semSufixo(a.ticker)}`,
+          onclick: (e) => { e.stopPropagation(); simularTrade(ctxSimular(a.ticker), { grafico: graficoPorTk.get(a.ticker) }); } },
+        el("span", { "aria-hidden": "true" }, "⊕"), el("span", { class: "rotulo-simular" }, " Simular")),
+        window.Arrastar?.menu(a.ticker))),
     linhaSetups(i, true),
     corpo,
     sob ? el("div", { class: "legenda-extras" }, legendaSobreposicao(sob).map((x) =>
@@ -364,6 +384,7 @@ function celula(i) {
     g.sinais = sinaisGrafico(i);
     g.definirSobreposicao(sob);
     abertos.push(g);
+    graficoPorTk.set(a.ticker, g);
     new Desenhos(g, corpo, { compacta: true }).definirAtivo(a.ticker);
     if (Simulacoes.doAtivo(a.ticker).length) new Simulador(g, corpo).definirAtivo(a);
     const tf = INTRADAY.has(estado.tfGrafico) && !a.tem_intraday ? "D" : estado.tfGrafico;  // sem intraday verificado, diário
@@ -388,6 +409,7 @@ let totalPaginas = 1;
 function renderGrade() {
   observador.disconnect();
   abertos.splice(0).forEach((g) => g.remover());
+  graficoPorTk.clear();
   const grade = $("grade");
   const n = porPagina();
   totalPaginas = Math.max(1, Math.ceil(lista.length / n));
@@ -486,10 +508,14 @@ function escolherRamo(lado, estilo) {
   mudou();
 }
 
+/** Celular (≤ 600 px): a árvore de filtros ocupa 3 telas; escolhido o setup, ela recolhe e os cards aparecem logo. */
+const noCelular = () => matchMedia("(max-width: 600px)").matches;
+
 function escolherSetup(v) {
   const x = SETUP.get(v);
   if (x && x.vies !== "neutro") { estado.lado = x.vies; estado.estilo = x.estilo; }
   estado.setup = v;
+  if (noCelular() && v !== "minhas") estado.arvore = false;
   if (v === "minhas") estado.editando = estado.editando || !salvos().length;
   mudou();
 }
@@ -888,6 +914,7 @@ async function iniciar() {
   if (!["D", "W"].includes(estado.tf)) estado.tf = "D";
   // endereço: ?setup=pb-mm20 escolhe o setup, #PETR4.SA o ativo
   const q = new URLSearchParams(location.search);
+  if (noCelular()) estado.arvore = false;  // celular: começa com o caminho resumido (▾ Trocar setup) e os cards à vista
   if (SETUP.has(q.get("setup"))) {
     const x = SETUP.get(q.get("setup"));
     estado.setup = x.id;
