@@ -717,6 +717,106 @@ function renderBarra() {
 }
 
 
+// ------------------------------------------------------------- baixar o resultado
+
+const NOME_MERCADO = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro" };
+const numBR = (v, casas = 2) => (v == null || !Number.isFinite(v) ? "" : v.toFixed(casas).replace(".", ","));
+
+/** Uma linha por ativo do resultado, com o sinal que o colocou na lista e o que mais se sabe dele. */
+function linhasDoResultado() {
+  return lista.map((i) => {
+    const a = porTicker.get(i.ticker);
+    const e = eventoFoco(i);
+    const s = F?.ativos[i.ticker]?.[estado.tf];
+    const k = kDoItem(i);
+    const data = e?.data ?? i.data ?? "";
+    // preço no sinal: o fechamento do candle do evento (nas minhas regras, o da foto daquele candle)
+    const precoSinal = e?.preco ?? (s?.c ? s.c[s.c.length - 1 - k] : null);
+    const desde = precoSinal && a.ultimo ? ((i.lado ?? e?.lado) === "venda" ? -1 : 1) * (a.ultimo / precoSinal - 1) * 100 : null;
+    const outros = [...new Map(i.eventos.map((x) => [x.setup, x])).values()]
+      .filter((x) => x.setup !== e?.setup).map((x) => `${nomeCurto(SETUP.get(x.setup))} (${fmtData(x.data, true)})`);
+    const fotos = F?.ativos[i.ticker];
+    const ctx = fotos ? contextoDecisao(a, fotos, estado.tf, viesAtual(), EVENTOS.filter((x) => x.ticker === i.ticker),
+      (id) => (SETUP.has(id) ? nomeCurto(SETUP.get(id)) : id)) : { favor: [], cuidado: [] };
+    const bt = e?.bt ?? [];
+    const lado = e?.lado ?? (ehMinhas() ? minhas().vies : estado.lado);
+    return {
+      Ticker: a.rotulo ?? semSufixo(a.ticker), Nome: a.nome, Mercado: NOME_MERCADO[a.mercado] ?? a.mercado, Moeda: a.moeda,
+      Lado: { compra: "Compra", venda: "Venda", neutro: "Neutro" }[lado] ?? lado,
+      Setup: ehMinhas() ? (regraSalva()?.nome ?? "Minhas regras") : nomeCurto(SETUP.get(e?.setup)),
+      "Tempo do sinal": estado.tf === "W" ? "Semanal" : "Diário",
+      "Data do sinal": data, "Preço no sinal": numBR(precoSinal, a.ultimo < 1 ? 6 : 2),
+      "Último preço": numBR(a.ultimo, a.ultimo < 1 ? 6 : 2), "Data do último": a.data,
+      "Desde o sinal % (a favor do lado)": numBR(desde), "Variação do dia %": numBR(a.var_dia_pct),
+      "Variação no mês %": numBR(a.var_mes_pct), "Variação no ano %": numBR(a.var_ano_pct),
+      "Nº de setups": i.setups.size || (ehMinhas() ? 1 : 0), "Outros setups no período": outros.join(" | "),
+      "Histórico: casos": bt[0] ?? "", "Histórico: acerto %": numBR(bt[1], 1), "Histórico: retorno médio %": numBR(bt[2]),
+      "Histórico: vantagem %": numBR(bt[3]),
+      "Valores da regra": valoresRegras(i).join(" · "),
+      "Tendência diário": a.tend_d ?? "", "Tendência semanal": a.tend_s ?? "",
+      "IFR 14 diário": numBR(a.ifr_d, 1), "Distância da MMS 20 %": numBR(a.dist_mm20_pct),
+      "Da máxima de 52 semanas %": numBR(a.dist_max52_pct),
+      "A favor": ctx.favor.join(" | "), Cuidado: ctx.cuidado.join(" | "),
+      Página: new URL(`ativo.html#${encodeURIComponent(a.ticker)}`, location.href).href,
+    };
+  });
+}
+
+/** Símbolo no TradingView: B3 e cripto com a bolsa; EUA e macro só o código. */
+function simboloTV(a) {
+  const r = a.rotulo ?? semSufixo(a.ticker);
+  if (a.mercado === "BR") return `BMFBOVESPA:${r}`;
+  if (a.mercado === "CRIPTO") return `COINBASE:${r}USD`;
+  return r.replace(/^\^/, "").replace("-", ".");
+}
+
+function nomeArquivo(ext) {
+  const qual = ehMinhas() ? "minhas-regras" : estado.setup === "todos" ? `todos-${estado.lado}-${estado.estilo}` : estado.setup;
+  const mercado = estado.mercado ? `-${estado.mercado.toLowerCase()}` : "";
+  const data = [...P.ultima.values()].sort().at(-1) ?? new Date().toISOString().slice(0, 10);
+  return `setups-${qual}${mercado}-${estado.tf === "W" ? "semanal" : "diario"}-${data}.${ext}`;
+}
+
+function salvarArquivo(texto, nome, tipo) {
+  const url = URL.createObjectURL(new Blob([texto], { type: tipo }));
+  const a = el("a", { href: url, download: nome });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function baixar(formato) {
+  if (!lista.length) { window.avisoRapido?.("Nenhum ativo neste resultado para baixar."); return; }
+  if (formato === "csv") {
+    const linhas = linhasDoResultado();
+    const cols = Object.keys(linhas[0]);
+    const cel = (v) => { const t = String(v ?? ""); return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+    // ";" e vírgula decimal: o Excel em português abre direto; o BOM garante os acentos
+    const csv = "\ufeff" + [cols.join(";"), ...linhas.map((l) => cols.map((c) => cel(l[c])).join(";"))].join("\r\n");
+    salvarArquivo(csv, nomeArquivo("csv"), "text/csv;charset=utf-8");
+  } else if (formato === "tv") {
+    salvarArquivo(lista.map((i) => simboloTV(porTicker.get(i.ticker))).join(","), nomeArquivo("txt"), "text/plain;charset=utf-8");
+  } else {
+    const txt = lista.map((i) => porTicker.get(i.ticker).rotulo ?? semSufixo(i.ticker)).join(", ");
+    navigator.clipboard?.writeText(txt).then(() => window.avisoRapido?.(`${lista.length} tickers copiados.`),
+      () => window.prompt("Copie os tickers:", txt));
+    return;
+  }
+  window.avisoRapido?.(`${lista.length} ativos baixados.`);
+}
+
+function ligarBaixar() {
+  const caixa = $("f-baixar");
+  caixa.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-formato]");
+    if (!b) return;
+    caixa.open = false;
+    baixar(b.dataset.formato);
+  });
+  document.addEventListener("pointerdown", (e) => { if (caixa.open && !caixa.contains(e.target)) caixa.open = false; });
+}
+
 // ------------------------------------------------------------- ciclo
 
 function atualizarURL() {
@@ -818,6 +918,7 @@ async function iniciar() {
     if (b) escolherRamo(b.dataset.lado, estado.estilo);
   });
   ligarRegras();
+  ligarBaixar();
   renderRetidos();
 
   calcularPeriodo();
