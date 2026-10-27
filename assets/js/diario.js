@@ -713,12 +713,14 @@ function ligar() {
 }
 
 async function iniciar() {
-  try { R = await carregarRadar(); } catch (e) { montarTopo("diario"); return erroDados(e); }
+  aguardarPagina();
+  try { R = await carregarRadar(); } catch (e) { montarTopo("diario"); paginaPronta(); return erroDados(e); }
   montarTopo("diario", R);
   await carregarCatalogoSetups().catch(() => null);
   ligar();
   TA = await Diario.avaliarTodos();
   renderTudo();
+  paginaPronta();
   const h = location.hash.slice(1);
   if (/^\d{4}-\d{2}-\d{2}$/.test(h)) abrirDia(h);
 }

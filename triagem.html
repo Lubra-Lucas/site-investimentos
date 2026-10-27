@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Triagem</title>
+  <title>Triagem · Carteira Terminal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
-  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preload" as="fetch" crossorigin href="data/radar.json">
+  <link rel="preload" as="fetch" crossorigin href="data/setups.json">
+  <script defer src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body class="pagina-triagem">
   <header class="topo" id="topo"></header>
@@ -72,14 +75,14 @@
     Uso pessoal: os setups são filtros técnicos automáticos, não recomendação de investimento. As decisões ficam salvas só neste navegador.
   </footer>
 
-  <script src="assets/js/comum.js"></script>
-  <script src="assets/js/simulador.js"></script>
-  <script src="assets/js/rastreador.js"></script>
-  <script src="assets/js/eventos.js"></script>
-  <script src="assets/js/plano.js"></script>
-  <script src="assets/js/notas.js"></script>
-  <script src="assets/js/comparar.js"></script>
-  <script src="assets/js/arrastar.js"></script>
-  <script src="assets/js/triagem.js"></script>
+  <script defer src="assets/js/comum.js"></script>
+  <script defer src="assets/js/simulador.js"></script>
+  <script defer src="assets/js/rastreador.js"></script>
+  <script defer src="assets/js/eventos.js"></script>
+  <script defer src="assets/js/plano.js"></script>
+  <script defer src="assets/js/notas.js"></script>
+  <script defer src="assets/js/comparar.js"></script>
+  <script defer src="assets/js/arrastar.js"></script>
+  <script defer src="assets/js/triagem.js"></script>
 </body>
 </html>

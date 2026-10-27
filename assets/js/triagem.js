@@ -621,6 +621,7 @@
   };
 
   async function iniciar() {
+    aguardarPagina();
     try {
       [R] = await Promise.all([carregarRadar(), carregarCatalogoSetups().catch(() => null)]);
     } catch (e) { montarTopo("triagem"); return erroDados(e); }
@@ -667,6 +668,7 @@
       F = f;
       for (const c of cartoes.values()) c.ctx.replaceChildren(...blocoContexto(c.i));
     }).catch(() => {});
+    paginaPronta();
   }
 
   window.Triagem = { get cartoes() { return cartoes; }, get decisoes() { return D; }, desfazer: desfazerUltimo, agir };

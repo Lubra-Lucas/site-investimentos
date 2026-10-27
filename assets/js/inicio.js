@@ -281,14 +281,17 @@ function renderGlossario() {
 // ------------------------------------------------------------- início
 
 async function iniciar() {
-  try { [R] = await Promise.all([carregarRadar(), carregarCatalogoSetups().catch(() => null)]); } catch (e) { montarTopo("inicio"); return erroDados(e); }
+  aguardarPagina();
+  try { [R] = await Promise.all([carregarRadar(), carregarCatalogoSetups().catch(() => null)]); } catch (e) { montarTopo("inicio"); paginaPronta(); return erroDados(e); }
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
   montarTopo("inicio", R);
   HOJE = calcularHoje();
   renderIntro();
   renderGlossario();
   renderHoje();
-  renderTrades();
+  // os trades leem candles: espera um pouco por eles para a página não pular, mas não segura o resto
+  await Promise.race([renderTrades(), new Promise((ok) => setTimeout(ok, 1500))]);
+  paginaPronta();
   // simular ou excluir um trade (em outra aba ou no Diário) atualiza o painel
   for (const ev of ["simulacoes", "diario"]) document.addEventListener(ev, renderTrades);
   addEventListener("storage", (e) => { if (e.key === "simulacoes-v1") renderTrades(); });

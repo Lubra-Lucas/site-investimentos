@@ -756,8 +756,8 @@ function montarTopo(pagina, dados) {
   const dolar = dados ? el("span", { class: "dolar", title: "Cotação do dólar usada para converter os ativos dos EUA" }, "Dólar ", el("b", {}, `R$ ${fmtNum(dados.usdbrl, 2)}`)) : null;
 
   const [titulo, linhas] = AJUDA[pagina] ?? ["Ajuda", []];
-  const painelAjuda = el("div", { class: "ajuda", hidden: true, role: "dialog", "aria-label": "Como usar" },
-    el("h3", {}, `Como usar: ${titulo}`),
+  const painelAjuda = el("div", { class: "ajuda", hidden: true, role: "dialog", "aria-labelledby": "ajuda-titulo", tabindex: "-1", id: "painel-ajuda" },
+    el("h3", { id: "ajuda-titulo" }, `Como usar: ${titulo}`),
     el("ul", {}, linhas.map((l) => el("li", {}, l))),
     el("details", { class: "ajuda-glossario" }, el("summary", {}, "Glossário: o que significam as siglas"),
       el("dl", { class: "glossario" }, GLOSSARIO.flatMap(([t, d]) => [el("dt", {}, t), el("dd", {}, d)]))),
@@ -765,9 +765,19 @@ function montarTopo(pagina, dados) {
     el("dl", { class: "atalhos" }, ATALHOS.flatMap(([a, b, t]) => [el("dt", {}, el("kbd", {}, a), el("kbd", {}, b)), el("dd", {}, t)])),
     el("p", { class: "sub" }, "Uso pessoal. Os sinais são filtros técnicos automáticos, não recomendação de investimento."));
   const botaoAjuda = el("button", { class: "botao-ajuda", "aria-label": "Como usar esta página", title: "Como usar",
-    onclick: (e) => { e.stopPropagation(); painelAjuda.hidden = !painelAjuda.hidden; } }, "?");
-  document.addEventListener("click", (e) => { if (!painelAjuda.contains(e.target)) painelAjuda.hidden = true; });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") painelAjuda.hidden = true; });
+    "aria-expanded": "false", "aria-controls": "painel-ajuda",
+    onclick: (e) => { e.stopPropagation(); mostrarAjuda(painelAjuda.hidden); } }, "?");
+  // abrir leva o foco ao painel (leitor de tela lê o título); fechar com Esc devolve o foco ao botão
+  const mostrarAjuda = (abrir, devolverFoco = false) => {
+    painelAjuda.hidden = !abrir;
+    botaoAjuda.setAttribute("aria-expanded", String(abrir));
+    if (abrir) painelAjuda.focus();
+    else if (devolverFoco) botaoAjuda.focus();
+  };
+  document.addEventListener("click", (e) => { if (!painelAjuda.hidden && !painelAjuda.contains(e.target)) mostrarAjuda(false); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !painelAjuda.hidden) mostrarAjuda(false, painelAjuda.contains(document.activeElement));
+  });
 
   topo.replaceChildren(
     marca,
@@ -942,23 +952,117 @@ function erroDados(e) {
   document.querySelector("main").replaceChildren(el("div", { class: "painel vazio" },
     "Não encontrei os dados. Rode ", el("code", {}, "python scripts/atualizar_dados.py"),
     " e sirva a pasta com ", el("code", {}, "python -m http.server"), "."));
+  paginaPronta();
 }
 
 /** Botões de segmento (um ativo por vez). */
 function segmento(id, aoMudar) {
   const grupo = document.getElementById(id);
+  grupo.setAttribute("role", "group");
   grupo.addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    grupo.querySelectorAll("button").forEach((x) => x.classList.toggle("ativo", x === b));
+    grupo.querySelectorAll("button").forEach((x) => { x.classList.toggle("ativo", x === b); estadoAria(x); });
     aoMudar(b.dataset);
   });
+  grupo.querySelectorAll("button").forEach(estadoAria);
   return {
     marcar(chave, valor) {
-      grupo.querySelectorAll("button").forEach((x) => x.classList.toggle("ativo", x.dataset[chave] === valor));
+      grupo.querySelectorAll("button").forEach((x) => { x.classList.toggle("ativo", x.dataset[chave] === valor); estadoAria(x); });
     },
   };
 }
+
+// ------------------------------------------------------------- acessibilidade (vale para todas as páginas)
+
+/** Botões de estado (segmentos, abas, chips de filtro) marcam o selecionado com a classe `ativo`.
+ * Leitor de tela precisa de aria-pressed (botão liga/desliga) ou aria-selected (aba): sincronizado aqui. */
+const SEL_ESTADO = ".segmento button, [role='tab'], button.cat, button.fonte, button.filtro-estado, button.data-evento";
+function estadoAria(b) {
+  if (!b.matches?.(SEL_ESTADO)) return;
+  const ligado = String(b.classList.contains("ativo"));
+  if (b.getAttribute("role") === "tab") b.setAttribute("aria-selected", ligado);
+  else b.setAttribute("aria-pressed", ligado);
+}
+function varrerEstados(raiz) {
+  if (raiz.nodeType !== 1) return;
+  if (raiz.matches(".segmento:not([role])")) raiz.setAttribute("role", "group");
+  raiz.querySelectorAll?.(".segmento:not([role])").forEach((g) => g.setAttribute("role", "group"));
+  estadoAria(raiz);
+  raiz.querySelectorAll?.(SEL_ESTADO).forEach(estadoAria);
+  // tabela que rola de lado: região focável e nomeada, para rolar com o teclado
+  for (const w of [raiz, ...(raiz.querySelectorAll?.(".tabela-wrap") ?? [])]) {
+    if (!w.matches(".tabela-wrap:not([role])")) continue;
+    const nome = w.closest(".painel")?.querySelector("h2, h3")?.textContent.trim();
+    w.setAttribute("role", "region");
+    w.setAttribute("aria-label", nome ? `Tabela: ${nome}` : "Tabela");
+    w.tabIndex = 0;
+  }
+}
+
+/** Páginas que sabem quando terminam a primeira montagem chamam `aguardarPagina()` no início do `iniciar()` e
+ * `paginaPronta()` no fim: o conteúdo fica oculto (com um esqueleto) até lá e aparece de uma vez, sem nada se
+ * mexer na frente do usuário. Páginas que não chamam nada (as novas) aparecem quando o topo monta e o conteúdo
+ * fica parado por 350 ms (ou 4 s no máximo). */
+function aguardarPagina() { paginaPronta.manual = true; }
+
+/** A página terminou a primeira montagem (dados chegaram, painéis preenchidos): tira o esqueleto. */
+function paginaPronta() {
+  document.documentElement.classList.add("pronto");
+  paginaPronta.vigia?.disconnect();
+  clearTimeout(paginaPronta.tempo);
+}
+
+/** Preparação comum de toda página: esqueleto sai quando a página avisa que está pronta, "Pular para o conteúdo",
+ * landmark `main` com id, e um <h1> (só para leitor de tela) quando a página não tem um. */
+function prepararPagina() {
+  const topo = document.getElementById("topo");
+  const principal = document.querySelector("main");
+  if (!topo || !principal) paginaPronta();
+  else {
+    const aquietar = () => {
+      clearTimeout(paginaPronta.tempo);
+      // o topo "montou" quando tem algo visível (plano.js/notas.js já põem uma bandeja escondida lá dentro)
+      if (topo.querySelector(":scope > :not([hidden])")) paginaPronta.tempo = setTimeout(() => { if (!paginaPronta.manual) paginaPronta(); }, 350);
+    };
+    paginaPronta.vigia = new MutationObserver(aquietar);
+    paginaPronta.vigia.observe(topo, { childList: true });
+    paginaPronta.vigia.observe(principal, { childList: true, subtree: true });
+    aquietar();
+    setTimeout(paginaPronta, 4000);  // se os dados falharem, não deixa a página invisível
+  }
+
+  const main = document.querySelector("main");
+  if (!main) return;
+  main.id ||= "conteudo";
+  main.tabIndex = -1;
+  if (!document.querySelector(".pular")) {
+    document.body.prepend(el("a", { class: "pular", href: `#${main.id}`, onclick: (e) => {
+      e.preventDefault();  // o # do endereço guarda o ativo em várias páginas: não pode mudar
+      main.focus({ preventScroll: true });
+      main.scrollIntoView({ block: "start" });
+    } }, "Pular para o conteúdo"));
+  }
+  // um <h1> por página: o da página (ex.: o ticker no Ativo) vale; senão entra um só para leitor de tela
+  const garantirH1 = () => {
+    const proprios = [...document.querySelectorAll("h1:not(.so-leitor)")];
+    const nosso = main.querySelector("h1.so-leitor");
+    if (proprios.length) nosso?.remove();
+    else if (!nosso) main.prepend(el("h1", { class: "so-leitor" }, document.title.split(" · ")[0]));
+  };
+  garantirH1();
+  new MutationObserver(garantirH1).observe(main, { childList: true, subtree: true });
+
+  varrerEstados(document.body);
+  new MutationObserver((muts) => {
+    for (const m of muts) {
+      if (m.type === "attributes") estadoAria(m.target);
+      else m.addedNodes.forEach(varrerEstados);
+    }
+  }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", prepararPagina);
+else prepararPagina();
 
 // ------------------------------------------------------------- tela cheia
 
