@@ -102,6 +102,14 @@
           <input type="checkbox" id="f-so2"> <span id="rot-so2">Só com 2+ setups</span>
         </label>
         <label class="ordem-multi">Ordenar <select id="f-ordem"></select></label>
+        <details class="baixar" id="f-baixar">
+          <summary class="botao" title="Baixar os ativos deste resultado, com os dados do sinal">⬇ Baixar</summary>
+          <div class="baixar-menu" role="menu">
+            <button type="button" role="menuitem" data-formato="csv">Planilha (CSV)<span class="sub">Excel / Google Sheets: um ativo por linha, com o sinal, o histórico e o contexto</span></button>
+            <button type="button" role="menuitem" data-formato="tv">Lista para o TradingView (.txt)<span class="sub">importe como lista de observação</span></button>
+            <button type="button" role="menuitem" data-formato="copiar">Copiar os tickers<span class="sub">PETR4, VALE3, ... para colar onde quiser</span></button>
+          </div>
+        </details>
         <div class="multi-grafico">
           <span class="rotulo-mini">Gráfico</span>
           <div class="segmento" id="f-tf-grafico" aria-label="Tempo do gráfico">
