@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diário · Carteira Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topo" id="topo"></header>
+
+  <main class="pagina-diario">
+    <section class="painel" aria-labelledby="dr-titulo">
+      <div class="painel-cab">
+        <div>
+          <h1 id="dr-titulo" class="dr-h1">Diário de trading</h1>
+          <p class="sub">Seus trades, o resultado de cada dia e o que cada estratégia entrega. Tudo fica salvo neste navegador.</p>
+        </div>
+        <div class="segmento" id="dr-periodo" role="group" aria-label="Período do resumo">
+          <button data-v="mes" class="ativo" aria-pressed="true">Este mês</button>
+          <button data-v="tudo" aria-pressed="false">Tudo</button>
+        </div>
+      </div>
+      <div class="kpis dr-kpis" id="dr-kpis"></div>
+      <details class="dr-explica">
+        <summary>O que é R?</summary>
+        <p><b>R é o seu risco em cada trade.</b> Se você arriscou R$ 50 (da entrada até o stop), então perder tudo é <b>−1R</b>;
+          ganhar R$ 100 é <b>+2R</b>. Medir em R deixa trades de tamanhos e ativos diferentes comparáveis.
+          <b>Expectativa</b> é o R médio por trade: positiva, a estratégia ganha com o tempo.
+          O <b>% de acerto</b> sozinho engana: acertar 40% com ganhos de 3R vale mais que acertar 70% ganhando 0,3R.</p>
+      </details>
+    </section>
+
+    <div class="dr-cal-area" id="dr-cal-area">
+      <section class="painel dr-cal-painel" aria-labelledby="dr-cal-titulo">
+        <div class="painel-cab dr-cal-cab">
+          <div class="dr-mes-nav">
+            <button class="botao" id="dr-mes-ant" aria-label="Mês anterior">←</button>
+            <h2 id="dr-cal-titulo" aria-live="polite"></h2>
+            <button class="botao" id="dr-mes-prox" aria-label="Próximo mês">→</button>
+            <button class="botao" id="dr-hoje">Hoje</button>
+          </div>
+          <p class="sub" id="dr-mes-total"></p>
+        </div>
+        <div id="dr-calendario"></div>
+        <p class="sub dr-legenda-cal">R do dia = soma dos trades <b>encerrados</b> no dia. O ponto marca entradas. Setas movem entre os dias, Enter abre, PageUp e PageDown trocam o mês.</p>
+      </section>
+      <aside class="painel dr-dia" id="dr-dia" hidden aria-label="Trades do dia"></aside>
+    </div>
+
+    <section class="painel" id="dr-trades" aria-labelledby="dr-trades-titulo">
+      <div class="painel-cab">
+        <div>
+          <h2 id="dr-trades-titulo">Trades</h2>
+          <p class="sub" id="dr-trades-sub"></p>
+        </div>
+      </div>
+      <div id="dr-filtros" class="dr-filtros"></div>
+      <div id="dr-lista"></div>
+    </section>
+
+    <section class="painel" id="dr-stats" aria-labelledby="dr-stats-titulo">
+      <div class="painel-cab">
+        <div>
+          <h2 id="dr-stats-titulo">Estatísticas</h2>
+          <p class="sub">Só entram os trades encerrados (alvo, stop ou saída manual). Clique numa linha para ver a curva dela.</p>
+        </div>
+        <div class="segmento" id="dr-por" role="group" aria-label="Agrupar por">
+          <button data-v="estrategia" class="ativo" aria-pressed="true">Por estratégia</button>
+          <button data-v="setup" aria-pressed="false">Por setup</button>
+        </div>
+      </div>
+      <div id="dr-stats-corpo"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="dr-dados-titulo">
+      <div class="painel-cab">
+        <div>
+          <h2 id="dr-dados-titulo">Seus dados</h2>
+          <p class="sub">O diário mora só neste navegador. Baixe um backup de vez em quando ou leve para outro aparelho.</p>
+        </div>
+      </div>
+      <div class="controles dr-dados">
+        <button class="botao" id="dr-csv" title="Planilha para Excel (separador ponto e vírgula, vírgula decimal)">Baixar planilha (CSV)</button>
+        <button class="botao" id="dr-json">Backup (JSON)</button>
+        <label class="dr-check"><input type="checkbox" id="dr-fotos-json" checked> incluir fotos</label>
+        <label class="botao">Importar backup<input type="file" accept="application/json,.json" id="dr-importar" hidden></label>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Uso pessoal. Os setups são filtros técnicos automáticos, não recomendação de investimento.
+  </footer>
+
+  <script src="assets/js/comum.js"></script>
+  <script src="assets/js/simulador.js"></script>
+  <script src="assets/js/eventos.js"></script>
+  <script src="assets/js/plano.js"></script>
+  <script src="assets/js/diario-dados.js"></script>
+  <script src="assets/js/diario.js"></script>
+</body>
+</html>

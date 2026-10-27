@@ -16,6 +16,8 @@ const ESTADO_SIM = {
   aberta: { rot: "Em aberto", cls: "" },
   alvo: { rot: "Alvo atingido", cls: "alta" },
   stop: { rot: "Stop atingido", cls: "baixa" },
+  manual: { rot: "Encerrada por você", cls: "" },
+  sem_dados: { rot: "Sem dados do ativo", cls: "aviso" },
 };
 
 /**
@@ -36,6 +38,22 @@ const fmtR = (v) => (v == null ? "—" : `${v > 0 ? "+" : ""}${fmtNum(v, 2)}R`);
 const fmtResultado = (av) => (av.resultado_pct == null ? "" : `${fmtR(av.resultado_r)} (${fmtPct(av.resultado_pct)})`);
 
 function avaliarPreco(pos, diarios) {
+  // saída manual (diário): vale antes do alvo/stop, a menos que um deles já tenha saído antes daquela data
+  const m = pos.saida_manual;
+  if (m?.data && m.preco > 0) {
+    const sem = { ...pos, saida_manual: null };
+    const antes = diarios.filter((c) => c.time < m.data);
+    const ate = diarios.filter((c) => c.time <= m.data);
+    if (antes.length) {
+      const r = avaliarPreco(sem, antes);
+      if (r.estado === "alvo" || r.estado === "stop") return r;
+    }
+    if (!ate.length) return { estado: "aguardando" };
+    const r = avaliarPreco(sem, ate);
+    if (r.estado === "aguardando") return r;
+    const sinal = pos.lado === "compra" ? 1 : -1;
+    return { estado: "manual", entrou: r.entrou, saiu: m.data, resultado_pct: sinal * (m.preco / pos.entrada - 1) * 100 };
+  }
   const compra = pos.lado === "compra";
   const sinal = compra ? 1 : -1;
   const ref = pos.preco_criacao ?? pos.entrada;
@@ -85,12 +103,20 @@ class Simulador {
     this.ativo = null;
     this.rascunho = null;
     this.editando = null;   // id da simulação aberta na boleta
+    // contexto do diário (setup, tf, origem): objeto, ou função (rascunho) => objeto. A página define.
+    this.contexto = null;
     this.linhas = [];
     this.camada = el("div", { class: "sim-camada" });
     corpo.append(this.camada);
     botao?.addEventListener("click", () => this.novo());
     grafico.aoMostrar = () => this.desenhar();
     document.addEventListener("preferencias", () => { if (!grafico.removido) this.desenhar(); });
+    // o diário (editor) mudou um trade deste ativo: redesenha as linhas e a boleta
+    document.addEventListener("diario", () => {
+      if (grafico.removido || !this.ativo) return;
+      this.desenhar();
+      if (this.boleta && !this.boleta.contains(document.activeElement)) this.renderBoleta();
+    });
     if (boleta) this.ligarArraste();
     const loop = () => { if (grafico.removido) return; this.posicionarZonas(); requestAnimationFrame(loop); };
     requestAnimationFrame(loop);
@@ -133,6 +159,27 @@ class Simulador {
     };
     this.desenhar();
     this.renderBoleta();
+    // a boleta fica abaixo do gráfico: leva a tela até ela e põe o foco no primeiro campo
+    if (this.boleta && !this.boleta.hidden) {
+      this.boleta.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      this.boleta.querySelector('input[data-c="entrada"]')?.focus({ preventScroll: true });
+    }
+  }
+
+  /** Exclui com desfazer (e, no diário, junto com as fotos). */
+  excluirSim(p) {
+    if (window.Diario) window.Diario.excluir(p.id);
+    else if (window.avisoRapido) {
+      const copia = { ...p };
+      Simulacoes.remover(p.id);
+      window.avisoRapido(`Simulação de ${semSufixo(p.ticker)} excluída.`, { rot: "Desfazer", fazer: () => {
+        Simulacoes.salvar(copia); this.editando = copia.id; this.desenhar(); this.renderBoleta();
+        document.dispatchEvent(new CustomEvent("simulacoes"));
+      } });
+    } else if (confirm("Excluir esta simulação?")) Simulacoes.remover(p.id);
+    else return;
+    this.editando = null; this.desenhar(); this.renderBoleta();
+    document.dispatchEvent(new CustomEvent("simulacoes"));
   }
 
   /** Grava a alteração: rascunho só ao clicar em Salvar; simulação salva, na hora. */
@@ -140,6 +187,31 @@ class Simulador {
     if (p !== this.rascunho) Simulacoes.salvar(p);
     this.desenhar();
     this.renderBoleta(false);
+  }
+
+  /** Salva o rascunho: junta os campos do diário (se a página os conhece) e tira a foto da entrada. */
+  salvarRascunho(p) {
+    const ctx = typeof this.contexto === "function" ? this.contexto(p) : this.contexto;
+    window.Diario?.preencher(p, ctx ?? { origem: "ativo" });
+    Simulacoes.salvar(p); this.editando = p.id; this.rascunho = null;
+    this.desenhar(); this.renderBoleta();
+    document.dispatchEvent(new CustomEvent("simulacoes"));
+    if (window.Diario) {
+      window.Diario.fotografar(p.id, this.g, "entrada", { linhas: false }).catch(() => {});
+      document.dispatchEvent(new CustomEvent("diario"));
+      window.avisoRapido?.(`Simulação de ${semSufixo(p.ticker)} salva.`,
+        { rot: "Abrir no diário", fazer: () => window.Diario.abrir(p.id, { grafico: this.ativo?.ticker === p.ticker ? this.g : null }) });
+    }
+  }
+
+  /** Saída manual no último fechamento publicado. */
+  encerrarAgora(p) {
+    const u = this.diarios?.at(-1);
+    if (!u) return;
+    Simulacoes.salvar({ ...p, saida_manual: { data: u.time, preco: u.close } });
+    this.desenhar(); this.renderBoleta();
+    document.dispatchEvent(new CustomEvent("simulacoes"));
+    document.dispatchEvent(new CustomEvent("diario"));
   }
 
   // ---------------------------------------------------------- desenho
@@ -318,15 +390,12 @@ class Simulador {
         campo(`Capital (${a.moeda === "BRL" ? "R$" : "US$"})`, "capital", "100"),
         el("div", { class: "boleta-acoes" },
           p === this.rascunho
-            ? [el("button", { class: "botao primario", disabled: !c.valido, onclick: () => {
-                Simulacoes.salvar(p); this.editando = p.id; this.rascunho = null;
-                this.desenhar(); this.renderBoleta(); document.dispatchEvent(new CustomEvent("simulacoes"));
-              } }, "Salvar"),
+            ? [el("button", { class: "botao primario", disabled: !c.valido, onclick: () => this.salvarRascunho(p) }, "Salvar"),
               el("button", { class: "botao", onclick: () => { this.rascunho = null; this.desenhar(); this.renderBoleta(); } }, "Descartar")]
-            : el("button", { class: "botao perigo", onclick: () => {
-                Simulacoes.remover(p.id); this.editando = null; this.desenhar(); this.renderBoleta();
-                document.dispatchEvent(new CustomEvent("simulacoes"));
-              } }, "Excluir"))) : null,
+            : [av?.estado === "aberta" ? el("button", { class: "botao", title: "Fecha o trade no último fechamento (saída manual)",
+                onclick: () => this.encerrarAgora(p) }, "Encerrar agora") : null,
+              window.Diario ? el("button", { class: "botao", onclick: () => window.Diario.abrir(p.id, { grafico: this.g }) }, "Editar no diário") : null,
+              el("button", { class: "botao perigo", onclick: () => this.excluirSim(p) }, "Excluir")])) : null,
       resumo,
       av ? el("p", { class: "sub boleta-status" }, `Criada em ${fmtData(p.criada)} a ${fmtMoeda(p.preco_criacao, a.moeda)} · `,
         el("b", { class: ESTADO_SIM[av.estado].cls }, ESTADO_SIM[av.estado].rot),
@@ -334,6 +403,12 @@ class Simulador {
         av.saiu ? ` · saída em ${fmtData(av.saiu)}` : "",
         av.resultado_pct != null ? el("b", { class: cor(av.resultado_pct) }, ` ${fmtResultado(av)}`) : "") : null,
       p ? el("p", { class: "sub boleta-dica" }, "Arraste as linhas de entrada, stop e alvo no gráfico.") : null,
+      p && p === this.rascunho ? el("p", { class: "sub boleta-dica" },
+        `Entrada a mercado: começa com o preço do último fechamento (${fmtData(p.criada)}); o resultado conta a partir dele, então o trade só “anda” nos próximos pregões. `,
+        "Se mover a entrada para um preço melhor, ele fica “Aguardando entrada” até o preço chegar lá.") : null,
+      p ? el("p", { class: "sub boleta-dica" }, el("b", {}, "R"), " é quanto você arrisca (da entrada até o stop): perder no stop é −1R. ",
+        el("b", {}, "R:R"), " compara o ganho do alvo com esse risco: alvo em 2R = ganhar 2× o que arrisca.") : null,
+      av?.estado === "aberta" ? el("p", { class: "sub boleta-dica" }, "O R de um trade em aberto é parcial: muda a cada preço novo até bater no alvo ou no stop.") : null,
     ].filter(Boolean));
   }
 }
@@ -372,7 +447,7 @@ async function renderListaSimulacoes(alvo, porTicker, aoAbrir) {
   const n = (e) => linhas.filter((l) => l.av.estado === e).length;
   // placar: só conta o que já entrou (encerradas + em aberto); aguardando entrada fica de fora
   const soma = (ls, k) => ls.reduce((t, l) => t + (l.av[k] ?? 0), 0);
-  const encerradas = linhas.filter((l) => l.av.estado === "alvo" || l.av.estado === "stop");
+  const encerradas = linhas.filter((l) => ["alvo", "stop", "manual"].includes(l.av.estado));
   const abertas = linhas.filter((l) => l.av.estado === "aberta");
   const contadas = [...encerradas, ...abertas];
   const totalR = soma(contadas, "resultado_r"), totalPct = soma(contadas, "resultado_pct");
@@ -381,11 +456,11 @@ async function renderListaSimulacoes(alvo, porTicker, aoAbrir) {
   const placar = contadas.length ? el("div", { class: "kpis placar-sim" },
     kpi("Resultado até agora", fmtR(totalR), cor(totalR), `${fmtPct(totalPct)} somando as variações`),
     kpi("Encerradas", fmtR(soma(encerradas, "resultado_r")), cor(soma(encerradas, "resultado_r")),
-      `${n("alvo")} no alvo · ${n("stop")} no stop · ${fmtPct(soma(encerradas, "resultado_pct"))}`),
+      `${n("alvo")} no alvo · ${n("stop")} no stop${n("manual") ? ` · ${n("manual")} encerrada(s) por você` : ""} · ${fmtPct(soma(encerradas, "resultado_pct"))}`),
     kpi("Em aberto (parcial)", abertas.length ? fmtR(soma(abertas, "resultado_r")) : "—", abertas.length ? cor(soma(abertas, "resultado_r")) : "",
       `${abertas.length} operação(ões) · ${fmtPct(soma(abertas, "resultado_pct"))}`),
     kpi("Média por operação", fmtR(totalR / contadas.length), cor(totalR),
-      `${fmtPct(totalPct / contadas.length)} · acerto ${encerradas.length ? fmtNum(n("alvo") / encerradas.length * 100, 0) + "%" : "—"}`)) : null;
+      `${fmtPct(totalPct / contadas.length)} · acerto ${encerradas.length ? fmtNum(encerradas.filter((l) => l.av.resultado_r > 0).length / encerradas.length * 100, 0) + "%" : "—"}`)) : null;
   alvo.replaceChildren(
     placar,
     el("p", { class: "sub" }, `${lista.length} simulação(ões) · ${n("alvo")} no alvo · ${n("stop")} no stop · `,

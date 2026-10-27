@@ -69,3 +69,22 @@ blob, criada }`). Captura do gráfico: `grafico.chart.takeScreenshot()` (Lightwe
   saída, R, tese e revisão), lista de trades com filtros, estatísticas por estratégia e curva de R.
 - **Ativo** (`ativo.html#TK`): gráfico + "Simular trade" + trades daquele ativo.
 - **Mais**: Triagem, Backtest, Carteira (pouco usados; continuam funcionando).
+
+## Notas da implementação (desvios e extras do contrato)
+
+- `Diario.avaliar(trade)` devolve também `fechado`, `dias` (entrada a saída) e `ultima` `{data, preco}` (último candle); sem candles
+  devolve `{estado: "sem_dados"}`. `avaliarSimulacao` (simulador.js) já honra `saida_manual` (estado `manual`).
+- `Diario.avaliarTodos(lista?)` devolve `[{...trade, av}]`. **`Diario.estatisticas(avaliados, filtro)` recebe esses trades avaliados**
+  (não os crus) e filtra `{por: "estrategia"|"setup", estrategia, setup, mercado, lado, desde, ate}` (datas = saída). Devolve
+  `{total, grupos: [{chave, rotulo, trades, acertos, pct_acerto, r_total, r_medio, fator_lucro, maior_seq_perdas, drawdown_r, duracao_media, curva}], curva}`.
+- `Diario.registrar(ctx, { grafico, abrirEditor = true })`; níveis sugeridos vêm de `Plano.sugerir` (exposto em plano.js); sem plano.js
+  cai em stop 5% e alvo 10%. A foto da entrada desenha entrada/stop/alvo só durante a captura.
+- `Diario.abrir(id, { grafico })`: com `grafico`, o editor oferece "Capturar gráfico". Extras: `fotografar`, `removerFoto`,
+  `atualizar(id, patch)`, `excluir(id)` (com desfazer), `preencher(trade, ctx)`, `fechar()`.
+- IndexedDB `diario` v1, store `fotos` com índice `trade`. Sem IndexedDB, as fotos ficam na memória da sessão e aparece um aviso.
+- `diario-dados.js` é autossuficiente: usa `prenderFoco`, `avisoRapido` e o catálogo de setups quando existem e tem versões próprias
+  se não. Exige `comum.js` e `simulador.js`.
+- Simulador: `simulador.contexto` (objeto ou `(rascunho) => objeto`) com `{setup, tf, origem}`; a boleta ganhou "Encerrar agora",
+  "Editar no diário", exclusão com desfazer e textos de ajuda sobre R.
+- Backup JSON: `{formato: "diario-trading", versao: 1, trades, fotos: [{id, trade, tipo, criada, dataUrl}]}` (aceita também a lista simples antiga).
+- Data do resultado no calendário = `saiu`; trades arquivados continuam no calendário e nas estatísticas, só saem da lista padrão.

@@ -314,6 +314,9 @@
       entrada: i.entrada, stop: i.stop, alvo: i.alvo,
       capital: c.qtd ? Math.ceil(c.qtd * i.entrada * 1.0001 * 100) / 100 : a.mercado === "BR" ? 1000 : 200,
       criada: i.base, preco_criacao: i.preco, origem: "plano",
+      // diário: o setup do plano vira a estratégia padrão do trade
+      ...(i.setup ? { setup: i.setup } : {}), tf: i.tf === "W" ? "W" : "D",
+      estrategia: (i.setup && nomeDoSetup(i.setup)) || "Sem estratégia",
     };
     Simulacoes.salvar(sim);
     document.dispatchEvent(new CustomEvent("simulacoes"));
@@ -467,6 +470,7 @@
 
   window.Plano = {
     adicionar, remover, abrir, fechar,
+    sugerir,  // níveis sugeridos (usado pelo diário): (ativo, lado, usarSimulacao = true)
     itens: () => ler(),
     tem: (tk) => doTicker(tk).length > 0,
     selo, botao,
