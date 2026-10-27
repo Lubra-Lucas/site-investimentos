@@ -55,7 +55,7 @@ const tendencia = (l) => {
 
 function renderPosicoes(c) {
   const vazio = el("span", {}, "Você ainda não tem posições registradas. Enquanto isso, treine com ",
-    el("b", {}, "⊕ Simular"), " no gráfico de um ativo. (As compras e vendas reais ficam no arquivo de configuração do site, ",
+    el("b", {}, "⊕ Simular trade"), " no gráfico de um ativo. (As compras e vendas reais ficam no arquivo de configuração do site, ",
     el("code", {}, "config/carteira.json"), ".)");
   tabela("tabela-posicoes", [
     { rotulo: "Ativo", valor: celTicker },
@@ -154,7 +154,7 @@ function renderSetups() {
   }
   document.getElementById("setups-carteira").replaceChildren(
     ...(blocos.length ? blocos : [el("p", { class: "vazio" }, `Nenhum setup nos seus ativos ${tfSetups === "D" ? "nos últimos 5 pregões" : "nas últimas 2 semanas"}.`)]),
-    el("a", { class: "link-radar", href: "setups.html" }, "Ver todos os setups do mercado →"));
+    el("a", { class: "link-radar", href: "setups.html" }, "Ver todas as oportunidades do mercado →"));
 }
 
 // ------------------------------------------------------------- minha lista

@@ -24,8 +24,40 @@ function abrirAtivo(tk, historico = true) {
   renderLateral(a);
   renderHistorico(a);
   renderPanorama(a);
-  if (mudou) painel.selecionar(a, eventosDoAtivo(R, tk).map(eventoParaGrafico));
+  if (!mudou) return Promise.resolve();
+  return painel.selecionar(a, eventosDoAtivo(R, tk).map(eventoParaGrafico)).then(() => definirContextoSimulacao(a));
 }
+
+// ------------------------------------------------------------- simular trade
+
+/** O contexto do trade deste ativo: o evento mais recente (diário antes do semanal), ou o setup pedido no endereço. */
+function ctxSimulacao(a, { setup, tf, lado } = {}) {
+  const ev = eventosDoAtivo(R, a.ticker);
+  const e = (setup && ev.find((x) => x.setup === setup)) || ev[0];
+  const l = lado ?? (e?.lado === "venda" || e?.lado === "compra" ? e.lado : ficha.vies === "venda" ? "venda" : "compra");
+  return { lado: l, ctx: { ticker: a.ticker, lado: l, setup: e?.setup, tf: tf ?? e?.tf ?? (painel?.grafico.tf === "W" ? "W" : "D"),
+    data: e?.data ?? a.data, preco: e?.preco ?? a.ultimo, origem: "ativo" } };
+}
+
+/** O Simulador da página guarda de onde veio o trade (setup, tempo, origem) para o Diário. */
+function definirContextoSimulacao(a, pedido) {
+  const { lado, ctx } = ctxSimulacao(a, pedido);
+  if (painel?.simulador) painel.simulador.contexto = { setup: ctx.setup, tf: ctx.tf, origem: "ativo" };
+  return lado;
+}
+
+/** Começa uma simulação nova no gráfico desta página. true se o gráfico pôde recebê-la. */
+function simularNoGrafico(tk, pedido) {
+  const a = porTicker.get(tk ?? ficha.ticker);
+  if (!a || !painel?.simulador) return false;
+  if (a.ticker !== ficha.ticker) return false;
+  const lado = definirContextoSimulacao(a, pedido);
+  painel.simulador.novo(lado);
+  document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("painel-grafico").querySelector(".boleta input")?.focus({ preventScroll: true });
+  return true;
+}
+window.simularAqui = (tk) => simularNoGrafico(tk);
 
 /** Aviso de ticker do endereço que não existe nos dados (o ativo aberto continua o mesmo). */
 function avisoNaoAchado(pedido) {
@@ -42,7 +74,7 @@ function vizinho(passo) {
 }
 
 /** Ticker do endereço (#PETR4.SA ou #PETR4); null se não houver ou não existir. */
-const tickerDoEndereco = () => acharAtivo(R.ativos, decodeURIComponent(location.hash.slice(1)));
+const tickerDoEndereco = () => acharAtivo(R.ativos, decodeURIComponent(location.hash.slice(1).split("?")[0]));
 
 // ------------------------------------------------------------- cabeçalho
 
@@ -64,9 +96,12 @@ function renderCabecalho(a) {
       variacao("Mês", a.var_mes_pct), variacao("Ano", a.var_ano_pct),
       tend("Diário", a.tend_d), tend("Semanal", a.tend_s), seloVerificacao(a)));
   document.getElementById("cab-ativo-links").replaceChildren(
+    el("button", { type: "button", class: "botao primario botao-simular-ativo", id: "simular-trade",
+      title: "Simular um trade neste ativo: arraste entrada, stop e alvo no gráfico e acompanhe o resultado em R no Diário",
+      onclick: () => simularNoGrafico(a.ticker) }, "⊕ Simular trade"),
     Plano.botao(() => ctxBandeja(a)), Notas.botao(() => ctxBandeja(a)),
-    el("a", { class: "botao", href: `setups.html#${encodeURIComponent(a.ticker)}`, title: "Abrir este ativo na página de setups" }, "Ver nos setups →"),
-    el("a", { class: "botao", href: "index.html", title: "Posições, simulações e a minha lista" }, "Carteira"),
+    el("a", { class: "botao", href: `setups.html#${encodeURIComponent(a.ticker)}`, title: "Abrir este ativo na página de oportunidades (grade de setups)" }, "Ver nas oportunidades →"),
+    el("a", { class: "botao", href: "carteira.html", title: "Posições, minha lista e plano de amanhã" }, "Carteira"),
     window.Arrastar?.menu(a.ticker));
 }
 
@@ -167,8 +202,8 @@ function blocoContexto(a) {
 }
 
 function blocoSimulacoes(a) {
-  return el("li", { class: "ficha-bloco" }, tituloBloco("Minhas simulações", el("a", { href: "index.html#secao-simulacoes" }, "todas →")),
-    chipsSimulacoes(a) ?? el("p", { class: "sub" }, "Nenhuma simulação neste ativo. Use ", el("b", {}, "⊕ Simular"), " no gráfico."));
+  return el("li", { class: "ficha-bloco" }, tituloBloco("Minhas simulações", el("a", { href: "diario.html" }, "todas no Diário →")),
+    chipsSimulacoes(a) ?? el("p", { class: "sub" }, "Nenhuma simulação neste ativo. Use ", el("b", {}, "⊕ Simular trade"), " acima."));
 }
 
 function renderLateral(a) {
@@ -261,6 +296,11 @@ async function iniciar() {
   document.querySelector(".cab-ativo").append(avisoFormacao(R));
   [F] = await Promise.all([carregarRastreador().catch(() => null), carregarCatalogoSetups().catch(() => null)]);
   painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
+  // o "⊕ Simular" de dentro do gráfico também leva o setup mais recente ao Diário (captura: roda antes do Simulador)
+  document.getElementById("painel-grafico").addEventListener("click", (e) => {
+    const a = porTicker.get(ficha.ticker);
+    if (a && e.target.closest(".botao-simular")) definirContextoSimulacao(a);
+  }, true);
 
   document.getElementById("lista-tickers").replaceChildren(...R.ativos.map((a) =>
     el("option", { value: a.rotulo ?? semSufixo(a.ticker) }, a.nome)));
@@ -284,11 +324,26 @@ async function iniciar() {
   // plano de amanhã e anotações: botões do cabeçalho e bloco de anotações
   document.addEventListener("bandejas", () => { const a = porTicker.get(ficha.ticker); if (a) { renderCabecalho(a); renderLateral(a); } });
 
-  const pedido = decodeURIComponent(location.hash.slice(1)), achado = tickerDoEndereco();
+  const pedido = decodeURIComponent(location.hash.slice(1).split("?")[0]), achado = tickerDoEndereco();
   const inicial = achado ?? [guardar.ler("ativo-ticker", null), R.ativos.find((a) => a.carteira)?.ticker, R.ativos[0].ticker]
     .find((t) => porTicker.has(t));
-  abrirAtivo(inicial, false);
+  await abrirAtivo(inicial, false);
   if (pedido && !achado) avisoNaoAchado(pedido);
+  await abrirSimulacaoDoEndereco();
 }
 
 iniciar();
+
+/**
+ * ativo.html?simular=compra|venda|1&setup=<id>&tf=D|W#TICKER abre direto no modo simular (links de Oportunidades,
+ * do Início e da Triagem quando o Diário não está na página). O pedido sai do endereço para o recarregar não repetir.
+ */
+async function abrirSimulacaoDoEndereco() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has("simular") || !ficha.ticker) return;
+  const v = q.get("simular");
+  const pedido = { setup: q.get("setup") || undefined, tf: ["D", "W"].includes(q.get("tf")) ? q.get("tf") : undefined,
+    lado: v === "compra" || v === "venda" ? v : undefined };
+  history.replaceState(null, "", `${location.pathname}#${encodeURIComponent(ficha.ticker)}`);
+  simularNoGrafico(ficha.ticker, pedido);
+}

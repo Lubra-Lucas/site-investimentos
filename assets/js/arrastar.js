@@ -1,6 +1,6 @@
 /* Arrastar um ativo até uma bandeja, como no iPhone: segure o card parado (no toque, 400 ms; no mouse,
  * 350 ms em qualquer ponto, até em cima do gráfico; ou arraste direto pelo cabeçalho) e os alvos aparecem nas bordas da tela: Comparar (no alto), Plano de amanhã
- * (à direita) e Anotar (canto de baixo). Soltar fora ou Esc cancela. Também aqui: o menu "⋯" de cada
+ * (à direita), Simular trade (à esquerda) e Anotar (canto de baixo). Soltar fora ou Esc cancela. Também aqui: o menu "⋯" de cada
  * ativo (a alternativa por teclado/mouse) e a doca no topo com o que já está nas bandejas.
  * Plano e Notas são de plano.js e notas.js; sem eles na página, os alvos deles somem. */
 
@@ -26,6 +26,10 @@ window.Arrastar = (() => {
 
   // ------------------------------------------------------------- contexto (o que vai para o Plano e as Notas)
 
+  /** Origem do trade no Diário, pela página em que o ativo foi pego. */
+  const origemSimulacao = () => (naPagina("setups.html") ? "setups" : naPagina("triagem.html") ? "triagem"
+    : naPagina("ativo.html") ? "ativo" : "manual");
+
   /** { ticker, setup, tf, data, lado, preco }: a página pode dizer qual evento está em destaque
    *  (window.ctxArrasto, em Setups); senão, o evento mais recente do ativo (diário antes do semanal). */
   function contexto(tk) {
@@ -49,6 +53,13 @@ window.Arrastar = (() => {
       if (r === "ok") toast(`${rot} adicionado à comparação${n >= 2 ? ` (${n})` : ". Arraste outro para comparar"}`, n >= 2 ? ["Abrir", () => Comparar.abrir()] : null);
       else if (r === "repetido") toast(`${rot} já está na comparação`, ["Abrir", () => Comparar.abrir()]);
       else toast(`A comparação já tem ${Comparar.MAX} ativos: tire um para pôr ${rot}`, ["Abrir", () => Comparar.abrir()]);
+    } else if (acao === "simular") {
+      // o gráfico do card (se a página o guarda) vira a foto da entrada no Diário
+      // a página do ativo simula no próprio gráfico (window.simularAqui, de ativo.js)
+      try { if (typeof window.simularAqui === "function" && window.simularAqui(tk)) return; } catch {}
+      let grafico = null;
+      try { grafico = typeof window.graficoDoAtivo === "function" ? window.graficoDoAtivo(tk) : null; } catch {}
+      simularTrade({ ...contexto(tk), origem: origemSimulacao() }, { grafico });
     } else if (acao === "plano" && plano()) {
       // adicionar é assíncrono (devolve o item); o aviso sai quando ele termina
       Promise.resolve().then(() => plano().adicionar(contexto(tk)))
@@ -133,6 +144,7 @@ window.Arrastar = (() => {
         naComp ? "já está na comparação" : cheia ? `cheia (${itens.length}/${Comparar.MAX})` : itens.length ? `${itens.length} de ${Comparar.MAX} · solte para pôr o ${itens.length + 1}º` : "solte aqui; depois, outro",
         el("span", { class: "alvo-miniaturas" }, [...itens.map((t) => el("span", { class: "alvo-mini" }, rotulo(t))),
           !naComp && !cheia ? el("span", { class: "alvo-mini novo" }, rotulo(tk)) : null])),
+      alvo("simular", "alvo-simular", "⊕", "Simular trade", "entrada, stop e alvo"),
       P ? alvo("plano", "alvo-plano", "☰", "Plano de amanhã", noPlano ? "já está no plano" : nPlano ? `${nPlano} no plano` : "entrar amanhã") : null,
       N ? alvo("notas", "alvo-notas", "✎", "Anotar", "uma nota neste ativo") : null);
   }
@@ -328,6 +340,7 @@ window.Arrastar = (() => {
     const caixa = el("div", { class: "menu-acoes", role: "menu", "aria-label": `Ações para ${rotulo(tk)}` },
       naComp ? item("⇆", "Abrir a comparação", () => Comparar.abrir(), `${Comparar.itens().length} ativos`)
         : item("⇆", "Comparar", () => executar("comparar", tk), Comparar.itens().length ? `${Comparar.itens().length} na bandeja` : null),
+      item("⊕", "Simular trade", () => executar("simular", tk), "entrada, stop e alvo"),
       P ? (noPlano && typeof P.abrir === "function" ? item("☰", "Abrir o plano de amanhã", () => P.abrir(), "já está nele")
         : item("☰", "Plano de amanhã", () => executar("plano", tk))) : null,
       N ? item("✎", "Anotar", () => executar("notas", tk), typeof etiqueta === "string" ? etiqueta : null) : null,
@@ -357,10 +370,10 @@ window.Arrastar = (() => {
   addEventListener("resize", () => fecharMenu());
   addEventListener("scroll", () => fecharMenu(), { passive: true, capture: true });
 
-  /** O botão "⋯" de um ativo: Comparar · Plano de amanhã · Anotar · Abrir o ativo. */
+  /** O botão "⋯" de um ativo: Comparar · Simular trade · Plano de amanhã · Anotar · Abrir o ativo. */
   function menu(tk) {
     return el("button", { type: "button", class: "mais-acoes", "aria-haspopup": "menu", "aria-expanded": "false",
-      title: "Comparar, plano de amanhã, anotar…", "aria-label": `Mais ações para ${rotulo(tk)}`,
+      title: "Mais ações: comparar, simular trade, plano de amanhã, anotar…", "aria-label": `Mais ações para ${rotulo(tk)}`,
       onclick: (e) => { e.preventDefault(); e.stopPropagation(); abrirMenu(e.currentTarget, tk); } }, "⋯");
   }
 
