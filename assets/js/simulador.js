@@ -77,6 +77,13 @@ function avaliarPreco(pos, diarios) {
   return { estado: "aberta", entrou, atual, resultado_pct: sinal * (atual / pos.entrada - 1) * 100 };
 }
 
+/** Capital inicial de uma simulação: R$ 1.000 / US$ 200, mas nunca menos que 1 unidade do ativo (senão a
+ *  quantidade sai 0 e o risco em dinheiro some, como numa ação de US$ 347 com US$ 200). Cripto é fracionada. */
+const capitalPadrao = (a, entrada) => {
+  const base = a.mercado === "BR" ? 1000 : 200;
+  return a.mercado === "CRIPTO" || !(entrada > 0) ? base : Math.max(base, Math.ceil(entrada * 1.0001 * 100) / 100);
+};
+
 function contasSimulacao(p) {
   const fracionado = p.mercado === "CRIPTO";
   const qtd = fracionado ? +(p.capital / p.entrada).toFixed(6) : Math.floor(p.capital / p.entrada);
@@ -155,7 +162,7 @@ class Simulador {
     this.rascunho = {
       id: `${Date.now()}`, ticker: a.ticker, mercado: a.mercado, moeda: a.moeda, lado,
       entrada, stop: entrada * (1 - s * 0.05), alvo: entrada * (1 + s * 0.10),
-      capital: a.mercado === "BR" ? 1000 : 200, criada: a.data, preco_criacao: entrada,
+      capital: capitalPadrao(a, entrada), criada: a.data, preco_criacao: entrada,
     };
     this.desenhar();
     this.renderBoleta();

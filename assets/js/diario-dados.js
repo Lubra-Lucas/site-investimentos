@@ -265,13 +265,14 @@
     const t = preencher({
       id, ticker: a.ticker, mercado: a.mercado, moeda: a.moeda, lado,
       entrada: niv.entrada, stop: niv.stop, alvo: niv.alvo,
-      capital: a.mercado === "BR" ? 1000 : 200,
+      capital: capitalPadrao(a, niv.entrada),
       criada: ctx.data ?? a.data, preco_criacao: preco,
     }, { setup: ctx.setup, tf: ctx.tf, estrategia: ctx.estrategia, origem: ctx.origem ?? "manual" });
     Simulacoes.salvar(t);
     avisar();
-    if (grafico) await fotografar(t.id, grafico, "entrada").catch(() => {});
-    if (abrirEditor) abrir(t.id, { grafico });
+    // a foto da entrada sai do gráfico do editor (com entrada, stop e alvo desenhados); sem editor, do gráfico da página
+    if (abrirEditor) abrir(t.id, { grafico, fotoEntrada: true });
+    else if (grafico) await fotografar(t.id, grafico, "entrada").catch(() => {});
     return trade(t.id) ?? t;
   }
 
@@ -730,6 +731,10 @@
       if (ok && ed === e && e.av) {
         desenharGrafico(cur(), e.av);
         e.g.irPara(e.av.entrou ?? cur().criada);
+        if (opcoes.fotoEntrada && !(cur().fotos ?? []).length) {
+          await fotografar(id, e.g, "entrada", { linhas: false }).catch(() => {});
+          if (ed === e) await vistaFotos();
+        }
       }
     } else if (!a) corpoGraf.append(el("p", { class: "vazio" }, "Ativo fora dos dados publicados: sem gráfico."));
   }
