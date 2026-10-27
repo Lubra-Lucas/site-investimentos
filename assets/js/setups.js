@@ -871,6 +871,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 async function iniciar() {
+  aguardarPagina();
   let C;
   try { [R, C] = await Promise.all([carregarRadar(), carregarCatalogo()]); } catch (e) { montarTopo("setups"); return erroDados(e); }
   try { F = await carregarRastreador(); } catch {}
@@ -927,6 +928,7 @@ async function iniciar() {
   renderRegras();
   atualizar();
   if (!estado.ticker) { estado.ticker = lista[0]?.ticker ?? R.ativos[0]?.ticker; atualizarURL(); }
+  paginaPronta();
 }
 
 iniciar();

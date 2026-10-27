@@ -8,7 +8,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
-  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preload" as="fetch" crossorigin href="data/radar.json">
+  <link rel="preload" as="fetch" crossorigin href="data/setups.json">
+  <script defer src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
   <header class="topo" id="topo"></header>
@@ -44,15 +47,15 @@
     Dados: Yahoo Finance, conferidos com B3 (COTAHIST e cotações), Nasdaq (EUA) e Coinbase (cripto).
   </footer>
 
-  <script src="assets/js/comum.js"></script>
-  <script src="assets/js/desenhos.js"></script>
-  <script src="assets/js/simulador.js"></script>
-  <script src="assets/js/rastreador.js"></script>
-  <script src="assets/js/eventos.js"></script>
-  <script src="assets/js/plano.js"></script>
-  <script src="assets/js/notas.js"></script>
-  <script src="assets/js/comparar.js"></script>
-  <script src="assets/js/arrastar.js"></script>
-  <script src="assets/js/ativo.js"></script>
+  <script defer src="assets/js/comum.js"></script>
+  <script defer src="assets/js/desenhos.js"></script>
+  <script defer src="assets/js/simulador.js"></script>
+  <script defer src="assets/js/rastreador.js"></script>
+  <script defer src="assets/js/eventos.js"></script>
+  <script defer src="assets/js/plano.js"></script>
+  <script defer src="assets/js/notas.js"></script>
+  <script defer src="assets/js/comparar.js"></script>
+  <script defer src="assets/js/arrastar.js"></script>
+  <script defer src="assets/js/ativo.js"></script>
 </body>
 </html>

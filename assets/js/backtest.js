@@ -125,6 +125,7 @@ function escolherPrimeiro() {
 }
 
 async function iniciar() {
+  aguardarPagina();
   try { [B, R, S] = await Promise.all([carregarBacktest(), carregarRadar(), buscarJSON("data/setups.json")]); }
   catch (e) { montarTopo("backtest"); return erroDados(e); }
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
@@ -139,6 +140,7 @@ async function iniciar() {
   escolherPrimeiro();
   render();
   renderAtivos();
+  paginaPronta();
 }
 
 iniciar();
