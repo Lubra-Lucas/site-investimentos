@@ -261,6 +261,11 @@ async function iniciar() {
   document.querySelector(".cab-ativo").append(avisoFormacao(R));
   [F] = await Promise.all([carregarRastreador().catch(() => null), carregarCatalogoSetups().catch(() => null)]);
   painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
+  // diário: o trade salvo no gráfico leva o setup mais recente do mesmo lado e o tempo do gráfico
+  if (painel.simulador) painel.simulador.contexto = (p) => {
+    const ev = eventosDoAtivo(R, p.ticker).filter((e) => e.lado === p.lado);
+    return { setup: ev[0]?.setup, tf: painel.grafico.tf === "W" ? "W" : ev[0]?.tf ?? "D", origem: "ativo" };
+  };
 
   document.getElementById("lista-tickers").replaceChildren(...R.ativos.map((a) =>
     el("option", { value: a.rotulo ?? semSufixo(a.ticker) }, a.nome)));

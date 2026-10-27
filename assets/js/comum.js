@@ -693,6 +693,13 @@ const AJUDA = {
     "Em \"Hoje\" ficam as três colunas (Super, Gostei, Descartados): mude de coluna, devolva ao baralho ou mande para Comparar e Plano de amanhã. Os descartados voltam no próximo pregão; Super e Gostei ficam em \"Dias anteriores\" com o quanto o preço andou desde a triagem.",
   ]],
   backtest: ["Backtest", ["Como cada setup se saiu nos últimos 6 anos, por mercado, lado e prazo."]],
+  diario: ["Diário", [
+    "O seu registro de trades: tudo o que você simula (e fecha) vira um trade aqui. R é o resultado em unidades do risco: +2R = ganhou 2× o que arriscou; o stop vale −1R.",
+    "Calendário: cada dia mostra o R dos trades encerrados nele. Clique (ou Enter) num dia para ver os trades, a foto, o setup, a entrada e a saída. Setas movem entre os dias; PageUp e PageDown trocam o mês.",
+    "Clique num trade para editar: estratégia, tese (por que entrei), revisão (o que aprendi), nota, etiquetas, níveis, saída manual e fotos (capturar o gráfico, anexar ou colar com Ctrl+V).",
+    "Estatísticas por estratégia ou por setup: % de acerto, R médio (expectativa), fator de lucro, sequência de perdas, drawdown e a curva de R acumulado.",
+    "Exporte uma planilha (CSV) ou um backup JSON com as fotos. Tudo fica salvo neste navegador: faça backup de vez em quando.",
+  ]],
 };
 const ATALHOS = [
   ["Alt", "C", "centraliza os gráficos"], ["Alt", "T", "segmento de reta"], ["Alt", "H", "linha horizontal"],
