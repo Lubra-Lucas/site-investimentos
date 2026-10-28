@@ -93,4 +93,6 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
 - **Carteira** (`carteira.html`, em "Mais"; era o `index.html`): posições, simulações e a minha lista (o que eu tenho e acompanho).
 - **Ativo** (`ativo.html#TICKER`): tudo sobre um papel. Gráfico, setups recentes, simulações, como cada
   setup se saiu nele e contexto. Clicar num ticker em qualquer página abre aqui.
+  O gráfico desenha as condições dos setups recentes (`sobreposicaoDasRegras`, só D e W; escolha por setup ou "Meus indicadores");
+  clicar num setup do histórico abre a janela de casos (`assets/js/casos.js`, a mesma do Backtest, com `data/casos/<arquivo>.json`).
 - **Backtest** (`backtest.html`): o histórico de cada setup do catálogo.
