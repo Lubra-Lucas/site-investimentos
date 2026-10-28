@@ -7,11 +7,15 @@
 const estado = Object.assign({
   mercado: "", tf: "D", periodo: 1, lado: "compra", estilo: "tendencia", setup: "todos",
   so2: false, ordem: "confluencia", grade: "3", tfGrafico: "D", camadas: "condicoes",
-  pagina: 0, verVazios: false, editando: false, minhas: null,
+  pagina: 0, verVazios: false, modo: "simples", editando: false, minhas: null,
 }, guardar.ler("setups-v1", {}));
 estado.ticker = null;  // o ativo aberto vem do endereço (#PETR4.SA), não fica salvo
 delete estado.visao;   // a antiga visão "lista + gráfico" saiu: só a grade
 delete estado.arvore;  // a árvore deu lugar à navegação lateral
+// modo simples (padrão): perguntas sem termos técnicos e sinais só do último pregão; trader: setups pelo nome, período e Meus setups
+if (!["simples", "trader"].includes(estado.modo)) estado.modo = "simples";
+const simples = () => estado.modo === "simples";
+const periodo = () => (simples() ? 1 : estado.periodo);
 const salvar = () => guardar.gravar("setups-v1", { ...estado, ticker: undefined });
 
 let R, F, porTicker;
@@ -32,6 +36,18 @@ const ESTILOS = [
     dica: { compra: "Comprar a virada depois de uma queda forte: IFR extremo, fora da Bollinger, longe da média.",
       venda: "Vender a virada depois de uma alta forte: IFR extremo, fora da Bollinger, longe da média." } },
 ];
+
+/** Os mesmos estilos em linguagem de quem não é trader (modo simples). */
+const TIPOS = {
+  compra: {
+    tendencia: { nome: "Ações que estão subindo", dica: "Já estão em alta e deram um ponto de entrada. É o jeito mais comum de comprar." },
+    contra: { nome: "Ações com preço descontado", dica: "Caíram muito e podem voltar a subir. Mais arriscado: a queda pode continuar." },
+  },
+  venda: {
+    tendencia: { nome: "Ações que estão caindo", dica: "Já estão em queda e deram um ponto de venda." },
+    contra: { nome: "Ações que subiram demais", dica: "Subiram rápido demais e podem corrigir. Mais arriscado: a alta pode continuar." },
+  },
+};
 
 /** Catálogo publicado (com o resumo do backtest); sem ele, o de config/ (mesmo formato). */
 const carregarCatalogo = () => buscarJSON("data/setups.json").catch(() => buscarJSON("config/setups.json"));
@@ -100,7 +116,7 @@ const visivel = (tk) => {
 
 /** Eventos do período, contado por mercado (cripto tem fim de semana, a bolsa não). */
 function calcularPeriodo() {
-  const { sinais, ultima } = sinaisDoPeriodo({ ativos: R.ativos, sinais: EVENTOS }, estado.tf, estado.periodo);
+  const { sinais, ultima } = sinaisDoPeriodo({ ativos: R.ativos, sinais: EVENTOS }, estado.tf, periodo());
   const eventos = sinais.filter((e) => visivel(e.ticker));
   const porSetup = new Map();
   for (const e of eventos) {
@@ -158,7 +174,7 @@ function listar() {
     const m = minhas();
     const tf = estado.tf;
     itens = !F || !m.regras.length ? [] : R.ativos.filter((a) => a.liquido && visivel(a.ticker)).map((a) => {
-      const k = quandoAtende(F.ativos[a.ticker]?.[tf], m.regras, tf, F, estado.periodo);
+      const k = quandoAtende(F.ativos[a.ticker]?.[tf], m.regras, tf, F, periodo());
       if (k == null) return null;
       const c = conf.get(a.ticker);
       const data = F.ativos[a.ticker][tf].datas?.at(-1 - k) ?? "";
@@ -342,7 +358,8 @@ function descricaoSetup() {
   }
   const copiar = x && suportado(x) ? el("button", { class: "botao-link", title: "Copiar estas regras para Minhas regras e ajustar",
     onclick: () => copiarParaMinhas(x) }, "✎ ajustar as regras") : null;
-  $("cat-descricao").replaceChildren(x ? x.desc : ESTILOS.find((e) => e.chave === estado.estilo).dica[estado.lado],
+  $("cat-descricao").replaceChildren(x ? x.desc
+    : simples() ? TIPOS[estado.lado][estado.estilo].dica : ESTILOS.find((e) => e.chave === estado.estilo).dica[estado.lado],
     copiar ? " " : "", copiar ?? "");
 }
 
@@ -531,6 +548,11 @@ function itemNav({ ativo, rotulo, n, cls = "", titulo, aoEscolher }) {
 
 /** Navegação: 1) comprar ou vender, 2) mercado, 3) setup (agrupado por estilo e família), Minhas buscas. */
 function renderNav() {
+  $("op-nav").dataset.modo = estado.modo;
+  $("op-modo-dica").textContent = simples()
+    ? "Perguntas simples, sem termos técnicos. Quer escolher os setups pelo nome? Use o modo Trader."
+    : "Setups pelo nome, período dos sinais e seus próprios setups.";
+  renderTipos();
   for (const lado of ["compra", "venda"]) $(`n-${lado}`).textContent = contar(ids(doLado(lado)));
   const neutro = setupAtual()?.vies === "neutro";
   document.querySelectorAll("#f-lado button").forEach((b) => {
@@ -576,6 +598,23 @@ function renderNav() {
   renderBuscas();
 }
 
+/** Modo simples, passo 3: subir ou descontado (comprar), cair ou subiu demais (vender). */
+function renderTipos() {
+  const x = setupAtual();
+  const especifico = ehMinhas() || !!x;
+  $("op-tipos").replaceChildren(...ESTILOS.map((e) => {
+    const t = TIPOS[estado.lado][e.chave];
+    const ativo = estado.estilo === e.chave && estado.setup === "todos";
+    return el("button", { type: "button", class: `op-tipo op-tipo-${estado.lado} ${ativo ? "ativo" : ""}`, "aria-pressed": String(ativo),
+      onclick: () => escolherRamo(estado.lado, e.chave) },
+    el("span", { class: "op-tipo-icone", "aria-hidden": "true" }, iconeEstilo(e.chave)),
+    el("span", { class: "op-tipo-texto" }, el("b", {}, t.nome), el("span", { class: "op-tipo-dica" }, t.dica)),
+    el("span", { class: "contagem" }, contar(ids(doRamo(estado.lado, e.chave)))));
+  }), ...(especifico ? [el("p", { class: "op-tipo-nota" },
+    ehMinhas() ? "Mostrando o seu setup. " : `Mostrando só o setup “${x.vies === "neutro" ? x.nome : nomeCurto(x)}”. `,
+    el("button", { type: "button", class: "botao-link", onclick: () => escolherRamo(estado.lado, estado.estilo) }, "Ver todos deste tipo"))] : []));
+}
+
 /** O que está na tela, em uma frase: quantos ativos, para quê, por qual caminho e quando. */
 function renderResumo() {
   const n = lista.length, x = setupAtual();
@@ -586,13 +625,16 @@ function renderResumo() {
   $("op-titulo").replaceChildren(...titulo);
   const rot = estado.tf === "D" ? "pregão" : "semana";
   const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro" };
-  const quando = estado.periodo === 1 ? `último ${rot}` : `últimos ${estado.periodo} ${rot}s`;
+  const semana = estado.tf === "W";
+  const quando = periodo() === 1 ? (semana ? "última semana" : "último pregão") : `${semana ? "últimas" : "últimos"} ${periodo()} ${rot}s`;
   const mercados = [...P.ultima.keys()].filter((m) => nomes[m] && (!estado.mercado || m === estado.mercado));
   const passos = ehMinhas() ? ["Meus setups"] : x?.vies === "neutro" ? ["Sem lado"]
-    : [ESTILOS.find((e) => e.chave === estado.estilo).nome, x ? nomeCurto(x) : "todos os setups"];
+    : simples() ? [TIPOS[estado.lado][estado.estilo].nome, x ? nomeCurto(x) : null].filter(Boolean)
+      : [ESTILOS.find((e) => e.chave === estado.estilo).nome, x ? nomeCurto(x) : "todos os setups"];
   $("op-caminho").replaceChildren(
     ...passos.flatMap((p, j) => [j ? el("span", { class: "op-sep", "aria-hidden": "true" }, "›") : null, el("span", { class: "op-passo-txt" }, p)]).filter(Boolean),
-    el("span", { class: "op-quando" }, `Gráfico ${estado.tf === "W" ? "semanal" : "diário"}, ${quando}` +
+    el("span", { class: "op-quando" }, (simples() ? `${semana ? "Uma vez por semana: sinais da" : "Todo dia: sinais do"} ${quando}`
+      : `Gráfico ${semana ? "semanal" : "diário"}, ${quando}`) +
       (mercados.length ? ` (${mercados.map((m) => `${nomes[m]} ${fmtData(P.ultima.get(m), estado.tf === "D")}`).join(", ")})` : "") +
       (eventosLocais ? " · calculado no navegador" : "")));
   $("op-ver").textContent = n ? `Ver ${ativos}` : "Fechar";
@@ -605,10 +647,10 @@ const BUSCAS = "buscas-v1";
 const CAMPOS_BUSCA = ["lado", "estilo", "setup", "mercado", "tf", "periodo", "so2", "ordem"];
 const buscas = () => guardar.ler(BUSCAS, []);
 const SUGESTOES = [
-  { nome: "Compras a favor da tendência", dica: "Ações subindo que deram um ponto de entrada", f: { lado: "compra", estilo: "tendencia", setup: "todos", so2: false } },
-  { nome: "Compras com sinais que se confirmam", dica: "2 ou mais setups no mesmo ativo", f: { lado: "compra", estilo: "tendencia", setup: "todos", so2: true } },
-  { nome: "Repique depois de queda forte", dica: "Contra a tendência: mais arriscado, alvo mais curto", f: { lado: "compra", estilo: "contra", setup: "todos", so2: false } },
-  { nome: "Vendas a favor da tendência", dica: "Ações caindo que deram um ponto de venda", f: { lado: "venda", estilo: "tendencia", setup: "todos", so2: false } },
+  { nome: "Comprar ações que estão subindo", dica: "A favor da tendência: o jeito mais comum de comprar", f: { lado: "compra", estilo: "tendencia", setup: "todos", so2: false } },
+  { nome: "Comprar com sinais que se confirmam", dica: "Ações subindo com 2 ou mais setups ao mesmo tempo", f: { lado: "compra", estilo: "tendencia", setup: "todos", so2: true } },
+  { nome: "Comprar ações com preço descontado", dica: "Caíram muito: mais arriscado, alvo mais curto", f: { lado: "compra", estilo: "contra", setup: "todos", so2: false } },
+  { nome: "Vender ações que estão caindo", dica: "A favor da tendência de baixa", f: { lado: "venda", estilo: "tendencia", setup: "todos", so2: false } },
 ];
 
 const filtrosAtuais = () => ({ ...Object.fromEntries(CAMPOS_BUSCA.map((k) => [k, estado[k]])),
@@ -672,7 +714,7 @@ function renderBuscas() {
 
 /** Os controles refletem o estado (depois de aplicar uma busca ou ler o estado salvo). */
 function sincronizarControles() {
-  for (const [id, chave] of [["f-mercado", "mercado"], ["f-tf", "tf"], ["f-grade", "grade"], ["f-tf-grafico", "tfGrafico"], ["f-camadas", "camadas"]])
+  for (const [id, chave] of [["f-modo", "modo"], ["f-mercado", "mercado"], ["f-tf", "tf"], ["f-freq", "tf"], ["f-grade", "grade"], ["f-tf-grafico", "tfGrafico"], ["f-camadas", "camadas"]])
     document.querySelectorAll(`#${id} button`).forEach((b) => {
       b.classList.toggle("ativo", b.dataset.v === String(estado[chave]));
       b.setAttribute("aria-pressed", b.classList.contains("ativo"));
@@ -851,7 +893,8 @@ function renderBarra() {
     o.textContent = n === 1 ? (estado.tf === "D" ? "no último pregão" : "na última semana") : `${estado.tf === "D" ? "nos últimos" : "nas últimas"} ${n} ${rot}s`;
   }
   const so2 = lista.filter((i) => i.setups.size >= 2).length;
-  $("rot-so2").textContent = estado.so2 ? "Só com 2+ setups" : `Só com 2+ setups (${so2})`;
+  const rotSo2 = simples() ? "Só sinais que se confirmam (2+ setups)" : "Só com 2+ setups";
+  $("rot-so2").textContent = estado.so2 ? rotSo2 : `${rotSo2} (${so2})`;
   $("f-so2").checked = estado.so2;
   $("caixa-so2").hidden = ehMinhas();
   $("f-ordem").replaceChildren(...Object.entries(ORDENS).map(([k, [r]]) => el("option", { value: k, selected: k === estado.ordem ? true : null }, r)));
@@ -1052,7 +1095,7 @@ async function iniciar() {
     const x = SETUP.get(q.get("setup"));
     estado.setup = x.id;
     if (x.vies !== "neutro") { estado.lado = x.vies; estado.estilo = x.estilo; }
-  }
+  } else if (simples() && estado.setup !== "todos") estado.setup = "todos";  // modo simples abre com todos os do tipo
   const doHash = location.hash.length > 1 ? acharTicker(location.hash.slice(1)) : null;
   if (doHash) estado.ticker = doHash;
 
@@ -1063,6 +1106,19 @@ async function iniciar() {
     segmento(id, ({ v }) => { estado[chave] = conv(v); depois(); }).marcar("v", String(estado[chave]));
   ligar("f-mercado", "mercado", String, mudou);
   segmento("f-lado", ({ v }) => escolherRamo(v, estado.estilo));
+  segmento("f-modo", ({ v }) => {
+    estado.modo = v;
+    // o modo simples não tem a lista de setups: volta para todos os do tipo escolhido
+    if (simples() && estado.setup !== "todos") estado.setup = "todos";
+    sincronizarControles();
+    mudou();
+  });
+  segmento("f-freq", ({ v }) => {
+    estado.tf = v;
+    estado.tfGrafico = v;
+    sincronizarControles();
+    mudou();
+  });
   $("f-periodo").addEventListener("change", (e) => { estado.periodo = +e.target.value; mudou(); });
   segmento("f-tf", ({ v }) => {
     estado.tf = v;

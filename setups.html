@@ -26,6 +26,13 @@
         <button type="button" class="fechar op-nav-fechar" id="op-nav-fechar" aria-label="Fechar os filtros">✕</button>
       </div>
       <div class="op-nav-corpo">
+        <div class="op-modo">
+          <div class="segmento" id="f-modo" aria-label="Modo da navegação">
+            <button data-v="simples" title="Perguntas simples, sem termos técnicos">Simples</button>
+            <button data-v="trader" title="Setups pelo nome, período e seus próprios setups">Trader</button>
+          </div>
+          <p class="op-modo-dica" id="op-modo-dica"></p>
+        </div>
         <section class="op-passo" aria-labelledby="op-passo-lado">
           <h3 class="op-passo-rot" id="op-passo-lado"><span class="op-num">1</span> Quero</h3>
           <div class="segmento op-lado" id="f-lado" aria-label="Comprar ou vender">
@@ -43,7 +50,18 @@
             <button data-v="MACRO" title="Índices, moedas e commodities">Macro</button>
           </div>
         </section>
-        <section class="op-passo" aria-labelledby="op-passo-quando">
+        <section class="op-passo so-simples" aria-labelledby="op-passo-tipo">
+          <h3 class="op-passo-rot" id="op-passo-tipo"><span class="op-num">3</span> Que tipo de oportunidade?</h3>
+          <div class="op-tipos" id="op-tipos"></div>
+        </section>
+        <section class="op-passo so-simples" aria-labelledby="op-passo-freq">
+          <h3 class="op-passo-rot" id="op-passo-freq"><span class="op-num">4</span> Com que frequência você acompanha?</h3>
+          <div class="segmento op-freq" id="f-freq" aria-label="Com que frequência você acompanha">
+            <button data-v="D" title="Sinais do gráfico diário: um candle por pregão">Olho todo dia</button>
+            <button data-v="W" title="Sinais do gráfico semanal: um candle por semana, sinais mais lentos">Uma vez por semana</button>
+          </div>
+        </section>
+        <section class="op-passo so-trader" aria-labelledby="op-passo-quando">
           <h3 class="op-passo-rot" id="op-passo-quando"><span class="op-num">3</span> Quando</h3>
           <div class="segmento" id="f-tf" aria-label="Gráfico do sinal">
             <button data-v="D" class="ativo" title="Setups no gráfico diário (um candle por pregão)">Gráfico diário</button>
@@ -56,7 +74,7 @@
             <option value="5">nos últimos 5 pregões</option>
           </select>
         </section>
-        <section class="op-passo" aria-labelledby="op-passo-setup">
+        <section class="op-passo so-trader" aria-labelledby="op-passo-setup">
           <h3 class="op-passo-rot" id="op-passo-setup"><span class="op-num">4</span> Qual setup</h3>
           <div class="op-setups" id="op-setups"></div>
         </section>

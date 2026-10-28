@@ -1149,6 +1149,30 @@ main.pagina-setups { padding-top: 10px; gap: 10px; }
 .op-sem-sinal { margin: 2px 8px 0; font-size: var(--t-xs); color: var(--texto-fraco); }
 .op-ver-vazios { justify-self: start; font-size: var(--t-sm); }
 
+/* modo simples / trader */
+.op-modo { display: grid; gap: 4px; padding-bottom: var(--s-3); border-bottom: 1px solid var(--borda); }
+.op-modo-dica { margin: 0; font-size: var(--t-xs); line-height: 1.4; color: var(--texto-fraco); }
+.op-nav[data-modo="simples"] .so-trader, .op-nav[data-modo="trader"] .so-simples { display: none; }
+.op-tipos { display: grid; gap: 6px; }
+.op-tipo {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 4px 10px; width: 100%; padding: 10px;
+  text-align: left; background: var(--bg-elev); border: 1px solid var(--borda-forte); border-radius: var(--r-md); color: var(--texto);
+  font: 500 var(--t-base) Inter, "Inter Fallback", sans-serif; cursor: pointer;
+}
+.op-tipo:hover { border-color: var(--borda-controle); }
+.op-tipo b { display: block; font-size: var(--t-md); font-weight: 600; }
+.op-tipo-dica { display: block; margin-top: 2px; font-size: var(--t-xs); line-height: 1.4; color: var(--texto-fraco); font-weight: 400; }
+.op-tipo .contagem { margin: 2px 0 0; }
+.op-tipo-icone { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--bg); color: var(--alta); }
+.op-tipo-venda .op-tipo-icone { color: var(--baixa-texto); }
+.op-tipo-venda .op-tipo-icone svg { transform: scaleY(-1); }
+.op-tipo-icone svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.op-tipo.ativo.op-tipo-compra { background: rgba(34, 176, 125, 0.12); border-color: var(--alta); }
+.op-tipo.ativo.op-tipo-venda { background: rgba(229, 72, 77, 0.12); border-color: var(--baixa); }
+.op-tipo.ativo .op-tipo-dica { color: var(--texto); }
+.op-tipo-nota { margin: 2px 0 0; font-size: var(--t-sm); color: var(--aviso); }
+.op-freq button { font-size: var(--t-sm); }
+
 /* minhas buscas */
 .op-buscas { padding-top: var(--s-3); border-top: 1px solid var(--borda); }
 #op-buscas { display: grid; gap: 2px; }

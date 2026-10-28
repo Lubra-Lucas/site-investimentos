@@ -696,7 +696,8 @@ const AJUDA = {
     "+ Plano de amanhã põe o ativo no plano do próximo pregão com níveis sugeridos; ✎ Anotar guarda o que você viu, preso à data e ao preço.",
   ]],
   setups: ["Oportunidades", [
-    "Na lateral (no celular, em ☰ Filtros), em 3 passos: 1) Quero comprar ou vender; 2) Onde (mercado); 3) Qual setup. O número ao lado de cada setup é quantos ativos deram o sinal no período.",
+    "Na lateral (no celular, em ☰ Filtros): 1) Quero comprar ou vender; 2) Onde (mercado); 3) Que tipo de oportunidade (ações subindo ou com preço descontado); 4) Com que frequência você acompanha (todo dia ou uma vez por semana).",
+    "Modo Trader (no topo da lateral): escolha o setup pelo nome, com quantos ativos deram cada sinal, o período (últimos 2, 3 ou 5 pregões) e Meus setups.",
     "A favor da tendência: entrar no movimento que já existe (mais seguro). Contra a tendência: apostar na virada depois de um exagero (mais arriscado).",
     "☆ Salvar busca guarda os filtros em Minhas buscas, para voltar a eles com um clique. Em Meus setups você monta suas próprias regras (médias, IFR, Bollinger...).",
     "Em cima da grade: o tempo do sinal (diário ou semanal), quando aconteceu, a ordem e \"Só com 2+ setups\" (sinais que se confirmam). ⚙ Exibição muda o tamanho da grade e o que aparece no gráfico.",
