@@ -1045,8 +1045,9 @@ function renderDicaGrafico() {
   caixa.hidden = Preferencias.personalizou() || guardar.ler(DICA_GRAFICO, false);
   if (caixa.hidden) return;
   caixa.replaceChildren(
-    el("span", {}, el("b", {}, "Gráficos no modo limpo: "), "candles azuis (alta) e pretos (baixa), só com as condições do setup. Quer médias, Bollinger, IFR ou outras cores? "),
-    el("button", { type: "button", class: "botao-link", onclick: (e) => abrirPersonalizacao(e.currentTarget) }, "⚙ Personalizar o gráfico"),
+    el("span", { title: "Candles azuis (alta) e pretos (baixa), só com as condições do setup. Médias, Bollinger, IFR e cores ficam em Personalizar." },
+      el("b", {}, "Gráfico limpo"), ": só as condições do setup."),
+    el("button", { type: "button", class: "botao-link", onclick: (e) => abrirPersonalizacao(e.currentTarget) }, "⚙ Personalizar"),
     el("button", { type: "button", class: "botao-remover", "aria-label": "Fechar o aviso", title: "Fechar",
       onclick: () => { guardar.gravar(DICA_GRAFICO, true); renderDicaGrafico(); } }, "✕"));
 }

@@ -1176,11 +1176,11 @@ main.pagina-setups { padding-top: 10px; gap: 10px; }
 .chip.preco-atrasado { color: var(--aviso); border-color: rgba(227, 162, 59, 0.55); background: rgba(227, 162, 59, 0.1); flex: none; cursor: help; }
 
 .op-dica-grafico {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; padding: 6px 10px; font-size: var(--t-sm);
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 0; padding: 2px 4px 2px 10px; font-size: var(--t-sm);
   color: var(--texto-fraco); background: color-mix(in srgb, var(--acento) 8%, transparent); border: 1px solid color-mix(in srgb, var(--acento) 30%, transparent); border-radius: var(--r-md);
 }
 .op-dica-grafico b { color: var(--texto); }
-.op-dica-grafico .botao-remover { margin-left: auto; font-size: 14px; min-width: var(--h-sm); min-height: var(--h-sm); }
+.op-dica-grafico .botao-remover { font-size: 14px; min-width: var(--h-sm); min-height: var(--h-sm); }
 .op-personalizar { margin-top: 6px; }
 
 /* minhas buscas */
@@ -2525,3 +2525,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .dr-tabela th[scope="row"] { font-size: 14px; justify-content: flex-start; }
   .dr-tabela-stats tr.dr-total th { color: var(--texto); }
 }
+
+/* ---------- gráfico claro (padrão limpo): legenda das condições e barra de desenho legíveis no fundo branco ---------- */
+.celula:has(.grafico-claro) .legenda-extras { background: rgba(255, 255, 255, 0.88); color: #4a5361; }
+.grafico-claro .ferramentas, .grafico-claro .ferramentas.compacta:not(.aberta) { background: rgba(255, 255, 255, 0.85); border-color: #d6dae0; }
+.grafico-claro .ferramentas .ferr { color: #4a5361; }
