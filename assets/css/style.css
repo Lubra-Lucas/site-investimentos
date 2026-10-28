@@ -2530,3 +2530,42 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .celula:has(.grafico-claro) .legenda-extras { background: rgba(255, 255, 255, 0.88); color: #4a5361; }
 .grafico-claro .ferramentas, .grafico-claro .ferramentas.compacta:not(.aberta) { background: rgba(255, 255, 255, 0.85); border-color: #d6dae0; }
 .grafico-claro .ferramentas .ferr { color: #4a5361; }
+
+/* ---------- Backtest: casos de um ativo (janela com gráfico e lista, backtest.js abrirCasos) ---------- */
+.bt-ativo { padding: 0; align-items: stretch; flex-wrap: nowrap; gap: 0; }
+.bt-ativo-botao {
+  flex: 1; min-width: 0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 8px;
+  padding: 7px 8px; background: none; border: 0; border-radius: 6px; color: var(--texto); font: inherit; text-align: left; cursor: pointer;
+}
+.bt-ativo-botao:hover { background: var(--bg-elev); }
+.bt-ativo-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bt-casos-link { color: var(--acento); }
+.bt-abrir-ativo { display: inline-grid; place-items: center; min-width: var(--h-md); color: var(--texto-fraco); text-decoration: none; border-radius: 6px; }
+.bt-abrir-ativo:hover { color: var(--acento); background: var(--bg-elev); }
+.bt-casos {
+  width: min(1100px, 100%); margin: 0 auto; display: grid; gap: 10px; padding: 14px 16px 16px;
+  background: var(--bg-painel); border: 1px solid var(--borda-forte); border-radius: 10px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.bt-casos:focus { outline: none; }
+.bt-casos, .bt-casos > * { min-width: 0; }
+.bt-casos-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.bt-casos-cab h2 { margin: 0; font-size: var(--t-lg); }
+.bt-casos-cab .fechar { min-width: var(--h-md); min-height: var(--h-md); }
+.bt-casos-grafico { position: relative; height: 380px; border: 1px solid var(--borda); border-radius: 6px; overflow: hidden; }
+.bt-casos-legenda { margin: 0; }
+.bt-casos-resumo { margin: 0 0 6px; font-size: var(--t-base); }
+.bt-casos-resumo .alta { color: var(--alta); } .bt-casos-resumo .baixa { color: var(--baixa-texto); }
+.bt-casos-lista .tabela-wrap { max-height: 300px; overflow-y: auto; }
+.bt-casos-tabela tbody tr { cursor: pointer; }
+.bt-casos-tabela tbody tr:hover, .bt-casos-tabela tbody tr.ativo { background: color-mix(in srgb, var(--acento) 14%, transparent); }
+.bt-casos-tabela td.alta { color: var(--alta); } .bt-casos-tabela td.baixa { color: var(--baixa-texto); }
+.bt-casos-pe { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.bt-casos-pe .botao { text-decoration: none; display: inline-flex; align-items: center; min-height: var(--h-md); }
+@media (max-width: 600px) {
+  .bt-casos { padding: 12px; }
+  .bt-casos-grafico { height: 300px; }
+  .bt-casos-lista .tabela-wrap { max-height: none; }
+  .bt-casos-tabela { font-size: var(--t-sm); }
+  .bt-casos-tabela th, .bt-casos-tabela td { padding-inline: 6px; }
+  .bt-casos-data { display: block; }
+}
