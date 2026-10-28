@@ -7,7 +7,7 @@
 const estado = Object.assign({
   mercado: "", tf: "D", periodo: 1, lado: "compra", estilo: "tendencia", setup: "todos",
   so2: false, ordem: "confluencia", grade: "3", tfGrafico: "D", camadas: "condicoes",
-  pagina: 0, verVazios: false, modo: "simples", editando: false, minhas: null,
+  pagina: 0, verVazios: false, modo: "simples", soAtualizados: true, editando: false, minhas: null,
 }, guardar.ler("setups-v1", {}));
 estado.ticker = null;  // o ativo aberto vem do endereço (#PETR4.SA), não fica salvo
 delete estado.visao;   // a antiga visão "lista + gráfico" saiu: só a grade
@@ -109,21 +109,49 @@ const paraGrafico = (e) => ({ ...e, tf: e.tf === "W" ? "S" : e.tf, familia: SETU
 
 // ------------------------------------------------------------- período e lista
 
+const doMercado = (a) => a && (!estado.mercado || a.mercado === estado.mercado);
 const visivel = (tk) => {
   const a = porTicker.get(tk);
-  return a && (!estado.mercado || a.mercado === estado.mercado);
+  return doMercado(a) && (!estado.soAtualizados || atualizado(a));
+};
+
+/** Último pregão esperado de cada mercado de calendário único (Brasil, EUA): o mais recente que algum ativo tem ou
+ *  que a fonte já anunciou (candle "pendente", que veio sem fechamento). Macro mistura bolsas e cripto não fecha. */
+let ESPERADA = {};
+function calcularEsperada() {
+  ESPERADA = {};
+  for (const a of R.ativos) {
+    if (a.mercado !== "BR" && a.mercado !== "US") continue;
+    const d = [a.data, a.verificacao?.pendente].filter(Boolean).sort().at(-1);
+    if (d > (ESPERADA[a.mercado] ?? "")) ESPERADA[a.mercado] = d;
+  }
+}
+/** Preço atualizado: o ativo tem o último pregão do mercado dele, completo (sem candle pendente na fonte). */
+function atualizado(a) {
+  const pend = a.verificacao?.pendente;
+  if (pend && pend > a.data) return false;
+  return !ESPERADA[a.mercado] || a.data >= ESPERADA[a.mercado];
+}
+/** Por que o preço está atrasado, para a dica do card e do aviso. */
+const motivoAtraso = (a) => {
+  const pend = a.verificacao?.pendente;
+  return pend && pend > a.data
+    ? `O pregão de ${fmtData(pend)} veio sem fechamento da fonte: o preço e os sinais são de ${fmtData(a.data)}.`
+    : `O último pregão deste ativo é ${fmtData(a.data)}; o do mercado é ${fmtData(ESPERADA[a.mercado])}.`;
 };
 
 /** Eventos do período, contado por mercado (cripto tem fim de semana, a bolsa não). */
 function calcularPeriodo() {
   const { sinais, ultima } = sinaisDoPeriodo({ ativos: R.ativos, sinais: EVENTOS }, estado.tf, periodo());
   const eventos = sinais.filter((e) => visivel(e.ticker));
+  // eventos de ativos com preço atrasado: o filtro "Só com preço atualizado" os tira (ou tiraria) da lista
+  const atrasados = sinais.filter((e) => doMercado(porTicker.get(e.ticker)) && !atualizado(porTicker.get(e.ticker)));
   const porSetup = new Map();
   for (const e of eventos) {
     if (!porSetup.has(e.setup)) porSetup.set(e.setup, new Set());
     porSetup.get(e.setup).add(e.ticker);
   }
-  P = { eventos, ultima, porSetup };
+  P = { eventos, ultima, porSetup, atrasados, desatualizados: new Set() };
 }
 
 /** Quantos ativos têm algum destes setups no período. */
@@ -184,6 +212,11 @@ function listar() {
     itens = [...conf.values()].filter((i) => [...i.setups].some((id) => foco.has(id))).map((i) => ({ ...i, foco }));
   }
   if (estado.so2) itens = itens.filter((i) => i.setups.size >= 2);
+  // quantos deste resultado têm o preço atrasado (fora da lista com o filtro ligado; com a etiqueta ⚠ com ele desligado)
+  const ramo = idsRamo();
+  P.desatualizados = new Set(ehMinhas() ? [] : [...agrupar(estado.soAtualizados ? P.atrasados : [], ramo).values()]
+    .filter((i) => [...i.setups].some((id) => foco.has(id)) && (!estado.so2 || i.setups.size >= 2)).map((i) => i.ticker));
+  if (!estado.soAtualizados) for (const i of itens) if (!atualizado(porTicker.get(i.ticker))) P.desatualizados.add(i.ticker);
   const chave = (ORDENS[estado.ordem] ?? ORDENS.confluencia)[1];
   const nota = new Map(itens.map((i) => [i.ticker, chave(i, porTicker.get(i.ticker), fotoAtual(i.ticker))]));
   const cmp = (p, q) => (typeof p === "string" ? p.localeCompare(q) : p - q);
@@ -381,6 +414,7 @@ function celula(i) {
         onclick: () => (document.fullscreenElement ? document.exitFullscreen() : cel.requestFullscreen?.()) },
       el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
       precoComFormacao(a, "celula-preco"),
+      atualizado(a) ? null : el("span", { class: "chip preco-atrasado", title: motivoAtraso(a) }, `⚠ preço de ${fmtData(a.data)}`),
       el("div", { class: "celula-acoes" }, selosBandeja(a.ticker), ctx.dica, botaoTelaCheia(() => cel), linkAtivo(a.ticker),
         el("button", { type: "button", class: "botao-simular-card", "data-simular": a.ticker,
           title: `Simular um trade em ${semSufixo(a.ticker)}: entrada, stop e alvo, com o setup deste card`,
@@ -435,7 +469,11 @@ function renderGrade() {
   const pagina = lista.slice(estado.pagina * n, (estado.pagina + 1) * n);
   grade.dataset.grade = estado.grade;
   const vazio = ehMinhas() ? (F ? "Nenhum ativo atende a todas as regras no período. Tente afrouxar alguma condição." : "Não consegui carregar os indicadores das regras.")
-    : estado.so2 ? "Nenhum ativo com 2+ setups no período. Desmarque a opção ou aumente o período." : "Nenhum ativo com este setup no período.";
+    : estado.so2 ? "Nenhum ativo com 2+ setups no período. Desmarque a opção ou aumente o período."
+      : estado.soAtualizados && P.desatualizados.size
+        ? `Nenhum ativo com o preço atualizado aqui: ${P.desatualizados.size} ${P.desatualizados.size === 1 ? "está" : "estão"} com o último pregão incompleto na fonte. ` +
+          "Desmarque “Só com preço atualizado” para ver os sinais do pregão anterior."
+        : "Nenhum ativo com este setup no período.";
   grade.replaceChildren(...(pagina.length ? pagina.map(celula) : [el("p", { class: "vazio painel" }, vazio)]));
   marcarSelecionado();
   encaixar();
@@ -897,6 +935,12 @@ function renderBarra() {
   $("rot-so2").textContent = estado.so2 ? rotSo2 : `${rotSo2} (${so2})`;
   $("f-so2").checked = estado.so2;
   $("caixa-so2").hidden = ehMinhas();
+  const nDes = P.desatualizados?.size ?? 0;
+  $("f-atualizados").checked = estado.soAtualizados;
+  $("rot-atualizados").textContent = !nDes ? "Só com preço atualizado"
+    : estado.soAtualizados ? `Só com preço atualizado (${nDes} ${nDes === 1 ? "oculto" : "ocultos"})` : `Só com preço atualizado (${nDes} ${nDes === 1 ? "atrasado" : "atrasados"})`;
+  // sem nenhum atrasado e o filtro ligado, a opção é só ruído
+  $("caixa-atualizados").hidden = !nDes && estado.soAtualizados;
   $("f-ordem").replaceChildren(...Object.entries(ORDENS).map(([k, [r]]) => el("option", { value: k, selected: k === estado.ordem ? true : null }, r)));
   $("f-indicadores").hidden = estado.camadas === "condicoes";
   renderResumo();
@@ -1078,6 +1122,7 @@ async function iniciar() {
   try { [R, C] = await Promise.all([carregarRadar(), carregarCatalogo()]); } catch (e) { montarTopo("setups"); return erroDados(e); }
   try { F = await carregarRastreador(); } catch {}
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
+  calcularEsperada();
   montarTopo("setups", R);
   SETUPS = C.grupos.flatMap((g) => g.itens.map((x) => ({ ...x, grupo: g.nome })));
   SETUP = new Map(SETUPS.map((x) => [x.id, x]));
@@ -1129,6 +1174,7 @@ async function iniciar() {
   ligar("f-grade", "grade", String, () => { salvar(); paginaDoAtivo(); atualizar(); });
   ligar("f-tf-grafico", "tfGrafico", String, () => { salvar(); renderGrade(); });
   ligar("f-camadas", "camadas", String, () => { salvar(); renderBarra(); renderGrade(); });
+  $("f-atualizados").addEventListener("change", (e) => { estado.soAtualizados = e.target.checked; mudou(); });
   $("f-so2").addEventListener("change", (e) => { estado.so2 = e.target.checked; estado.pagina = 0; salvar(); atualizar(); });
   $("f-ordem").addEventListener("change", (e) => { estado.ordem = e.target.value; estado.pagina = 0; salvar(); atualizar(); });
   ligarRegras();

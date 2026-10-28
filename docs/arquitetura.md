@@ -62,7 +62,10 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
     dia" = sinais do diário, "Uma vez por semana" = semanal). Sempre o último pregão (ou semana), todos os setups do tipo.
     Um link com `?setup=` mostra só aquele setup, com "Ver todos deste tipo".
   - **Trader**: **3 Quando** (gráfico diário ou semanal; último pregão, 2, 3, 5) → **4 Qual setup** (do catálogo, agrupado
-    em a favor/contra a tendência e por família, com a contagem de ativos; "Sem lado"; "Meus setups" = regras do usuário). **Minhas buscas** (`buscas-v1`) guarda os filtros com
+    em a favor/contra a tendência e por família, com a contagem de ativos; "Sem lado"; "Meus setups" = regras do usuário).
+  - **Só com preço atualizado** (ligado por padrão, `soAtualizados`): esconde os ativos cujo último pregão não chegou
+    completo da fonte (`verificacao.pendente` mais novo que `data`) ou que estão atrás do último pregão do mercado (Brasil e
+    EUA). Desligado, eles aparecem com a etiqueta "⚠ preço de dd/mm". **Minhas buscas** (`buscas-v1`) guarda os filtros com
   um nome ("☆ Salvar busca") e traz sugestões para quem está começando. Em cima da grade, uma frase diz o que está na tela
   ("229 ativos para comprar · A favor da tendência › todos os setups"), com Ordenar, "Só com 2+ setups", Baixar e
   ⚙ Exibição (grade 1, 2×2, 3×3, 4×3; tempo do gráfico; condições ou meus indicadores). `radar.html` e `multitela.html`
