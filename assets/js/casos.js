@@ -3,6 +3,18 @@
  * ({ticker, principal, casos: {D|W: {setupId: [[sinal, entrada, saida_data, saida_preco, resultado_pct], ...]}}}).
  * Sem dependência das páginas: usa só os ajudantes de comum.js. */
 
+/** O que o setup usa (médias, Bollinger, IFR/estocástico), para desenhar no histórico inteiro. Os níveis de rompimento
+ *  ficam de fora: mudam a cada candle. Precisa de rastreador.js (CONDICOES, sobreposicaoDasRegras). */
+async function sobreposicaoDoSetup(setupId, tf) {
+  if (typeof sobreposicaoDasRegras !== "function" || typeof CONDICOES === "undefined") return null;
+  const cat = await buscarJSON("data/setups.json").catch(() => null);
+  const x = (cat?.grupos ?? []).flatMap((g) => g.itens).find((i) => i.id === setupId);
+  if (!x) return null;
+  const regras = x.regras.map((r) => (r.t === "boca" ? { t: "bollinger", pos: "fechou_acima" } : r))
+    .filter((r) => CONDICOES[r.t] && r.t !== "rompimento" && r.t !== "perto_extremo");
+  return regras.length ? sobreposicaoDasRegras(regras, null, tf, null) : null;
+}
+
 /**
  * Abre a janela. `ativo`: o ativo do radar ({ticker, arquivo, nome, moeda}); `resumo`: {n, acerto, medio} do backtest
  * (opcional); `principal`: quantos candles depois o trade sai; `vies`: "compra" | "venda".
@@ -22,6 +34,7 @@ async function abrirCasos({ ativo, setupId, nomeSetup: nomeDoSetup, vies, tf, re
           `saída no fechamento ${rotPrazo} depois` + (e ? ` · ${e.n} casos, ${fmtNum(e.acerto, 0)}% com lucro, média ${fmtPct(e.medio)}` : ""))),
       el("button", { type: "button", class: "fechar", "aria-label": "Fechar", onclick: fecharCasos }, "×")),
     corpoGraf,
+    el("div", { class: "legenda-extras bt-casos-indicadores", hidden: true }),
     el("p", { class: "sub bt-casos-legenda" }, "▲/▼ entrada · ● saída (verde = lucro, vermelho = prejuízo). Clique num caso para ir até ele no gráfico."),
     lista,
     el("div", { class: "bt-casos-pe" },
@@ -54,6 +67,16 @@ async function abrirCasos({ ativo, setupId, nomeSetup: nomeDoSetup, vies, tf, re
   const g = new Grafico(corpoGraf);
   g.sinais = [];
   casosAbertos.g = g;
+  // o indicador que o setup usa (ex.: a MMS 50 do pullback na MMS 50), para ver cada caso no contexto dele
+  const sob = await sobreposicaoDoSetup(id, tf);
+  if (casosAbertos?.fundo !== fundo) return;
+  if (sob) {
+    g.definirSobreposicao(sob);
+    const leg = caixa.querySelector(".bt-casos-indicadores");
+    leg.replaceChildren(el("span", { class: "rotulo-mini" }, "No gráfico:"), ...legendaSobreposicao(sob).map((x) =>
+      el("span", {}, el("i", { class: x.pontilhado ? "pontilhado" : null, style: `--cor:${x.cor}` }), x.txt)));
+    leg.hidden = false;
+  }
   const ok = a ? await g.mostrar(a.arquivo, tf).catch(() => false) : false;
   if (casosAbertos?.fundo !== fundo || !ok) return;
   // o candle de cada data: o último até ela (no semanal o Python rotula a semana pela sexta e o gráfico pela segunda)
