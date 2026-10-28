@@ -697,8 +697,10 @@ const AJUDA = {
     "+ Plano de amanhã põe o ativo no plano do próximo pregão com níveis sugeridos; ✎ Anotar guarda o que você viu, preso à data e ao preço.",
   ]],
   setups: ["Oportunidades", [
-    "Escolha Compra ou Venda, depois \"A favor\" ou \"Contra a tendência\" e um setup (ou todos). Os chips mostram quantos ativos dispararam cada um no período.",
-    "\"Minhas regras\" monta um filtro próprio (médias, IFR, Bollinger...), salvo neste navegador.",
+    "Na lateral (no celular, em ☰ Filtros), em 3 passos: 1) Quero comprar ou vender; 2) Onde (mercado); 3) Qual setup. O número ao lado de cada setup é quantos ativos deram o sinal no período.",
+    "A favor da tendência: entrar no movimento que já existe (mais seguro). Contra a tendência: apostar na virada depois de um exagero (mais arriscado).",
+    "☆ Salvar busca guarda os filtros em Minhas buscas, para voltar a eles com um clique. Em Meus setups você monta suas próprias regras (médias, IFR, Bollinger...).",
+    "Em cima da grade: o tempo do sinal (diário ou semanal), quando aconteceu, a ordem e \"Só com 2+ setups\" (sinais que se confirmam). ⚙ Exibição muda o tamanho da grade e o que aparece no gráfico.",
     "Grade: vários gráficos lado a lado para comparar (1, 2×2, 3×3 ou 4×3); clique no selo ✓/⚠ do card para ver o contexto (✓ a favor, ⚠ cuidado; Esc fecha) e use ← → para trocar de página.",
     "As setas no gráfico são os setups escolhidos neste ativo; a faixa azul marca o candle do sinal. Os sinais só saem com o pregão fechado.",
     "Simular: o botão \"⊕ Simular\" do card abre a simulação do trade (entrada, stop e alvo) com o setup e o lado do card. Também dá para arrastar o card até \"Simular trade\" (borda esquerda).",

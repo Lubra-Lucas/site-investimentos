@@ -54,10 +54,13 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
 
 ## Páginas
 
-- **Setups** (`setups.html`): substitui Radar e Multitela. Escolhe mercado, setup (pelo catálogo: lado →
-  a favor/contra → setups) ou "Minhas regras", tempo (D/W) e quando (último pregão, 2, 3, 5). O resultado
-  aparece numa **grade** de gráficos (1, 2×2, 3×3, 4×3). Cada ativo mostra os
-  setups que disparou, o selo do histórico e o contexto a favor/cuidado. `radar.html` e `multitela.html`
+- **Oportunidades** (`setups.html`): substitui Radar e Multitela. Navegação lateral em 4 passos (no celular e no tablet,
+  uma folha que abre em "☰ Filtros"): **1 Quero** comprar/vender → **2 Onde** (mercado) → **3 Quando** (gráfico diário ou
+  semanal; último pregão, 2, 3, 5) → **4 Qual setup** (do catálogo, agrupado em a favor/contra a tendência e por família, com a
+  contagem de ativos; "Sem lado"; "Meus setups" = regras do usuário). **Minhas buscas** (`buscas-v1`) guarda os filtros com
+  um nome ("☆ Salvar busca") e traz sugestões para quem está começando. Em cima da grade, uma frase diz o que está na tela
+  ("229 ativos para comprar · A favor da tendência › todos os setups"), com Ordenar, "Só com 2+ setups", Baixar e
+  ⚙ Exibição (grade 1, 2×2, 3×3, 4×3; tempo do gráfico; condições ou meus indicadores). `radar.html` e `multitela.html`
   redirecionam para cá.
 - **Início** (`index.html`, `assets/js/inicio.js`): o que o terminal faz e os 3 passos (encontrar → simular → registrar,
   recolhíveis; `inicio-intro-v1`), oportunidades de hoje (contagem de ativos com setup de compra/venda no último pregão fechado
