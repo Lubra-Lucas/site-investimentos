@@ -18,66 +18,115 @@
   <header class="topo" id="topo"></header>
 
   <main class="larga pagina-setups">
-    <section class="painel menu-setups compacto" id="menu-setups">
-      <div class="linha-topo">
-        <div class="segmento" id="f-mercado" aria-label="Mercado">
-          <button data-v="" class="ativo">Todos</button>
-          <button data-v="BR">Brasil</button>
-          <button data-v="US">EUA</button>
-          <button data-v="CRIPTO">Cripto</button>
-          <button data-v="MACRO" title="Índices, moedas e commodities">Macro</button>
-        </div>
-        <div class="filtro">
-          <span class="filtro-rotulo">Sinal no</span>
-          <div class="segmento" id="f-tf" aria-label="Tempo do sinal">
-            <button data-v="D" class="ativo" title="Setups no gráfico diário">Diário</button>
-            <button data-v="W" title="Setups no gráfico semanal">Semanal</button>
+   <div class="op-layout">
+    <!-- navegação: o que procurar (lado, mercado, setup) e as buscas salvas. No celular vira uma folha que abre em "Filtros". -->
+    <aside class="painel op-nav" id="op-nav" aria-labelledby="op-nav-titulo">
+      <div class="op-nav-cab">
+        <h2 id="op-nav-titulo">Encontrar oportunidades</h2>
+        <button type="button" class="fechar op-nav-fechar" id="op-nav-fechar" aria-label="Fechar os filtros">✕</button>
+      </div>
+      <div class="op-nav-corpo">
+        <section class="op-passo" aria-labelledby="op-passo-lado">
+          <h3 class="op-passo-rot" id="op-passo-lado"><span class="op-num">1</span> Quero</h3>
+          <div class="segmento op-lado" id="f-lado" aria-label="Comprar ou vender">
+            <button data-v="compra" class="op-compra">▲ Comprar <span class="contagem" id="n-compra">0</span></button>
+            <button data-v="venda" class="op-venda">▼ Vender <span class="contagem" id="n-venda">0</span></button>
           </div>
-        </div>
-        <div class="filtro">
-          <span class="filtro-rotulo">Quando</span>
-          <div class="segmento" id="f-periodo" aria-label="Quando o setup aconteceu">
-            <button data-v="1" class="ativo">Último pregão</button>
-            <button data-v="2">2 pregões</button>
-            <button data-v="3">3 pregões</button>
-            <button data-v="5">5 pregões</button>
+        </section>
+        <section class="op-passo" aria-labelledby="op-passo-onde">
+          <h3 class="op-passo-rot" id="op-passo-onde"><span class="op-num">2</span> Onde</h3>
+          <div class="segmento op-mercado" id="f-mercado" aria-label="Mercado">
+            <button data-v="" class="ativo">Todos</button>
+            <button data-v="BR">Brasil</button>
+            <button data-v="US">EUA</button>
+            <button data-v="CRIPTO">Cripto</button>
+            <button data-v="MACRO" title="Índices, moedas e commodities">Macro</button>
           </div>
+        </section>
+        <section class="op-passo" aria-labelledby="op-passo-quando">
+          <h3 class="op-passo-rot" id="op-passo-quando"><span class="op-num">3</span> Quando</h3>
+          <div class="segmento" id="f-tf" aria-label="Gráfico do sinal">
+            <button data-v="D" class="ativo" title="Setups no gráfico diário (um candle por pregão)">Gráfico diário</button>
+            <button data-v="W" title="Setups no gráfico semanal (um candle por semana): sinais mais lentos">Semanal</button>
+          </div>
+          <select id="f-periodo" aria-label="Há quanto tempo o setup aconteceu">
+            <option value="1">no último pregão</option>
+            <option value="2">nos últimos 2 pregões</option>
+            <option value="3">nos últimos 3 pregões</option>
+            <option value="5">nos últimos 5 pregões</option>
+          </select>
+        </section>
+        <section class="op-passo" aria-labelledby="op-passo-setup">
+          <h3 class="op-passo-rot" id="op-passo-setup"><span class="op-num">4</span> Qual setup</h3>
+          <div class="op-setups" id="op-setups"></div>
+        </section>
+        <section class="op-passo op-buscas" aria-labelledby="op-passo-buscas">
+          <h3 class="op-passo-rot" id="op-passo-buscas">★ Minhas buscas</h3>
+          <div id="op-buscas"></div>
+        </section>
+      </div>
+      <div class="op-nav-pe">
+        <button type="button" class="botao primario" id="op-ver">Ver resultados</button>
+      </div>
+    </aside>
+
+    <div class="op-principal">
+    <section class="painel op-barra" id="menu-setups">
+      <div class="op-resumo">
+        <div class="op-resumo-texto" aria-live="polite">
+          <h2 class="op-titulo" id="op-titulo"></h2>
+          <p class="op-caminho" id="op-caminho"></p>
+          <p class="sub op-descricao" id="cat-descricao"></p>
         </div>
+        <div class="op-acoes">
+          <button type="button" class="botao op-abrir-nav" id="op-abrir-nav" aria-controls="op-nav" aria-expanded="false">☰ Filtros</button>
+          <button type="button" class="botao" id="op-salvar" title="Guardar estes filtros em Minhas buscas, para voltar a eles com um clique">☆ Salvar busca</button>
+          <details class="baixar" id="f-baixar">
+            <summary class="botao" title="Baixar os ativos deste resultado, com os dados do sinal">⬇ Baixar</summary>
+            <div class="baixar-menu" role="menu">
+              <button type="button" role="menuitem" data-formato="csv">Planilha (CSV)<span class="sub">Excel / Google Sheets: um ativo por linha, com o sinal, o histórico e o contexto</span></button>
+              <button type="button" role="menuitem" data-formato="tv">Lista para o TradingView (.txt)<span class="sub">importe como lista de observação</span></button>
+              <button type="button" role="menuitem" data-formato="copiar">Copiar os tickers<span class="sub">PETR4, VALE3, ... para colar onde quiser</span></button>
+            </div>
+          </details>
+          <details class="baixar op-exibir" id="f-exibir">
+            <summary class="botao" title="Tamanho da grade e o que aparece nos gráficos">⚙ Exibição</summary>
+            <div class="baixar-menu op-exibir-menu">
+              <span class="op-exibir-rot">Gráficos por tela</span>
+              <div class="segmento" id="f-grade" aria-label="Tamanho da grade">
+                <button data-v="1" title="Um gráfico grande por vez; ← → passam para o próximo">1</button>
+                <button data-v="2" title="2×2">2×2</button>
+                <button data-v="3" class="ativo" title="3×3">3×3</button>
+                <button data-v="4" title="4×3">4×3</button>
+              </div>
+              <span class="op-exibir-rot">Tempo do gráfico</span>
+              <div class="segmento" id="f-tf-grafico" aria-label="Tempo do gráfico">
+                <button data-v="60">60m</button>
+                <button data-v="240">4h</button>
+                <button data-v="D" class="ativo">Diário</button>
+                <button data-v="W">Semanal</button>
+              </div>
+              <span class="op-exibir-rot">No gráfico</span>
+              <div class="segmento" id="f-camadas" aria-label="O que aparece no gráfico">
+                <button data-v="condicoes" class="ativo" title="Desenha nos gráficos as médias, bandas e níveis que o setup usa">Condições do setup</button>
+                <button data-v="meus" title="Usa os seus indicadores (MM20/50/200, Bollinger...)">Meus indicadores</button>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="op-filtros">
+        <label class="op-filtro">Ordenar <select id="f-ordem"></select></label>
+        <label class="opcao op-filtro" id="caixa-so2" title="Ativos com 2 ou mais setups deste ramo ao mesmo tempo: sinais que se confirmam">
+          <input type="checkbox" id="f-so2"> <span id="rot-so2">Só com 2+ setups</span>
+        </label>
         <span id="lugar-aviso"></span>
-        <div class="visao">
-          <div class="segmento" id="f-grade" aria-label="Tamanho da grade">
-            <button data-v="1" title="Um gráfico grande por vez; ← → passam para o próximo">1</button>
-            <button data-v="2" title="2×2">2×2</button>
-            <button data-v="3" class="ativo" title="3×3">3×3</button>
-            <button data-v="4" title="4×3">4×3</button>
-          </div>
-        </div>
+        <nav class="paginacao-topo" id="paginacao-topo" aria-label="Páginas"></nav>
       </div>
 
-      <!-- árvore: compra/venda → a favor / contra a tendência → setups do catálogo (mesmo desenho do antigo Radar) -->
-      <div class="menu-op" id="menu-op">
-        <div class="abas-lado" role="tablist" aria-label="Compra ou venda">
-          <button role="tab" data-lado="compra" class="aba-compra ativo">▲ Setups de compra <span class="contagem" id="n-compra">0</span></button>
-          <button role="tab" data-lado="venda" class="aba-venda">▼ Setups de venda <span class="contagem" id="n-venda">0</span></button>
-        </div>
-        <div class="fluxo-op" id="fluxo-op" data-lado="compra" data-estilo="tendencia">
-          <div class="ramos" aria-hidden="true">
-            <span class="tronco"></span><span class="barra"></span>
-            <span class="braco b-tendencia"></span><span class="braco b-contra"></span>
-          </div>
-          <div class="estilos" id="f-estilo" role="tablist" aria-label="Estilo de operação"></div>
-          <div class="ramos ramos-cat" aria-hidden="true">
-            <span class="braco b-tendencia"></span><span class="braco b-contra"></span>
-          </div>
-          <div class="categorias" id="categorias" role="group" aria-label="Setup"></div>
-        </div>
-      </div>
-      <!-- árvore recolhida: só o caminho escolhido -->
-      <div class="trilha" id="trilha" hidden></div>
-
-      <!-- Minhas regras: editor de regras avaliadas no navegador sobre data/rastreador.json -->
+      <!-- Meus setups: editor de regras avaliadas no navegador sobre data/rastreador.json -->
       <div class="caixa-rastreador caixa-regras" id="caixa-regras" hidden>
-        <div class="lista-modelos" id="r-salvos"></div>
+        <div class="lista-modelos" id="r-salvos" hidden></div>
         <div class="linha-regras">
           <div class="segmento" id="r-vies" aria-label="Lado das regras">
             <button data-v="compra" title="O contexto do card trata como compra">▲ Compra</button>
@@ -92,42 +141,11 @@
           <div class="regras-acoes">
             <select id="r-adicionar" aria-label="Adicionar condição"></select>
             <select id="r-base" aria-label="Copiar as regras de um setup do catálogo"></select>
-            <button class="botao" id="r-salvar" title="Guarda estas regras neste navegador, em Minhas regras">Salvar regras</button>
+            <button class="botao" id="r-salvar" title="Guarda estas regras neste navegador, em Meus setups">Salvar setup</button>
             <button class="botao" id="r-restaurar" hidden>Desfazer edição</button>
             <button class="botao perigo" id="r-excluir" hidden>Excluir</button>
           </div>
         </div>
-      </div>
-
-      <p class="sub cat-descricao" id="cat-descricao"></p>
-      <div class="barra-setups">
-        <p class="contagem-multi" id="f-descricao"></p>
-        <label class="opcao" id="caixa-so2" title="Ativos com 2 ou mais setups deste ramo ao mesmo tempo">
-          <input type="checkbox" id="f-so2"> <span id="rot-so2">Só com 2+ setups</span>
-        </label>
-        <label class="ordem-multi">Ordenar <select id="f-ordem"></select></label>
-        <details class="baixar" id="f-baixar">
-          <summary class="botao" title="Baixar os ativos deste resultado, com os dados do sinal">⬇ Baixar</summary>
-          <div class="baixar-menu" role="menu">
-            <button type="button" role="menuitem" data-formato="csv">Planilha (CSV)<span class="sub">Excel / Google Sheets: um ativo por linha, com o sinal, o histórico e o contexto</span></button>
-            <button type="button" role="menuitem" data-formato="tv">Lista para o TradingView (.txt)<span class="sub">importe como lista de observação</span></button>
-            <button type="button" role="menuitem" data-formato="copiar">Copiar os tickers<span class="sub">PETR4, VALE3, ... para colar onde quiser</span></button>
-          </div>
-        </details>
-        <div class="multi-grafico">
-          <span class="rotulo-mini">Gráfico</span>
-          <div class="segmento" id="f-tf-grafico" aria-label="Tempo do gráfico">
-            <button data-v="60">60m</button>
-            <button data-v="240">4h</button>
-            <button data-v="D" class="ativo">D</button>
-            <button data-v="W">S</button>
-          </div>
-          <div class="segmento" id="f-camadas" aria-label="O que aparece no gráfico">
-            <button data-v="condicoes" class="ativo" title="Desenha nos gráficos as médias, bandas e níveis que o setup usa">Condições</button>
-            <button data-v="meus" title="Usa os seus indicadores (MM20/50/200, Bollinger...)">Meus indicadores</button>
-          </div>
-        </div>
-        <nav class="paginacao-topo" id="paginacao-topo" aria-label="Páginas"></nav>
       </div>
       <div class="linha-indicadores" id="f-indicadores" hidden></div>
     </section>
@@ -137,6 +155,8 @@
       <div id="grade" class="grade-graficos"></div>
       <nav class="paginacao" id="paginacao"></nav>
     </section>
+    </div>
+   </div>
 
     <details class="painel retidos">
       <summary><h2>Dados retidos na verificação</h2><span class="sub" id="retidos-resumo"></span></summary>

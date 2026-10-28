@@ -7,10 +7,11 @@
 const estado = Object.assign({
   mercado: "", tf: "D", periodo: 1, lado: "compra", estilo: "tendencia", setup: "todos",
   so2: false, ordem: "confluencia", grade: "3", tfGrafico: "D", camadas: "condicoes",
-  pagina: 0, arvore: true, verVazios: false, editando: false, minhas: null,
+  pagina: 0, verVazios: false, editando: false, minhas: null,
 }, guardar.ler("setups-v1", {}));
 estado.ticker = null;  // o ativo aberto vem do endereço (#PETR4.SA), não fica salvo
 delete estado.visao;   // a antiga visão "lista + gráfico" saiu: só a grade
+delete estado.arvore;  // a árvore deu lugar à navegação lateral
 const salvar = () => guardar.gravar("setups-v1", { ...estado, ticker: undefined });
 
 let R, F, porTicker;
@@ -341,7 +342,7 @@ function descricaoSetup() {
   }
   const copiar = x && suportado(x) ? el("button", { class: "botao-link", title: "Copiar estas regras para Minhas regras e ajustar",
     onclick: () => copiarParaMinhas(x) }, "✎ ajustar as regras") : null;
-  $("cat-descricao").replaceChildren(x ? x.desc : `Ativos com algum setup de ${estado.lado} ${estado.estilo === "tendencia" ? "a favor" : "contra"} da tendência no período.`,
+  $("cat-descricao").replaceChildren(x ? x.desc : ESTILOS.find((e) => e.chave === estado.estilo).dica[estado.lado],
     copiar ? " " : "", copiar ?? "");
 }
 
@@ -500,6 +501,10 @@ function iconeEstilo(chave) {
 }
 
 const ids = (xs) => xs.map((x) => x.id);
+const doLado = (lado) => SETUPS.filter((x) => x.vies === lado);
+
+/** Celular e tablet (≤ 1000 px): a navegação vira uma folha que abre em "☰ Filtros"; os cards aparecem logo. */
+const navEmFolha = matchMedia("(max-width: 1000px)");
 
 function escolherRamo(lado, estilo) {
   estado.lado = lado;
@@ -508,75 +513,201 @@ function escolherRamo(lado, estilo) {
   mudou();
 }
 
-/** Celular (≤ 600 px): a árvore de filtros ocupa 3 telas; escolhido o setup, ela recolhe e os cards aparecem logo. */
-const noCelular = () => matchMedia("(max-width: 600px)").matches;
-
 function escolherSetup(v) {
   const x = SETUP.get(v);
   if (x && x.vies !== "neutro") { estado.lado = x.vies; estado.estilo = x.estilo; }
   estado.setup = v;
-  if (noCelular() && v !== "minhas") estado.arvore = false;
   if (v === "minhas") estado.editando = estado.editando || !salvos().length;
   mudou();
+  fecharNav();  // escolher o setup é o passo decisivo: na folha, já mostra o resultado
 }
 
-function renderArvore() {
-  const ramo = doRamo(estado.lado, estado.estilo);
-  for (const lado of ["compra", "venda"]) $(`n-${lado}`).textContent = contar(ids(doRamo(lado, estado.estilo)));
-  document.querySelectorAll(".abas-lado button").forEach((b) => {
-    b.classList.toggle("ativo", b.dataset.lado === estado.lado);
-    b.setAttribute("aria-selected", b.dataset.lado === estado.lado);
+/** Um item da lista de setups: nome, quantos ativos dispararam no período e a descrição na dica. */
+function itemNav({ ativo, rotulo, n, cls = "", titulo, aoEscolher }) {
+  return el("button", { type: "button", class: `op-item ${cls} ${ativo ? "ativo" : ""} ${n === 0 ? "zerado" : ""}`, title: titulo,
+    "aria-pressed": String(!!ativo), onclick: aoEscolher },
+  el("span", { class: "op-item-nome" }, rotulo), n != null ? el("span", { class: "contagem" }, n) : null);
+}
+
+/** Navegação: 1) comprar ou vender, 2) mercado, 3) setup (agrupado por estilo e família), Minhas buscas. */
+function renderNav() {
+  for (const lado of ["compra", "venda"]) $(`n-${lado}`).textContent = contar(ids(doLado(lado)));
+  const neutro = setupAtual()?.vies === "neutro";
+  document.querySelectorAll("#f-lado button").forEach((b) => {
+    b.classList.toggle("ativo", b.dataset.v === estado.lado && !neutro && !ehMinhas());
+    b.setAttribute("aria-pressed", b.classList.contains("ativo"));
   });
 
-  // 1) estilo: a favor ou contra a tendência, como braços do lado escolhido
-  const fluxo = $("fluxo-op");
-  const novo = fluxo.dataset.lado !== estado.lado || fluxo.dataset.estilo !== estado.estilo;
-  fluxo.dataset.lado = estado.lado;
-  fluxo.dataset.estilo = estado.estilo;
-  fluxo.querySelector(".barra").classList.toggle("on", (estado.lado === "compra") !== (estado.estilo === "tendencia"));
-  fluxo.querySelectorAll(".braco").forEach((b) => b.classList.toggle("on", b.classList.contains("b-" + estado.estilo)));
-  $("f-estilo").replaceChildren(...ESTILOS.map((x) => {
-    const ativo = x.chave === estado.estilo;
-    const doEstilo = doRamo(estado.lado, x.chave);
-    return el("button", { class: `estilo-card ${ativo ? "ativo" : ""} ${ativo && novo ? "pulso" : ""}`, role: "tab",
-      "aria-selected": ativo, "data-estilo": x.chave, title: x.dica[estado.lado], onclick: () => escolherRamo(estado.lado, x.chave) },
-    el("span", { class: "estilo-topo" }, el("span", { class: "estilo-icone" }, iconeEstilo(x.chave)),
-      el("b", {}, x.nome), el("span", { class: "contagem" }, contar(ids(doEstilo)))),
-    el("span", { class: "estilo-dica" }, x.dica[estado.lado]),
-    el("span", { class: "estilo-fams" }, [...new Set(doEstilo.map((s) => s.grupo))].map((g) => el("span", {}, g))));
-  }));
-
-  // 2) setups do estilo (os sem evento no período ficam recolhidos), os neutros e as minhas regras
-  const chip = (valor, rotulo, n, cls, titulo) => el("button", {
-    class: `cat ${cls} ${estado.setup === valor ? "ativo" : ""}`, title: titulo, "aria-pressed": estado.setup === valor,
-    onclick: () => escolherSetup(valor) }, rotulo, n != null ? [" ", el("span", { class: "contagem" }, n)] : null);
-  const semEvento = ramo.filter((x) => !contar([x.id]));
-  const visiveis = ramo.filter((x) => estado.verVazios || contar([x.id]) || x.id === estado.setup);
-  const lado = estado.lado === "compra" ? "compra" : "venda";
-  $("categorias").replaceChildren(el("div", { class: "grupo-cat" },
-    chip("todos", "Todos os setups", contar(ids(ramo)), "cat-todos", `Todos os setups de ${lado} ${estado.estilo === "tendencia" ? "a favor" : "contra"} da tendência`),
-    ...visiveis.map((x) => chip(x.id, nomeCurto(x), contar([x.id]), suportado(x) ? "" : "so-python", x.desc)),
-    semEvento.length ? el("button", { class: "cat cat-mais", onclick: () => { estado.verVazios = !estado.verVazios; salvar(); renderArvore(); } },
-      estado.verVazios ? "− esconder os sem evento" : `+${semEvento.length} sem evento`) : null,
-    el("span", { class: "sep-cat", "aria-hidden": "true" }),
-    ...NEUTROS.map((x) => chip(x.id, `◆ ${x.nome}`, contar([x.id]), "cat-neutro", `Sem lado: ${x.desc}`)),
-    chip("minhas", "✎ Minhas regras", null, "cat-minhas", "Monte as suas regras (salvas neste navegador)"),
-    el("button", { class: "recolher", title: "Recolher a árvore", "aria-label": "Recolher a árvore",
-      onclick: () => { estado.arvore = false; salvar(); renderArvore(); } }, "▴")));
-
-  // árvore recolhida: só o caminho até o setup
-  $("menu-op").hidden = !estado.arvore;
-  $("trilha").hidden = estado.arvore;
-  if (!estado.arvore) {
-    const x = setupAtual();
-    const passos = ehMinhas() ? ["✎ Minhas regras", regraSalva()?.nome ?? "regras em edição"]
-      : x?.vies === "neutro" ? [`◆ ${x.nome}`]
-        : [estado.lado === "compra" ? "▲ Compra" : "▼ Venda", ESTILOS.find((e) => e.chave === estado.estilo).nome, x ? nomeCurto(x) : "Todos os setups"];
-    $("trilha").replaceChildren(el("span", { class: `trilha-passos ${ehMinhas() ? "minhas" : x?.vies === "neutro" ? "neutro" : estado.lado}` },
-      passos.flatMap((p, j) => [j ? el("span", { class: "trilha-sep" }, "›") : null, el("b", {}, p)])),
-    el("button", { class: "botao", onclick: () => { estado.arvore = true; salvar(); renderArvore(); } }, "▾ Trocar setup"));
-  }
+  const grupos = ESTILOS.map((e) => {
+    const ramo = doRamo(estado.lado, e.chave);
+    const visiveis = ramo.filter((x) => estado.verVazios || contar([x.id]) || x.id === estado.setup);
+    const familias = [...new Set(visiveis.map((x) => x.grupo))];
+    const escondidos = ramo.length - visiveis.length;
+    return el("section", { class: `op-grupo op-grupo-${estado.lado}`, "data-estilo": e.chave },
+      el("h4", { class: "op-grupo-cab" }, el("span", { class: "op-grupo-icone" }, iconeEstilo(e.chave)), e.nome),
+      el("p", { class: "op-grupo-dica" }, e.dica[estado.lado]),
+      itemNav({ ativo: estado.setup === "todos" && estado.estilo === e.chave && !ehMinhas(), rotulo: "Todos", n: contar(ids(ramo)), cls: "op-todos",
+        titulo: `Todos os setups de ${estado.lado} ${e.chave === "tendencia" ? "a favor" : "contra"} da tendência`,
+        aoEscolher: () => { escolherRamo(estado.lado, e.chave); fecharNav(); } }),
+      familias.map((f) => el("div", { class: "op-familia" },
+        familias.length > 1 || f !== e.nome ? el("span", { class: "op-familia-rot" }, f) : null,
+        visiveis.filter((x) => x.grupo === f).map((x) => itemNav({ ativo: estado.setup === x.id, rotulo: nomeCurto(x), n: contar([x.id]),
+          cls: suportado(x) ? "" : "so-python", titulo: x.desc, aoEscolher: () => escolherSetup(x.id) })))),
+      escondidos ? el("p", { class: "op-sem-sinal" }, `+${escondidos} sem sinal no período`) : null);
+  });
+  const temEscondidos = ESTILOS.some((e) => doRamo(estado.lado, e.chave).some((x) => !contar([x.id])));
+  const lista = salvos();
+  $("op-setups").replaceChildren(...grupos,
+    temEscondidos ? el("button", { type: "button", class: "botao-link op-ver-vazios",
+      onclick: () => { estado.verVazios = !estado.verVazios; salvar(); renderNav(); } },
+    estado.verVazios ? "Esconder os setups sem sinal" : "Mostrar também os setups sem sinal") : null,
+    NEUTROS.length ? el("section", { class: "op-grupo op-neutro" },
+      el("h4", { class: "op-grupo-cab" }, "◆ Sem lado"),
+      el("p", { class: "op-grupo-dica" }, "Avisam que algo vai acontecer, sem dizer a direção."),
+      NEUTROS.map((x) => itemNav({ ativo: estado.setup === x.id, rotulo: x.nome, n: contar([x.id]), titulo: x.desc, aoEscolher: () => escolherSetup(x.id) }))) : null,
+    el("section", { class: "op-grupo op-meus" },
+      el("h4", { class: "op-grupo-cab" }, "✎ Meus setups"),
+      el("p", { class: "op-grupo-dica" }, "Suas próprias regras (médias, IFR, Bollinger...), salvas neste navegador."),
+      lista.map((x) => itemNav({ ativo: ehMinhas() && estado.minhas?.modelo === `u:${x.id}`,
+        rotulo: `${x.vies === "venda" ? "▼" : x.vies === "neutro" ? "◆" : "▲"} ${x.nome}`, titulo: "Abrir este setup",
+        aoEscolher: () => { estado.setup = "minhas"; abrirSalva(x); mudou(); fecharNav(); } })),
+      itemNav({ ativo: ehMinhas() && estado.minhas?.modelo === "novo", rotulo: "+ Criar meu setup", cls: "op-criar",
+        titulo: "Monte um filtro com as suas regras", aoEscolher: () => { estado.setup = "minhas"; abrirSalva(null); mudou(); fecharNav(); } })));
+  renderBuscas();
 }
+
+/** O que está na tela, em uma frase: quantos ativos, para quê, por qual caminho e quando. */
+function renderResumo() {
+  const n = lista.length, x = setupAtual();
+  const ativos = `${n} ${n === 1 ? "ativo" : "ativos"}`;
+  const titulo = ehMinhas() ? [el("b", {}, ativos), regraSalva() ? ` no seu setup “${regraSalva().nome}”` : " no seu setup novo (ainda não salvo)"]
+    : x?.vies === "neutro" ? [el("b", {}, ativos), ` com ${x.nome}`]
+      : [el("b", {}, ativos), " para ", el("span", { class: `op-verbo op-verbo-${estado.lado}` }, estado.lado === "compra" ? "comprar" : "vender")];
+  $("op-titulo").replaceChildren(...titulo);
+  const rot = estado.tf === "D" ? "pregão" : "semana";
+  const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro" };
+  const quando = estado.periodo === 1 ? `último ${rot}` : `últimos ${estado.periodo} ${rot}s`;
+  const mercados = [...P.ultima.keys()].filter((m) => nomes[m] && (!estado.mercado || m === estado.mercado));
+  const passos = ehMinhas() ? ["Meus setups"] : x?.vies === "neutro" ? ["Sem lado"]
+    : [ESTILOS.find((e) => e.chave === estado.estilo).nome, x ? nomeCurto(x) : "todos os setups"];
+  $("op-caminho").replaceChildren(
+    ...passos.flatMap((p, j) => [j ? el("span", { class: "op-sep", "aria-hidden": "true" }, "›") : null, el("span", { class: "op-passo-txt" }, p)]).filter(Boolean),
+    el("span", { class: "op-quando" }, `Gráfico ${estado.tf === "W" ? "semanal" : "diário"}, ${quando}` +
+      (mercados.length ? ` (${mercados.map((m) => `${nomes[m]} ${fmtData(P.ultima.get(m), estado.tf === "D")}`).join(", ")})` : "") +
+      (eventosLocais ? " · calculado no navegador" : "")));
+  $("op-ver").textContent = n ? `Ver ${ativos}` : "Fechar";
+}
+
+// ------------------------------------------------------------- minhas buscas
+
+/** Uma busca guarda os filtros (o que procurar e quando); a exibição (grade, gráfico) fica de fora. */
+const BUSCAS = "buscas-v1";
+const CAMPOS_BUSCA = ["lado", "estilo", "setup", "mercado", "tf", "periodo", "so2", "ordem"];
+const buscas = () => guardar.ler(BUSCAS, []);
+const SUGESTOES = [
+  { nome: "Compras a favor da tendência", dica: "Ações subindo que deram um ponto de entrada", f: { lado: "compra", estilo: "tendencia", setup: "todos", so2: false } },
+  { nome: "Compras com sinais que se confirmam", dica: "2 ou mais setups no mesmo ativo", f: { lado: "compra", estilo: "tendencia", setup: "todos", so2: true } },
+  { nome: "Repique depois de queda forte", dica: "Contra a tendência: mais arriscado, alvo mais curto", f: { lado: "compra", estilo: "contra", setup: "todos", so2: false } },
+  { nome: "Vendas a favor da tendência", dica: "Ações caindo que deram um ponto de venda", f: { lado: "venda", estilo: "tendencia", setup: "todos", so2: false } },
+];
+
+const filtrosAtuais = () => ({ ...Object.fromEntries(CAMPOS_BUSCA.map((k) => [k, estado[k]])),
+  ...(ehMinhas() ? { modelo: estado.minhas?.modelo } : {}) });
+const buscaAtiva = (f) => Object.entries(f).every(([k, v]) => (k === "modelo" ? estado.minhas?.modelo === v : estado[k] === v))
+  && (f.setup !== "minhas" || ehMinhas());
+
+function aplicarBusca(f) {
+  Object.assign(estado, Object.fromEntries(Object.entries(f).filter(([k]) => CAMPOS_BUSCA.includes(k))));
+  if (!["todos", "minhas"].includes(estado.setup) && !SETUP.has(estado.setup)) estado.setup = "todos";
+  if (ehMinhas()) {
+    const s = salvos().find((x) => `u:${x.id}` === f.modelo);
+    if (s) abrirSalva(s); else estado.setup = "todos";
+  }
+  estado.tfGrafico = estado.tf;
+  sincronizarControles();
+  mudou();
+  fecharNav();
+}
+
+/** Nome sugerido: o setup, o lado e o mercado ("Pullback na MME 9 · Brasil"). */
+function nomeDaBusca() {
+  const x = setupAtual();
+  const qual = ehMinhas() ? regraSalva()?.nome ?? "Meu setup" : x ? nomeCurto(x)
+    : `${estado.lado === "compra" ? "Compras" : "Vendas"} ${estado.estilo === "tendencia" ? "a favor" : "contra"} da tendência`;
+  const mercado = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro" }[estado.mercado];
+  return [qual, mercado, estado.so2 ? "2+ setups" : null, estado.tf === "W" ? "semanal" : null].filter(Boolean).join(" · ");
+}
+
+function salvarBusca() {
+  const nome = prompt("Nome desta busca (fica em Minhas buscas):", nomeDaBusca());
+  if (!nome?.trim()) return;
+  const f = filtrosAtuais();
+  const lista = buscas().filter((b) => b.nome !== nome.trim());
+  guardar.gravar(BUSCAS, [...lista, { id: `${Date.now()}`, nome: nome.trim(), f }]);
+  renderBuscas();
+  window.avisoRapido?.(`Busca “${nome.trim()}” salva em Minhas buscas.`);
+}
+
+function excluirBusca(b) {
+  const antes = buscas();
+  guardar.gravar(BUSCAS, antes.filter((x) => x.id !== b.id));
+  renderBuscas();
+  window.avisoRapido?.(`Busca “${b.nome}” excluída.`, { rot: "Desfazer", fazer: () => { guardar.gravar(BUSCAS, antes); renderBuscas(); } });
+}
+
+function renderBuscas() {
+  const minhasB = buscas();
+  const linha = (b, sugestao) => el("div", { class: `op-busca ${buscaAtiva(b.f) ? "ativo" : ""}` },
+    el("button", { type: "button", class: "op-busca-ir", "aria-pressed": String(buscaAtiva(b.f)), title: b.dica ?? "Aplicar esta busca",
+      onclick: () => aplicarBusca(b.f) }, el("span", { class: "op-busca-nome" }, b.nome), b.dica ? el("span", { class: "op-busca-dica" }, b.dica) : null),
+    sugestao ? null : el("button", { type: "button", class: "botao-remover", title: "Excluir esta busca", "aria-label": `Excluir a busca ${b.nome}`,
+      onclick: () => excluirBusca(b) }, "✕"));
+  $("op-buscas").replaceChildren(
+    ...(minhasB.length ? minhasB.map((b) => linha(b, false))
+      : [el("p", { class: "op-grupo-dica" }, "Achou um filtro bom? Use ☆ Salvar busca para voltar a ele com um clique.")]),
+    el("span", { class: "op-familia-rot" }, minhasB.length ? "Sugestões" : "Para começar"),
+    ...SUGESTOES.map((b) => linha(b, true)));
+  $("op-salvar").classList.toggle("ativo", minhasB.some((b) => buscaAtiva(b.f)));
+}
+
+/** Os controles refletem o estado (depois de aplicar uma busca ou ler o estado salvo). */
+function sincronizarControles() {
+  for (const [id, chave] of [["f-mercado", "mercado"], ["f-tf", "tf"], ["f-grade", "grade"], ["f-tf-grafico", "tfGrafico"], ["f-camadas", "camadas"]])
+    document.querySelectorAll(`#${id} button`).forEach((b) => {
+      b.classList.toggle("ativo", b.dataset.v === String(estado[chave]));
+      b.setAttribute("aria-pressed", b.classList.contains("ativo"));
+    });
+  $("f-periodo").value = String(estado.periodo);
+  $("f-so2").checked = estado.so2;
+}
+
+// ------------------------------------------------------------- folha de filtros (celular e tablet)
+
+let soltarNav = null;
+function abrirNav() {
+  if (!navEmFolha.matches) return;
+  document.body.classList.add("op-nav-aberta");
+  $("op-abrir-nav").setAttribute("aria-expanded", "true");
+  const nav = $("op-nav");
+  nav.setAttribute("role", "dialog");
+  nav.setAttribute("aria-modal", "true");
+  soltarNav = window.prenderFoco?.(nav, () => fecharNav(true)) ?? null;
+  nav.querySelector(".op-nav-corpo").scrollTop = 0;
+  $("op-nav-fechar").focus();
+}
+function fecharNav(devolverFoco = false) {
+  if (!document.body.classList.contains("op-nav-aberta")) return;
+  document.body.classList.remove("op-nav-aberta");
+  $("op-abrir-nav").setAttribute("aria-expanded", "false");
+  const nav = $("op-nav");
+  nav.removeAttribute("role");
+  nav.removeAttribute("aria-modal");
+  soltarNav?.();
+  soltarNav = null;
+  if (devolverFoco) $("op-abrir-nav").focus();
+  else scrollTo({ top: 0 });
+}
+navEmFolha.addEventListener("change", () => fecharNav());
 
 // ------------------------------------------------------------- minhas regras
 
@@ -699,7 +830,7 @@ function ligarRegras() {
     const id = atualS && atualS.nome === nome ? atualS.id : `${Date.now()}`;
     guardar.gravar(SALVOS, [...lista.filter((x) => x.id !== id), { id, nome, vies: m.vies, regras: structuredClone(m.regras) }]);
     Object.assign(m, { modelo: `u:${id}`, editado: false, base: undefined });
-    salvar(); renderRegras(); renderArvore(); descricaoSetup();
+    salvar(); renderRegras(); renderNav(); descricaoSetup();
   });
   $("r-excluir").addEventListener("click", () => {
     const s = regraSalva();
@@ -715,30 +846,18 @@ function ligarRegras() {
 
 function renderBarra() {
   const rot = estado.tf === "D" ? "pregão" : "semana";
-  document.querySelectorAll("#f-periodo button").forEach((b) => {
-    const n = +b.dataset.v;
-    b.textContent = n === 1 ? (estado.tf === "D" ? "Último pregão" : "Última semana") : `${n} ${rot}s`;
-  });
-  const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro" };
-  const n = lista.length;
-  let txt;
-  if (ehMinhas()) {
-    const quando = estado.periodo === 1 ? (estado.tf === "W" ? "na última semana fechada" : "no último pregão fechado")
-      : `${estado.tf === "W" ? "nas últimas" : "nos últimos"} ${unid(estado.tf, estado.periodo)}`;
-    txt = `${n} ${n === 1 ? "ativo atendeu" : "ativos atenderam"} ${quando}`;
-  } else {
-    const mercados = [...P.ultima.keys()].filter((m) => nomes[m] && (!estado.mercado || m === estado.mercado));
-    txt = `${n} ${n === 1 ? "ativo" : "ativos"} · ${estado.periodo === 1 ? `último ${rot}` : `últimos ${estado.periodo} ${rot}s`}` +
-      (mercados.length ? ` · ${mercados.map((m) => `${nomes[m]} ${fmtData(P.ultima.get(m), estado.tf === "D")}`).join(" · ")}` : "") +
-      (eventosLocais ? " · eventos calculados no navegador" : "");
+  for (const o of $("f-periodo").options) {
+    const n = +o.value;
+    o.textContent = n === 1 ? (estado.tf === "D" ? "no último pregão" : "na última semana") : `${estado.tf === "D" ? "nos últimos" : "nas últimas"} ${n} ${rot}s`;
   }
-  $("f-descricao").textContent = txt;
-  $("f-descricao").title = eventosLocais ? "data/radar.json ainda não traz os eventos do catálogo: calculei aqui, com as regras que o navegador conhece, nos últimos 5 candles fechados." : "";
   const so2 = lista.filter((i) => i.setups.size >= 2).length;
   $("rot-so2").textContent = estado.so2 ? "Só com 2+ setups" : `Só com 2+ setups (${so2})`;
   $("f-so2").checked = estado.so2;
+  $("caixa-so2").hidden = ehMinhas();
   $("f-ordem").replaceChildren(...Object.entries(ORDENS).map(([k, [r]]) => el("option", { value: k, selected: k === estado.ordem ? true : null }, r)));
   $("f-indicadores").hidden = estado.camadas === "condicoes";
+  renderResumo();
+  renderBuscas();
   descricaoSetup();
 }
 
@@ -832,6 +951,20 @@ function baixar(formato) {
   window.avisoRapido?.(`${lista.length} ativos baixados.`);
 }
 
+function ligarNav() {
+  $("op-abrir-nav").addEventListener("click", abrirNav);
+  $("op-nav-fechar").addEventListener("click", () => fecharNav(true));
+  $("op-ver").addEventListener("click", () => fecharNav());
+  $("op-salvar").addEventListener("click", salvarBusca);
+  // clicar fora da folha (no fundo escurecido) fecha
+  document.addEventListener("pointerdown", (e) => {
+    if (document.body.classList.contains("op-nav-aberta") && !e.target.closest("#op-nav, #op-abrir-nav")) fecharNav();
+  });
+  const exibir = $("f-exibir");
+  document.addEventListener("pointerdown", (e) => { if (exibir.open && !exibir.contains(e.target)) exibir.open = false; });
+  exibir.addEventListener("keydown", (e) => { if (e.key === "Escape" && exibir.open) { exibir.open = false; exibir.querySelector("summary").focus(); } });
+}
+
 function ligarBaixar() {
   const caixa = $("f-baixar");
   caixa.addEventListener("click", (e) => {
@@ -867,7 +1000,7 @@ function mudou() {
   calcularPeriodo();
   salvar();
   atualizarURL();
-  renderArvore();
+  renderNav();
   renderRegras();
   atualizar();
 }
@@ -915,7 +1048,6 @@ async function iniciar() {
   if (!["D", "W"].includes(estado.tf)) estado.tf = "D";
   // endereço: ?setup=pb-mm20 escolhe o setup, #PETR4.SA o ativo
   const q = new URLSearchParams(location.search);
-  if (noCelular()) estado.arvore = false;  // celular: começa com o caminho resumido (▾ Trocar setup) e os cards à vista
   if (SETUP.has(q.get("setup"))) {
     const x = SETUP.get(q.get("setup"));
     estado.setup = x.id;
@@ -930,10 +1062,12 @@ async function iniciar() {
   const ligar = (id, chave, conv, depois) =>
     segmento(id, ({ v }) => { estado[chave] = conv(v); depois(); }).marcar("v", String(estado[chave]));
   ligar("f-mercado", "mercado", String, mudou);
-  ligar("f-periodo", "periodo", Number, mudou);
-  ligar("f-tf", "tf", String, () => {
+  segmento("f-lado", ({ v }) => escolherRamo(v, estado.estilo));
+  $("f-periodo").addEventListener("change", (e) => { estado.periodo = +e.target.value; mudou(); });
+  segmento("f-tf", ({ v }) => {
+    estado.tf = v;
     estado.tfGrafico = estado.tf;  // o gráfico acompanha o tempo do sinal (dá para trocar depois)
-    document.querySelectorAll("#f-tf-grafico button").forEach((b) => b.classList.toggle("ativo", b.dataset.v === estado.tf));
+    sincronizarControles();
     mudou();
   });
   ligar("f-grade", "grade", String, () => { salvar(); paginaDoAtivo(); atualizar(); });
@@ -941,17 +1075,15 @@ async function iniciar() {
   ligar("f-camadas", "camadas", String, () => { salvar(); renderBarra(); renderGrade(); });
   $("f-so2").addEventListener("change", (e) => { estado.so2 = e.target.checked; estado.pagina = 0; salvar(); atualizar(); });
   $("f-ordem").addEventListener("change", (e) => { estado.ordem = e.target.value; estado.pagina = 0; salvar(); atualizar(); });
-  document.querySelector(".abas-lado").addEventListener("click", (e) => {
-    const b = e.target.closest("button");
-    if (b) escolherRamo(b.dataset.lado, estado.estilo);
-  });
   ligarRegras();
   ligarBaixar();
+  ligarNav();
   renderRetidos();
 
+  sincronizarControles();
   calcularPeriodo();
   atualizarURL();
-  renderArvore();
+  renderNav();
   renderRegras();
   atualizar();
   if (!estado.ticker) { estado.ticker = lista[0]?.ticker ?? R.ativos[0]?.ticker; atualizarURL(); }
