@@ -362,13 +362,24 @@
 
   function fecharEditor() {
     if (!ed) return;
-    ed.vaiFechar = true;
-    ed.descarregar?.();
-    ed.g?.remover();
-    ed.fundo.remove();
-    ed.soltar?.();
+    const e = ed;
+    e.vaiFechar = true;
+    e.descarregar?.();
+    e.soltar?.();
     document.body.classList.remove("dr-travado");
     ed = null;
+    // trade novo sem foto: a foto da entrada sai com os níveis onde a pessoa deixou. O editor some na hora, mas o
+    // gráfico só sai depois da captura (uma captura síncrona logo depois de gravar travava a página)
+    const t = trade(e.id);
+    if (e.fotoEntrada && t && !(t.fotos ?? []).length && e.g?.chart && !e.g.removido) {
+      Object.assign(e.fundo.style, { visibility: "hidden", pointerEvents: "none" });
+      capturar(e.g, t, { linhas: false })
+        .then((b) => (b && trade(e.id) ? salvarFoto(e.id, b, "entrada") : null)).catch(() => {})
+        .finally(() => { e.g.remover(); e.fundo.remove(); });
+      return;
+    }
+    e.g?.remover();
+    e.fundo.remove();
   }
 
   const chipEstado = (av) => {
@@ -390,7 +401,8 @@
 
     const cur = () => trade(id);
     const sid = (s) => `dr-${s}`;
-    const e = { id, av: null, fundo: null, g: null, pend: {}, timer: 0, marcas: null, linhas: [] };
+    const e = { id, av: null, fundo: null, g: null, sim: null, pend: {}, timer: 0, marcas: null, inputs: {},
+      fotoEntrada: !!opcoes.fotoEntrada, ultimoValido: null };
     ed = e;
     const moeda = a?.moeda ?? t0.moeda;
     const casas = (v) => casasPreco(v || 1, moeda);
@@ -528,6 +540,7 @@
         gravarCampo({ [chave]: v });
       });
       inp.dataset.nivel = chave;
+      e.inputs[chave] = inp;
       return el("div", { class: "dr-campo" }, el("label", { for: inp.id }, rot), inp);
     };
 
@@ -591,6 +604,8 @@
       el("div", { class: "dr-corpo" },
         el("section", { class: "dr-col-esq", "aria-label": "Gráfico e fotos" },
           corpoGraf, resumoEl,
+          el("p", { class: "sub dr-dica-arraste" }, el("b", {}, "Arraste as linhas no gráfico"),
+            ": entrada (branca), stop (vermelha) e alvo (verde). Também dá para digitar os valores em Níveis."),
           el("p", { class: "sub" }, "R é quanto você arrisca (entrada até o stop): perder no stop é −1R; alvo em 2R é ganhar 2× o risco. Em trades abertos o R é parcial."),
           el("div", { class: "dr-fotos-cab" },
             el("h3", {}, "Fotos"),
@@ -675,9 +690,8 @@
       datasEl.textContent = [`Criado em ${fmtData(t.criada)}`, av.entrou ? `entrou em ${fmtData(av.entrou)}` : "ainda não entrou",
         av.saiu ? `saiu em ${fmtData(av.saiu)}` : null, av.dias != null ? `${av.dias} ${av.dias === 1 ? "dia" : "dias"}` : null,
         t.origem ? `origem: ${t.origem}` : null].filter(Boolean).join(" · ");
-      const c = contasSimulacao(t);
-      resumoEl.textContent = `Qtd ${fmtNum(c.qtd, t.mercado === "CRIPTO" ? 6 : 0)} · risco ${fmtMoeda(c.risco, moeda)} (${fmtNum(c.risco_pct, 1)}%) · ` +
-        `retorno ${fmtMoeda(c.retorno, moeda)} (${fmtNum(c.retorno_pct, 1)}%) · R:R ${c.rr ? `1 : ${fmtNum(c.rr, 2)}` : "—"}`;
+      if (contasSimulacao(t).valido) e.ultimoValido = { entrada: t.entrada, stop: t.stop, alvo: t.alvo };
+      mostrarNiveis(t);
       desenharGrafico(t, av);
       vistaSaida();
       vistaAcoes();
@@ -688,13 +702,35 @@
       }
     }
 
+    /** Números de níveis e o resumo (qtd, risco, retorno, R:R): ao vivo durante o arraste. */
+    function mostrarNiveis(t) {
+      for (const k of ["entrada", "stop", "alvo"]) {
+        const inp = e.inputs[k];
+        if (inp && document.activeElement !== inp) inp.value = (+t[k]).toFixed(casas(t.entrada));
+      }
+      const c = contasSimulacao(t);
+      resumoEl.textContent = `Qtd ${fmtNum(c.qtd, t.mercado === "CRIPTO" ? 6 : 0)} · risco ${fmtMoeda(c.risco, moeda)} (${fmtNum(c.risco_pct, 1)}%) · ` +
+        `retorno ${fmtMoeda(c.retorno, moeda)} (${fmtNum(c.retorno_pct, 1)}%) · R:R ${c.rr ? `1 : ${fmtNum(c.rr, 2)}` : "—"}`;
+    }
+
+    /** Fim de um arraste no gráfico: grava (com aviso e reavaliação) ou, se ficou inválido, volta ao último válido. */
+    function aposArrastar(p) {
+      if (contasSimulacao(p).valido) {
+        msgNiveis.hidden = true;
+        gravarCampo({ entrada: p.entrada, stop: p.stop, alvo: p.alvo });
+        return;
+      }
+      msgNiveis.textContent = (p.lado === "compra"
+        ? "Na compra, o stop fica abaixo da entrada e o alvo acima." : "Na venda, o stop fica acima da entrada e o alvo abaixo.") + " Voltei a linha para onde estava.";
+      msgNiveis.hidden = false;
+      if (e.ultimoValido) gravarCampo(e.ultimoValido);
+    }
+
+    /** Marcas de entrada e saída; as linhas de entrada, stop e alvo (arrastáveis) e as zonas são do Simulador. */
     function desenharGrafico(t, av) {
       if (!e.g || !e.g.c) return;
       const g = e.g;
-      for (const l of e.linhas) g.candles.removePriceLine(l);
       const compra = t.lado === "compra";
-      e.linhas = [["alvo", "#26c281", "Alvo"], ["entrada", "#d7dde6", compra ? "Compra" : "Venda"], ["stop", "#f0506e", "Stop"]]
-        .map(([k, cor, rot]) => g.candles.createPriceLine({ price: t[k], color: cor, lineWidth: 2, axisLabelVisible: true, title: rot }));
       const noCandle = (d) => g.c.find((x) => String(x.time) >= d)?.time ?? g.c.at(-1).time;
       const m = [];
       if (av.entrou) m.push({ time: noCandle(av.entrou), position: compra ? "belowBar" : "aboveBar", shape: compra ? "arrowUp" : "arrowDown",
@@ -727,14 +763,18 @@
     if (a && ed === e) {
       e.g = new Grafico(corpoGraf, { mini: true });
       e.g.sinais = [];
+      // o mesmo simulador da página do ativo: linhas arrastáveis e zonas de risco/retorno, só deste trade
+      e.sim = new Simulador(e.g, corpoGraf, null, null, { so: id, arrastar: true,
+        aoArrastar: (p) => mostrarNiveis(p), aoMudar: (p) => aposArrastar(p) });
       const ok = await e.g.mostrar(a.arquivo, "D").catch(() => false);
       if (ok && ed === e && e.av) {
+        await e.sim.definirAtivo(a);
+        if (ed !== e) return;
         desenharGrafico(cur(), e.av);
-        e.g.irPara(e.av.entrou ?? cur().criada);
-        if (opcoes.fotoEntrada && !(cur().fotos ?? []).length) {
-          await fotografar(id, e.g, "entrada", { linhas: false }).catch(() => {});
-          if (ed === e) await vistaFotos();
-        }
+        // trade recente: os últimos ~3 meses, com espaço à direita para a caixa de risco/retorno; antigo: vai até a entrada
+        const n = e.g.c.length, desde = e.av.entrou ?? cur().criada;
+        if (n - e.g.c.findIndex((x) => String(x.time) >= desde) <= 40) e.g.chart.timeScale().setVisibleLogicalRange({ from: n - 64, to: n + 14 });
+        else e.g.irPara(desde);
       }
     } else if (!a) corpoGraf.append(el("p", { class: "vazio" }, "Ativo fora dos dados publicados: sem gráfico."));
   }

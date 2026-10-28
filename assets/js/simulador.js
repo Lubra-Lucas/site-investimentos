@@ -102,9 +102,14 @@ function contasSimulacao(p) {
 const tempoNum = (t) => (typeof t === "number" ? t : Date.parse(`${t}T00:00:00Z`) / 1000);
 
 class Simulador {
-  /** Sem boleta e botão, só desenha as simulações salvas (usado na multitela), sem arraste. */
-  constructor(grafico, corpo, boleta = null, botao = null) {
+  /** Sem boleta e botão, só desenha as simulações salvas (usado na multitela), sem arraste.
+   *  opcoes.so: mostra só este trade (o editor do diário); opcoes.arrastar: arraste sem boleta;
+   *  opcoes.aoMudar(p): chamado depois de cada alteração gravada (fim do arraste); opcoes.aoArrastar(p): durante. */
+  constructor(grafico, corpo, boleta = null, botao = null, opcoes = {}) {
     this.g = grafico;
+    this.so = opcoes.so ?? null;
+    this.aoMudar = opcoes.aoMudar ?? null;
+    this.aoArrastar = opcoes.aoArrastar ?? null;  // durante o arraste (para mostrar os números ao vivo)
     this.corpo = corpo;
     this.boleta = boleta;
     this.ativo = null;
@@ -124,15 +129,20 @@ class Simulador {
       this.desenhar();
       if (this.boleta && !this.boleta.contains(document.activeElement)) this.renderBoleta();
     });
-    if (boleta) this.ligarArraste();
+    if (boleta || opcoes.arrastar) this.ligarArraste();
     const loop = () => { if (grafico.removido) return; this.posicionarZonas(); requestAnimationFrame(loop); };
     requestAnimationFrame(loop);
   }
 
   visiveis() {
     if (!this.ativo) return [];
-    const salvas = Simulacoes.doAtivo(this.ativo.ticker);
+    const salvas = Simulacoes.doAtivo(this.ativo.ticker).filter((p) => !this.so || p.id === this.so);
     return this.rascunho ? [...salvas, this.rascunho] : salvas;
+  }
+
+  /** A simulação em edição (o rascunho ou a escolhida). Pelo id: cada leitura do armazenamento cria objetos novos. */
+  ehAtiva(p) {
+    return p === this.rascunho || (!this.rascunho && p.id === this.editando);
   }
 
   emEdicao() {
@@ -144,7 +154,7 @@ class Simulador {
     this.ativo = a;
     this.rascunho = null;
     const salvas = Simulacoes.doAtivo(a.ticker);
-    this.editando = salvas.length ? salvas[salvas.length - 1].id : null;
+    this.editando = this.so ?? (salvas.length ? salvas[salvas.length - 1].id : null);
     this.diarios = null;
     const diarios = (await carregarCandles(a.arquivo)).candles;
     if (this.ativo !== a) return;  // trocou de ativo enquanto carregava
@@ -194,6 +204,7 @@ class Simulador {
     if (p !== this.rascunho) Simulacoes.salvar(p);
     this.desenhar();
     this.renderBoleta(false);
+    this.aoMudar?.(p);
   }
 
   /** Salva o rascunho: junta os campos do diário (se a página os conhece) e tira a foto da entrada. */
@@ -229,8 +240,16 @@ class Simulador {
     for (const l of this.linhas) this.g.candles.removePriceLine(l.linha);
     this.linhas = [];
     const casas = casasPreco(this.ativo?.ultimo ?? 1, this.ativo?.moeda);
+    // a escala do gráfico inclui entrada, stop e alvo (senão um alvo longe some acima do topo); vale até o próximo desenho,
+    // para a escala não fugir do dedo durante o arraste
+    this.niveisEscala = this.visiveis().flatMap((p) => [p.entrada, p.stop, p.alvo]).filter((v) => v > 0);
+    this.g.candles.applyOptions({ autoscaleInfoProvider: (original) => {
+      const r = original(), n = this.niveisEscala;
+      if (!r?.priceRange || !n?.length) return r;
+      return { ...r, priceRange: { minValue: Math.min(r.priceRange.minValue, ...n), maxValue: Math.max(r.priceRange.maxValue, ...n) } };
+    } });
     for (const p of this.visiveis()) {
-      const ativa = p === this.emEdicao();
+      const ativa = this.ehAtiva(p);
       const c = contasSimulacao(p);
       const opac = ativa ? 1 : 0.45;
       const nivel = (campo, cor, titulo) => {
@@ -279,7 +298,7 @@ class Simulador {
         Object.assign(div.style, {
           display: "block", left: `${esq}px`, width: `${dir - esq}px`,
           top: `${Math.min(y1, y2)}px`, height: `${Math.abs(y2 - y1)}px`,
-          opacity: p === this.emEdicao() ? 1 : 0.5,
+          opacity: this.ehAtiva(p) ? 1 : 0.5,
         });
       }
     }
@@ -323,6 +342,7 @@ class Simulador {
       arrastando.pos[arrastando.campo] = preco;
       for (const l of this.linhas) if (l.pos === arrastando.pos && l.campo === arrastando.campo) l.linha.applyOptions({ price: preco });
       this.renderBoleta(false);
+      this.aoArrastar?.(arrastando.pos);
     }, true);
     const soltar = (e) => {
       if (!arrastando) return;

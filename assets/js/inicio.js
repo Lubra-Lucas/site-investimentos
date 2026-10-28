@@ -1,4 +1,4 @@
-/* Início (index.html): a porta de entrada do terminal. Para quem chega, o que ele faz e os 3 etapas
+/* Início (index.html): a porta de entrada do terminal. Para quem chega, o que ele faz e os 3 passos
  * (encontrar → simular → registrar); para quem volta todo dia, as oportunidades de hoje e o andamento
  * dos seus trades. Dados: data/radar.json (sinais: {ticker, setup, tf, data, lado, preco, bt}) e
  * data/setups.json (nomes); trades: Diario (diario-dados.js), se existir, senão Simulacoes (simulador.js). */
@@ -13,60 +13,78 @@ const salvarPref = () => guardar.gravar("inicio-v1", pref);
 const $ = (id) => document.getElementById(id);
 let R, porTicker, HOJE;
 
-// ------------------------------------------------------------- o que é + 3 etapas
+// ------------------------------------------------------------- apresentação (fixa, sem recolher)
+
+/** replaceChildren que ignora null/false: passar null direto vira o texto "null" na página. */
+const trocar = (alvo, ...filhos) => alvo.replaceChildren(...filhos.flat(Infinity).filter((f) => f != null && f !== false));
+
+/** Ícone de traço (24x24) só decorativo. `tracos` = lista de atributos d de <path>. */
+function icone(...tracos) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "icone-inicio");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of tracos) { const p = document.createElementNS(ns, "path"); p.setAttribute("d", d); svg.append(p); }
+  return svg;
+}
 
 function renderIntro() {
+  try { localStorage.removeItem("inicio-intro-v1"); } catch {}  // antigo estado "recolhido": a apresentação agora é fixa
   const alvo = $("inicio-intro");
-  const jaSimulou = (() => { try { return Simulacoes.todas().length > 0; } catch { return false; } })();
-  // quem nunca escolheu vê tudo; quem já simulou algum trade começa com os etapas recolhidos
-  const salvo = guardar.ler("inicio-intro-v1", null);
-  let recolhido = salvo ? salvo === "recolhido" : jaSimulou;
+  const mercados = new Set(R.ativos.map((a) => a.mercado)).size;
 
-  const etapas = [
-    { n: 1, titulo: "Encontre uma oportunidade", href: "setups.html", cta: "Abrir as Oportunidades",
-      texto: "Todo dia, depois do fechamento, o terminal mostra quais ativos formaram um setup: um padrão técnico que costuma marcar um bom momento de compra ou de venda." },
-    { n: 2, titulo: "Simule o trade", href: "#hoje", cta: "Escolher um ativo",
-      texto: "Defina a entrada, o stop (onde você admite que errou) e o alvo, direto no gráfico. O resultado sai em R: parar no stop é −1R; chegar a um alvo com o dobro da distância é +2R." },
-    { n: 3, titulo: "Registre e aprenda no Diário", href: "diario.html", cta: "Abrir o Diário",
-      texto: "Cada trade fica guardado com a sua tese, a foto do gráfico e o resultado em R. Com o tempo você vê quais estratégias funcionam para você." },
+  const recursos = [
+    { ic: ["M3 17l5-6 4 4 8-9", "M15 6h5v5"], titulo: "Descubra ativos em bom momento",
+      texto: `Todo dia, depois do fechamento, o terminal varre ${fmtNum(R.ativos.length, 0)} ativos do Brasil, EUA e Cripto e mostra os que formaram um setup de compra ou de venda, um padrão técnico que costuma marcar um bom momento.` },
+    { ic: ["M4 20V4", "M4 20h16", "M8 8h8", "M8 14h5", "M17 11l3 3-3 3"], titulo: "Simule antes de arriscar",
+      texto: "Arraste a entrada, o stop e o alvo direto no gráfico e veja quanto pode perder e quanto pode ganhar, em R, antes de pôr dinheiro de verdade." },
+    { ic: ["M5 4h14v16H5z", "M9 2v4", "M15 2v4", "M5 10h14", "M9 14h2", "M13 14h2"], titulo: "Registre num Diário de trading completo",
+      texto: "Calendário do R por dia, foto do gráfico de cada trade, tese e revisão. E estatísticas por estratégia: taxa de acerto, fator de lucro e drawdown." },
   ];
 
-  const alternar = (abrir) => {
-    recolhido = !abrir;
-    guardar.gravar("inicio-intro-v1", recolhido ? "recolhido" : "aberto");
-    desenhar();
-    $(abrir ? "intro-recolher" : "intro-abrir")?.focus();
-  };
+  const etapas = [
+    { n: 1, titulo: "Encontre", href: "setups.html", cta: "Ver as oportunidades",
+      texto: "Veja quais ativos formaram um setup hoje, no Brasil, nos EUA ou em cripto." },
+    { n: 2, titulo: "Simule", href: "#hoje", cta: "Escolher um ativo",
+      texto: "Defina entrada, stop e alvo no gráfico e veja o risco e o retorno em R." },
+    { n: 3, titulo: "Registre", href: "diario.html", cta: "Abrir o Diário",
+      texto: "Guarde o trade com tese e foto e descubra quais estratégias funcionam para você." },
+  ];
 
-  function desenhar() {
-    if (recolhido) {
-      alvo.className = "inicio-intro recolhido";
-      alvo.replaceChildren(
-        el("h1", { id: "inicio-titulo", class: "so-leitor" }, "Início"),
-        el("nav", { class: "intro-mini", "aria-label": "O ciclo do terminal" },
-          el("span", { class: "intro-mini-rot" }, "Como funciona:"),
-          etapas.map((p) => el("a", { href: p.href, class: "intro-mini-etapa" }, el("b", {}, `${p.n}`), ` ${p.titulo.replace(" no Diário", "").replace(" uma oportunidade", "")}`)),
-          el("button", { type: "button", id: "intro-abrir", class: "botao", "aria-expanded": "false", "aria-controls": "intro-corpo",
-            onclick: () => alternar(true) }, "Como funciona ▾")));
-      return;
-    }
-    alvo.className = "inicio-intro";
-    alvo.replaceChildren(
-      el("div", { class: "intro-texto", id: "intro-corpo" },
-        el("h1", { id: "inicio-titulo" }, "Ache o bom momento, simule o trade e aprenda com o seu registro"),
-        el("p", { class: "intro-lead" },
-          `O Carteira Terminal acompanha ${R.ativos.length} ativos (B3, EUA, cripto e macro) e, depois de cada fechamento, mostra os que acabaram de formar um `,
-          el("b", {}, "setup"), ", um padrão técnico de entrada. Você simula o trade no gráfico e o Diário guarda tudo para você montar o seu histórico e testar as suas estratégias."),
-        el("button", { type: "button", id: "intro-recolher", class: "botao intro-recolher", "aria-expanded": "true", "aria-controls": "intro-corpo",
-          title: "Esconde os etapas; o botão Como funciona os traz de volta", onclick: () => alternar(false) }, "Entendi, recolher ▴")),
+  const termos = [
+    ["Setup", "padrão técnico que costuma marcar um bom ponto de entrada."],
+    ["Stop", "preço em que você admite que errou e sai, para limitar a perda."],
+    ["Alvo", "preço em que você realiza o lucro."],
+    ["R", "o quanto você arrisca: parar no stop é −1R; um alvo com o dobro da distância é +2R."],
+  ];
+
+  alvo.className = "inicio-intro";
+  trocar(alvo,
+    el("div", { class: "hero" },
+      el("p", { class: "hero-selo" }, `Terminal de estudo · ${mercados} mercados · atualizado a cada pregão`),
+      el("h1", { id: "inicio-titulo" }, "Ache o bom momento de comprar ou vender. Simule. Aprenda com cada trade."),
+      el("p", { class: "hero-sub" },
+        "O Carteira Terminal mostra, todo dia, os ativos que acabaram de formar um padrão de entrada. Você testa o trade no gráfico, sem risco, e registra tudo num diário que revela o que funciona de verdade para você."),
+      el("div", { class: "hero-acoes" },
+        el("a", { class: "botao primario botao-grande", href: "setups.html" }, "Ver as oportunidades de hoje →"),
+        el("a", { class: "botao botao-grande", href: "diario.html" }, "Abrir meu Diário"))),
+    el("ul", { class: "recursos", "aria-label": "O que o terminal faz por você" }, recursos.map((r) => el("li", { class: "recurso" },
+      el("span", { class: "recurso-icone" }, icone(...r.ic)),
+      el("h2", { class: "recurso-titulo" }, r.titulo),
+      el("p", {}, r.texto)))),
+    el("p", { class: "recursos-extra" }, el("b", {}, "Também: "),
+      "baixe os dados dos ativos e veja o backtest de cada setup, o histórico de quantas vezes ele funcionou no passado."),
+    el("div", { class: "fluxo" },
+      el("h2", { class: "fluxo-titulo" }, "Como funciona, em 3 passos"),
       el("ol", { class: "etapas" }, etapas.map((p) => el("li", { class: "etapa" },
         el("a", { href: p.href, class: "etapa-link" },
           el("span", { class: "etapa-num", "aria-hidden": "true" }, String(p.n)),
           el("b", { class: "etapa-titulo" }, p.titulo),
           el("span", { class: "etapa-texto" }, p.texto),
-          el("span", { class: "etapa-cta" }, `${p.cta} →`))))));
-  }
-  desenhar();
+          el("span", { class: "etapa-cta" }, `${p.cta} →`)))))),
+    el("dl", { class: "termos", "aria-label": "Quatro palavras para começar" }, termos.map(([t, d]) => el("div", { class: "termo" }, el("dt", {}, t), el("dd", {}, d)))),
+    el("p", { class: "intro-aviso" }, "Ferramenta pessoal de estudo. Os setups são filtros técnicos automáticos, não recomendação de investimento, e o passado não garante o futuro."));
 }
 
 // ------------------------------------------------------------- oportunidades de hoje
@@ -152,7 +170,9 @@ function cartaoAtivo({ tk, a, evs, n }, lado) {
 function renderHoje() {
   const alvo = $("hoje");
   const mercados = ["BR", "US", "CRIPTO", "MACRO"].filter((m) => HOJE.porMercado.has(m));
-  const soma = (lado) => mercados.reduce((t, m) => t + HOJE.porMercado.get(m)[lado].ativos.size, 0);
+  if (pref.mercado && !mercados.includes(pref.mercado)) pref.mercado = "";
+  // a contagem segue o filtro de mercado (e bate com o cartão do mercado quando há um só escolhido)
+  const soma = (lado) => (pref.mercado ? [pref.mercado] : mercados).reduce((t, m) => t + HOJE.porMercado.get(m)[lado].ativos.size, 0);
 
   const tile = (m) => {
     const x = HOJE.porMercado.get(m);
@@ -167,7 +187,6 @@ function renderHoje() {
   };
 
   const filtroMercado = [["", "Todos"], ...mercados.map((m) => [m, NOMES_MERCADO[m]])];
-  if (pref.mercado && !mercados.includes(pref.mercado)) pref.mercado = "";
   const segmentoDe = (rotulo, itens, atual, aoEscolher) => el("div", { class: "segmento", role: "group", "aria-label": rotulo },
     itens.map(([v, t]) => el("button", { type: "button", class: v === atual ? "ativo" : null, "aria-pressed": String(v === atual),
       onclick: () => aoEscolher(v) }, t)));
@@ -175,7 +194,7 @@ function renderHoje() {
   const { setups, ativos } = destaquesDe(pref.mercado, pref.lado);
   const lado = pref.lado;
 
-  alvo.replaceChildren(
+  trocar(alvo,
     el("div", { class: "painel-cab" },
       el("div", {}, el("h2", { id: "hoje-titulo" }, "Oportunidades de hoje"),
         el("p", { class: "sub" }, "Ativos que formaram um setup no último pregão fechado de cada mercado. Um ativo pode ter vários setups ao mesmo tempo.")),
@@ -222,13 +241,13 @@ async function renderTrades() {
   const cab = (extra) => el("div", { class: "painel-cab" },
     el("div", {}, el("h2", { id: "trades-titulo" }, "Meus trades"), el("p", { class: "sub" }, "Trades simulados e o resultado em R (o stop vale −1R).")),
     extra);
-  alvo.replaceChildren(cab(), el("p", { class: "sub" }, "Carregando…"));
+  trocar(alvo, cab(), el("p", { class: "sub" }, "Carregando…"));
   let dados;
-  try { dados = await lerTrades(); } catch (e) { console.error(e); alvo.replaceChildren(cab(), el("p", { class: "vazio" }, "Não consegui ler os seus trades.")); return; }
+  try { dados = await lerTrades(); } catch (e) { console.error(e); trocar(alvo, cab(), el("p", { class: "vazio" }, "Não consegui ler os seus trades.")); return; }
   const { itens, diario } = dados;
 
   if (!itens.length) {
-    alvo.replaceChildren(cab(),
+    trocar(alvo, cab(),
       el("div", { class: "trades-vazio" },
         el("p", {}, el("b", {}, "Você ainda não simulou nenhum trade.")),
         el("p", { class: "sub" }, "Comece pelas oportunidades de hoje: escolha um ativo e clique em “Simular trade”."),
@@ -247,7 +266,7 @@ async function renderTrades() {
     el("div", { class: `kpi-valor ${cls ?? ""}`, "data-k": id }, valor), extra ? el("div", { class: "kpi-extra" }, extra) : null);
   const abrirTrade = (t) => (diarioAPI()?.abrir ? () => diarioAPI().abrir(t.id) : null);
 
-  alvo.replaceChildren(
+  trocar(alvo,
     cab(el("a", { class: "botao", href: "diario.html" }, "Abrir o Diário →")),
     el("div", { class: "kpis kpis-trades" },
       kpi("Em aberto", String(abertos.length), "", aguardando.length ? `${aguardando.length} aguardando entrada` : "trades em andamento", "abertos"),
