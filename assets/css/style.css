@@ -2389,7 +2389,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .dr-salvo { min-width: 40px; color: var(--alta); }
 .dr-corpo { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .dr-col-esq, .dr-col-dir { display: grid; gap: 10px; min-width: 0; align-content: start; }
-.dr-grafico { position: relative; height: 280px; border: 1px solid var(--borda); border-radius: 6px; overflow: hidden; }
+.dr-grafico { position: relative; height: 340px; border: 1px solid var(--borda); border-radius: 6px; overflow: hidden; touch-action: none; }
+.dr-dica-arraste { margin: 6px 0 0; }
+.dr-dica-arraste b { color: var(--texto); }
 .dr-resumo-niveis { margin: 0; }
 .dr-fotos-cab { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
 .dr-fotos-cab h3, .dr-niveis legend { margin: 0; font-size: 13px; }
@@ -2453,7 +2455,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .dr-cab-acoes { grid-column: 2; grid-row: 1; }
   .dr-linha.quatro { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dr-campo input, .dr-campo select, .dr-campo textarea, .dr-filtro select, .dr-filtro input { font-size: 16px; }
-  .dr-grafico { height: 240px; }
+  .dr-grafico { height: 300px; }
 }
 @keyframes dr-sobe { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .dr-dia.folha { animation: none; } }
