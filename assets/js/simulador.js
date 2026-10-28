@@ -104,6 +104,7 @@ const tempoNum = (t) => (typeof t === "number" ? t : Date.parse(`${t}T00:00:00Z`
 class Simulador {
   /** Sem boleta e botão, só desenha as simulações salvas (usado na multitela), sem arraste.
    *  opcoes.so: mostra só este trade (o editor do diário); opcoes.arrastar: arraste sem boleta;
+   *  opcoes.rascunho: um trade ainda não salvo (rascunho do diário) que o simulador desenha e deixa arrastar sem gravar;
    *  opcoes.aoMudar(p): chamado depois de cada alteração gravada (fim do arraste); opcoes.aoArrastar(p): durante. */
   constructor(grafico, corpo, boleta = null, botao = null, opcoes = {}) {
     this.g = grafico;
@@ -113,7 +114,8 @@ class Simulador {
     this.corpo = corpo;
     this.boleta = boleta;
     this.ativo = null;
-    this.rascunho = null;
+    this.rascunho = opcoes.rascunho ?? null;
+    this.rascunhoFixo = this.rascunho;  // sobrevive a definirAtivo (que zera o rascunho da boleta)
     this.editando = null;   // id da simulação aberta na boleta
     // contexto do diário (setup, tf, origem): objeto, ou função (rascunho) => objeto. A página define.
     this.contexto = null;
@@ -152,7 +154,7 @@ class Simulador {
 
   async definirAtivo(a) {
     this.ativo = a;
-    this.rascunho = null;
+    this.rascunho = this.rascunhoFixo;
     const salvas = Simulacoes.doAtivo(a.ticker);
     this.editando = this.so ?? (salvas.length ? salvas[salvas.length - 1].id : null);
     this.diarios = null;

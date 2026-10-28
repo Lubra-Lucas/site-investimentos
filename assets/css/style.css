@@ -2504,3 +2504,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .dr-tabela th[scope="row"] { font-size: 14px; justify-content: flex-start; }
   .dr-tabela-stats tr.dr-total th { color: var(--texto); }
 }
+
+/* ---------- Editor do trade: modo rascunho (trade aberto por "Simular" que ainda não foi salvo) ---------- */
+.dr-chip.rascunho { color: var(--aviso); border-color: rgba(227, 162, 59, 0.7); background: rgba(227, 162, 59, 0.12); }
+.dr-modal.e-rascunho { border-color: rgba(227, 162, 59, 0.55); }
+.dr-dica-rascunho { margin: 0; padding: 8px 10px; border-left: 3px solid var(--aviso); background: rgba(227, 162, 59, 0.08); border-radius: 4px; }
+.dr-fotos-dica { margin: 0; }
+.dr-confirma-descarte { position: sticky; top: 0; z-index: 3; background: var(--bg); }
+.dr-salvar-trade { font-weight: 700; }
+.dr-modal .dr-so-salvo:disabled { opacity: 0.45; cursor: not-allowed; }
+@media (max-width: 600px) {
+  .dr-cab-acoes { flex-wrap: wrap; justify-content: flex-end; }
+}
