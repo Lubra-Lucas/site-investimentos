@@ -41,6 +41,7 @@ UNIVERSO = RAIZ / "config" / "universo.json"
 SAIDA = RAIZ / "data"
 SAIDA_ATIVOS = SAIDA / "ativos"
 SAIDA_INTRADAY = SAIDA / "intraday"
+SAIDA_CASOS = SAIDA / "casos"  # backtest caso a caso, por ativo (a página Backtest carrega ao clicar no ativo)
 TICKER_CAMBIO = "USDBRL=X"
 MOEDA = {"BR": "BRL", "US": "USD", "CRIPTO": "USD", "MACRO": "USD"}  # MACRO: cada ativo diz a sua (USD, PTS, FX)
 
@@ -277,6 +278,10 @@ def processar_ativo(tarefa: tuple) -> dict:
         {"ticker": tk, "nome": meta["nome"], "moeda": meta["moeda"], "c": candles_compactos(grafico, meta["moeda"]),
          "parcial": estado.get("parcial", {}).get("data")},
         separators=(",", ":")), encoding="utf-8")
+    casos = (res.get("bt") or {}).pop("casos", None)
+    if casos:
+        (SAIDA_CASOS / f"{arquivo}.json").write_text(json.dumps(
+            {"ticker": tk, "principal": backtest.PRINCIPAL, "casos": casos}, separators=(",", ":")), encoding="utf-8")
     if h is not None:
         (SAIDA_INTRADAY / f"{arquivo}.json").write_text(json.dumps(
             {"ticker": tk, "h": intraday_compacto(h, meta["moeda"])}, separators=(",", ":")), encoding="utf-8")
@@ -315,7 +320,7 @@ def montar_lista(cfg: dict) -> dict[str, dict]:
 def main() -> None:
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
     ativos = montar_lista(cfg)
-    for pasta in (SAIDA_ATIVOS, SAIDA_INTRADAY):
+    for pasta in (SAIDA_ATIVOS, SAIDA_INTRADAY, SAIDA_CASOS):
         pasta.mkdir(parents=True, exist_ok=True)
         for antigo in pasta.glob("*.json"):
             antigo.unlink()  # ativo retido hoje não pode ficar com gráfico de ontem

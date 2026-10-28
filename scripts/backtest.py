@@ -45,6 +45,11 @@ def _estatisticas(retornos, base: float | None) -> dict:
     }
 
 
+def _preco(v: float) -> float:
+    """Preço com 6 algarismos significativos (cripto de centavos e ações de milhares cabem)."""
+    return float(f"{float(v):.6g}")
+
+
 def _sem_sobreposicao(indices: np.ndarray, passo: int) -> np.ndarray:
     """Sinais aproveitados: depois de um, o próximo só vale `passo` candles depois."""
     sel, i = [], 0
@@ -58,10 +63,12 @@ def por_ativo(frames: dict[str, pd.DataFrame], sinais: dict[str, dict[str, np.nd
     """Backtest de um ativo (roda no processo do ativo). sinais: {tf: {setup: bool por candle}}.
 
     Devolve os retornos por (tf, setup, H) e a base de "qualquer dia" por (tf, H), para o
-    agregado do mercado, e o resumo do ativo no prazo principal por tf e setup."""
-    out = {"retornos": {}, "base": {}, "resumo": {}}
+    agregado do mercado, o resumo do ativo no prazo principal por tf e setup e os casos (cada
+    sinal aproveitado, no prazo principal) para o site mostrar um a um."""
+    out = {"retornos": {}, "base": {}, "resumo": {}, "casos": {}}
     for tf, f in frames.items():
         abre, fecha = f["Open"].to_numpy(dtype=float), f["Close"].to_numpy(dtype=float)
+        datas = f.index.strftime("%Y-%m-%d")
         n, P = len(f), PRINCIPAL[tf]
         bases = {}
         for h in HORIZONTES[tf]:
@@ -83,6 +90,12 @@ def por_ativo(frames: dict[str, pd.DataFrame], sinais: dict[str, dict[str, np.nd
                 r = s * (fecha[ok + h] / abre[ok + 1] - 1)
                 out["retornos"][(tf, sid, h)] = r[np.isfinite(r)]
             rp = out["retornos"][(tf, sid, P)]
+            # caso a caso: [data do sinal, entrada (abertura seguinte), data da saída, saída (fechamento P depois), resultado %]
+            ok = idx[idx + P < n]
+            casos = [[datas[i], _preco(abre[i + 1]), datas[i + P], _preco(fecha[i + P]), round(float(s * (fecha[i + P] / abre[i + 1] - 1)) * 100, 2)]
+                     for i in ok if np.isfinite(abre[i + 1]) and np.isfinite(fecha[i + P]) and abre[i + 1] > 0]
+            if casos:
+                out["casos"].setdefault(tf, {})[sid] = casos
             if len(rp):
                 base = bases.get(P)
                 out["resumo"].setdefault(tf, {})[sid] = _estatisticas(rp, None if base is None else s * base)

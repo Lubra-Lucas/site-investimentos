@@ -42,6 +42,9 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
 - `data/rastreador.json`: as fotos de sempre (para regras personalizadas, contexto e valores do card),
   mais os campos por candle das condições novas.
 - `data/backtest.json`: por setup (id do catálogo) em vez de família.
+- `data/casos/<arquivo>.json`: o backtest caso a caso de cada ativo, no prazo principal (10 pregões / 8 semanas):
+  `{"ticker", "principal", "casos": {"D"|"W": {setup: [[data do sinal, entrada (abertura seguinte), data da saída, saída, resultado %], ...]}}}`.
+  A página Backtest carrega ao clicar num ativo e mostra os casos no gráfico e numa lista.
 - `data/paridade.json`: os setups que disparam no último candle de cada ativo segundo o Python (D e W),
   para o teste de paridade.
 
