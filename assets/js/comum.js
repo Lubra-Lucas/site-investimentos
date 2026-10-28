@@ -313,8 +313,13 @@ function agregar(candles, tf) {
 
 // ------------------------------------------------------------- preferências do gráfico
 
-/** Predefinições. "limpo" = fundo branco, sem grade e sem indicadores (o usuário liga o que quiser). */
+/** Predefinições. "padrao" (quem nunca personalizou): fundo branco, sem grade e sem indicadores, candles azuis (alta) e
+ *  pretos (baixa), sem as setas dos sinais; nas Oportunidades, só as condições do setup. O usuário liga o que quiser. */
 const PREDEFINICOES = {
+  padrao: {
+    nome: "Limpo (padrão)", fundo: "#ffffff", gradeV: false, gradeH: false, corAlta: "#2962ff", corBaixa: "#131722",
+    mm20: false, mm50: false, mm200: false, bb: false, ifr: false, sinais: false,
+  },
   escuro: {
     nome: "Escuro", fundo: "#0f141c", gradeV: true, gradeH: true, corAlta: "#26c281", corBaixa: "#f0506e",
     mm20: true, mm50: true, mm200: true, bb: true, ifr: true, sinais: true,
@@ -333,9 +338,11 @@ const Preferencias = {
   chave: "grafico-preferencias",
   atual: null,
   ler() {
-    this.atual ??= { ...PREDEFINICOES.escuro, ...guardar.ler(this.chave, {}) };
+    this.atual ??= { ...PREDEFINICOES.padrao, ...guardar.ler(this.chave, {}) };
     return this.atual;
   },
+  /** Nunca mexeu no gráfico (está no padrão limpo). */
+  personalizou() { return guardar.ler(this.chave, null) != null; },
   definir(mudancas) {
     this.atual = { ...this.ler(), ...mudancas };
     guardar.gravar(this.chave, this.atual);
@@ -677,9 +684,9 @@ document.addEventListener("keydown", (e) => {
 const AJUDA = {
   inicio: ["Início", [
     "O terminal serve a um ciclo só: encontrar uma boa oportunidade de compra ou venda, simular o trade (entrada, stop e alvo) e registrar no Diário para aprender com o resultado.",
-    "Oportunidades de hoje: quantos setups dispararam no último pregão fechado de cada mercado. Clique num setup para ver os ativos dele, ou em Simular trade para treinar a entrada.",
+    "A página mostra, para cada tipo de investidor (iniciante, longo prazo, trader, quem quer disciplina), como o terminal ajuda. Em \"Veja ao vivo\" estão os ativos com mais setups apontando no último pregão fechado: filtre por mercado e por compra ou venda e clique em Simular trade para treinar a entrada.",
     "R é a unidade de risco: o stop vale −1R (você perde o que se dispôs a arriscar) e um alvo com o dobro da distância vale +2R. Assim os trades ficam comparáveis, seja qual for o preço do ativo.",
-    "Meus trades: os trades que você simulou, o resultado de cada um em R e o total do mês. O Diário guarda o histórico e as estatísticas.",
+    "Seus trades: quando você já tem trades, uma faixa no topo mostra quantos estão em aberto e o R do mês. O Diário guarda o histórico e as estatísticas.",
   ]],
   carteira: ["Carteira", [
     "O que você tem e acompanha: posições, simulações e a sua lista de ativos, com os setups que dispararam em cada um.",
@@ -696,7 +703,8 @@ const AJUDA = {
     "+ Plano de amanhã põe o ativo no plano do próximo pregão com níveis sugeridos; ✎ Anotar guarda o que você viu, preso à data e ao preço.",
   ]],
   setups: ["Oportunidades", [
-    "Na lateral (no celular, em ☰ Filtros), em 3 passos: 1) Quero comprar ou vender; 2) Onde (mercado); 3) Qual setup. O número ao lado de cada setup é quantos ativos deram o sinal no período.",
+    "Na lateral (no celular, em ☰ Filtros): 1) Quero comprar ou vender; 2) Onde (mercado); 3) Que tipo de oportunidade (ações subindo ou com preço descontado); 4) Com que frequência você acompanha (todo dia ou uma vez por semana).",
+    "Modo Trader (no topo da lateral): escolha o setup pelo nome, com quantos ativos deram cada sinal, o período (últimos 2, 3 ou 5 pregões) e Meus setups.",
     "A favor da tendência: entrar no movimento que já existe (mais seguro). Contra a tendência: apostar na virada depois de um exagero (mais arriscado).",
     "☆ Salvar busca guarda os filtros em Minhas buscas, para voltar a eles com um clique. Em Meus setups você monta suas próprias regras (médias, IFR, Bollinger...).",
     "Em cima da grade: o tempo do sinal (diário ou semanal), quando aconteceu, a ordem e \"Só com 2+ setups\" (sinais que se confirmam). ⚙ Exibição muda o tamanho da grade e o que aparece no gráfico.",

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Início · Carteira Terminal</title>
-  <meta name="description" content="Encontre ativos em bom momento de compra ou venda, simule o trade e registre no seu diário de trading.">
+  <meta name="description" content="Terminal de estudo para investidores: encontre ativos em bom momento de compra ou venda, simule o trade no gráfico e registre tudo num diário de trading.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,13 +17,91 @@
   <header class="topo" id="topo"></header>
 
   <main class="pagina-inicio">
-    <!-- apresentação fixa: o que é o terminal, recursos, os 3 passos e o aviso -->
-    <section class="inicio-intro" id="inicio-intro" aria-labelledby="inicio-titulo"></section>
+    <!-- 1. topo: o que é o terminal -->
+    <section class="inicio-intro" id="inicio-intro" aria-labelledby="inicio-titulo">
+      <div class="hero">
+        <p class="hero-selo" id="hero-selo">Terminal de estudo · atualizado a cada pregão</p>
+        <h1 id="inicio-titulo">Ache o bom momento de comprar ou vender. Simule. Aprenda com cada trade.</h1>
+        <p class="hero-sub">O Carteira Terminal mostra, todo dia, os ativos que acabaram de formar um padrão de entrada. Você testa o trade no gráfico, sem risco, e registra tudo num diário que revela o que funciona de verdade para você.</p>
+        <div class="hero-acoes">
+          <a class="botao primario botao-grande" href="setups.html">Ver as oportunidades de hoje →</a>
+          <a class="botao botao-grande" href="diario.html">Abrir meu Diário</a>
+        </div>
+      </div>
+      <ul class="recursos" aria-label="O que o terminal faz por você">
+        <li class="recurso"><span class="recurso-icone"><svg class="icone-inicio" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-6 4 4 8-9"/><path d="M15 6h5v5"/></svg></span><h2 class="recurso-titulo">Descubra ativos em bom momento</h2><p>Todo dia, depois do fechamento, o terminal varre os ativos do Brasil, EUA e Cripto e mostra os que formaram um setup de compra ou de venda, um padrão técnico que costuma marcar um bom momento.</p></li>
+        <li class="recurso"><span class="recurso-icone"><svg class="icone-inicio" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 8h8"/><path d="M8 14h5"/><path d="M17 11l3 3-3 3"/></svg></span><h2 class="recurso-titulo">Simule antes de arriscar</h2><p>Arraste a entrada, o stop e o alvo direto no gráfico e veja quanto pode perder e quanto pode ganhar, em R, antes de pôr dinheiro de verdade.</p></li>
+        <li class="recurso"><span class="recurso-icone"><svg class="icone-inicio" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M9 2v4"/><path d="M15 2v4"/><path d="M5 10h14"/><path d="M9 14h2"/><path d="M13 14h2"/></svg></span><h2 class="recurso-titulo">Registre num Diário completo</h2><p>Calendário do R por dia, foto do gráfico de cada trade, tese e revisão. E estatísticas por estratégia: taxa de acerto, fator de lucro e drawdown.</p></li>
+      </ul>
+    </section>
 
-    <div class="inicio-grade">
-      <section class="painel inicio-trades" id="inicio-trades" aria-labelledby="trades-titulo"></section>
-      <section class="painel inicio-hoje" id="hoje" aria-labelledby="hoje-titulo"></section>
-    </div>
+    <!-- faixa discreta, só para quem já tem trades -->
+    <section class="faixa-trades" id="inicio-trades" aria-label="Seus trades" hidden></section>
+
+    <!-- 2. para cada tipo de investidor -->
+    <section class="secao-inicio" id="perfis" aria-labelledby="perfis-titulo">
+      <div class="secao-cab">
+        <h2 id="perfis-titulo">Para cada tipo de investidor</h2>
+        <p class="secao-lead">Do primeiro dia na bolsa ao trader com método. Os exemplos abaixo são ilustrações de como usar o terminal, não resultados reais nem promessa de retorno.</p>
+      </div>
+      <ul class="perfis">
+        <li class="perfil" id="perfil-iniciante">
+          <div class="perfil-cab"><span class="recurso-icone"><svg class="icone-inicio" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V11"/><path d="M12 11c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 14c0-3-2-5-6-5 0 3 2 5 6 5z"/></svg></span><div><p class="perfil-quem">Iniciante</p><h3 class="perfil-titulo">Nunca fiz análise técnica</h3></div></div>
+          <p><b>A dor:</b> Quer começar na bolsa, mas não entende de gráficos nem de siglas, e tem medo de errar com dinheiro de verdade.</p>
+          <p><b>Como o terminal ajuda:</b> No modo <b>Simples</b> de Oportunidades você responde duas perguntas, sem precisar saber o nome de nenhum indicador. Depois treina o trade no gráfico, sem risco, e aprende o que são stop, alvo e R.</p>
+          <div class="perfil-exemplo"><p class="perfil-exemplo-rot">Exemplo ilustrativo</p><p>Ana quer comprar ações que estão subindo, no Brasil, e só olha uma vez por semana. Escolhe “Ações que estão subindo” e “Uma vez por semana”, abre um ativo da lista e arrasta entrada, stop e alvo no gráfico. O terminal mostra: se der errado, −1R; se der certo, +2R. Ela salva a simulação sem arriscar nada.</p></div>
+          <a class="botao perfil-cta" href="setups.html">Começar pelo modo Simples →</a>
+        </li>
+        <li class="perfil" id="perfil-semanal">
+          <div class="perfil-cab"><span class="recurso-icone"><svg class="icone-inicio" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M9 2v4"/><path d="M15 2v4"/><path d="M5 10h14"/><path d="M9 14h2"/><path d="M13 14h2"/></svg></span><div><p class="perfil-quem">Longo prazo</p><h3 class="perfil-titulo">Olho uma vez por semana</h3></div></div>
+          <p><b>A dor:</b> Não quer acompanhar a tela todo dia, mas também não quer decidir por impulso nem esquecer por que comprou.</p>
+          <p><b>Como o terminal ajuda:</b> No Simples, “Uma vez por semana” e “Ações com preço descontado” trazem poucos sinais, de ritmo calmo. Cada decisão vai para o Diário com a tese escrita, para você rever com calma.</p>
+          <div class="perfil-exemplo"><p class="perfil-exemplo-rot">Exemplo ilustrativo</p><p>Carlos abre o terminal no sábado, vê os ativos com preço descontado do Brasil, escolhe um e anota no Diário: “compro porque caiu bastante e a empresa segue sólida; saio se perder tal nível”. Meses depois relê a tese e a revisão antes de decidir o próximo.</p></div>
+          <a class="botao perfil-cta" href="setups.html">Ver os sinais da semana →</a>
+        </li>
+        <li class="perfil" id="perfil-trader">
+          <div class="perfil-cab"><span class="recurso-icone"><svg class="icone-inicio" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16"/><path d="M5 8h4v8H5z"/><path d="M17 4v16"/><path d="M15 6h4v9h-4z"/></svg></span><div><p class="perfil-quem">Trader e swing trader</p><h3 class="perfil-titulo">Quero método e números</h3></div></div>
+          <p><b>A dor:</b> Precisa filtrar centenas de ativos por setup, saber quais merecem atenção e medir se a estratégia realmente funciona.</p>
+          <p><b>Como o terminal ajuda:</b> No modo <b>Trader</b> (uma preferência que fica salva) você filtra pelo nome do setup e pode pedir só ativos com 2 ou mais setups ao mesmo tempo. Vê o backtest de cada setup, baixa a lista para o TradingView e acompanha no Diário a taxa de acerto, o fator de lucro e o drawdown por estratégia.</p>
+          <div class="perfil-exemplo"><p class="perfil-exemplo-rot">Exemplo ilustrativo</p><p>Marina ativa o modo Trader, filtra os ativos com 2 ou mais setups de compra, confere no backtest como cada um se saiu no passado, baixa a lista para o TradingView e simula o trade com stop e alvo. Semanas depois, as estatísticas do Diário mostram qual estratégia dela pesa a favor ou contra.</p></div>
+          <a class="botao perfil-cta" href="setups.html">Abrir as oportunidades (modo Trader) →</a>
+        </li>
+        <li class="perfil" id="perfil-disciplina">
+          <div class="perfil-cab"><span class="recurso-icone"><svg class="icone-inicio" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><div><p class="perfil-quem">Quem quer disciplina</p><h3 class="perfil-titulo">Quero parar de repetir os mesmos erros</h3></div></div>
+          <p><b>A dor:</b> Entra por impulso, esquece o plano no meio do trade e não sabe dizer quais erros se repetem.</p>
+          <p><b>Como o terminal ajuda:</b> O Diário guarda a tese antes da entrada, a revisão depois da saída, uma nota de execução e etiquetas como “FOMO”. O calendário de R por dia mostra, num relance, como foram os seus dias.</p>
+          <div class="perfil-exemplo"><p class="perfil-exemplo-rot">Exemplo ilustrativo</p><p>Rafael percebe que a etiqueta “FOMO” aparece nos dias de R negativo no calendário. Passa a escrever a tese antes de entrar e a dar nota à própria execução. Com o tempo, o Diário mostra se a regra está sendo seguida.</p></div>
+          <a class="botao perfil-cta" href="diario.html">Abrir o Diário →</a>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 3. ao vivo -->
+    <section class="secao-inicio" id="ao-vivo" aria-labelledby="hoje-titulo"></section>
+
+    <!-- 4. como funciona -->
+    <section class="secao-inicio" id="como" aria-labelledby="como-titulo">
+      <div class="secao-cab"><h2 id="como-titulo">Como funciona, em 3 passos</h2></div>
+      <ol class="etapas">
+        <li class="etapa"><a href="setups.html" class="etapa-link"><span class="etapa-num" aria-hidden="true">1</span><b class="etapa-titulo">Encontre</b><span class="etapa-texto">Veja quais ativos formaram um setup hoje, no Brasil, nos EUA ou em cripto.</span><span class="etapa-cta">Ver as oportunidades →</span></a></li>
+        <li class="etapa"><a href="#ao-vivo" class="etapa-link"><span class="etapa-num" aria-hidden="true">2</span><b class="etapa-titulo">Simule</b><span class="etapa-texto">Defina entrada, stop e alvo no gráfico e veja o risco e o retorno em R.</span><span class="etapa-cta">Escolher um ativo →</span></a></li>
+        <li class="etapa"><a href="diario.html" class="etapa-link"><span class="etapa-num" aria-hidden="true">3</span><b class="etapa-titulo">Registre</b><span class="etapa-texto">Guarde o trade com tese e foto e descubra quais estratégias funcionam para você.</span><span class="etapa-cta">Abrir o Diário →</span></a></li>
+      </ol>
+      <h3 class="termos-titulo">Quatro palavras para começar</h3>
+      <dl class="termos"><div class="termo"><dt>Setup</dt><dd>padrão técnico que costuma marcar um bom ponto de entrada.</dd></div><div class="termo"><dt>Stop</dt><dd>preço em que você admite que errou e sai, para limitar a perda.</dd></div><div class="termo"><dt>Alvo</dt><dd>preço em que você realiza o lucro.</dd></div><div class="termo"><dt>R</dt><dd>o quanto você arrisca: parar no stop é −1R; um alvo com o dobro da distância é +2R.</dd></div></dl>
+    </section>
+
+    <!-- 5. perguntas e aviso -->
+    <section class="secao-inicio" id="faq" aria-labelledby="faq-titulo">
+      <div class="secao-cab"><h2 id="faq-titulo">Perguntas frequentes</h2></div>
+      <div class="faq">
+        <details class="faq-item"><summary>De onde vêm os dados?</summary><p>Das cotações do Yahoo Finance, conferidas com a B3 (COTAHIST e cotações), a Nasdaq (EUA) e a Coinbase (cripto).</p></details>
+        <details class="faq-item"><summary>Quando os sinais são atualizados?</summary><p>Depois do fechamento de cada mercado. O que você vê aqui é o do último pregão fechado.</p></details>
+        <details class="faq-item"><summary>Onde ficam os meus trades?</summary><p>Neste navegador. No Diário há uma exportação de backup para você guardar uma cópia e levar para outro aparelho.</p></details>
+        <details class="faq-item"><summary>Isso é recomendação de investimento?</summary><p>Não. É uma ferramenta de estudo: os setups são filtros técnicos automáticos, e o passado não garante o futuro.</p></details>
+      </div>
+      <p class="intro-aviso">Ferramenta pessoal de estudo. Os setups são filtros técnicos automáticos, não recomendação de investimento, e o passado não garante o futuro.</p>
+    </section>
   </main>
 
   <footer>
