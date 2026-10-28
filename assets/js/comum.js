@@ -313,8 +313,13 @@ function agregar(candles, tf) {
 
 // ------------------------------------------------------------- preferências do gráfico
 
-/** Predefinições. "limpo" = fundo branco, sem grade e sem indicadores (o usuário liga o que quiser). */
+/** Predefinições. "padrao" (quem nunca personalizou): fundo branco, sem grade e sem indicadores, candles azuis (alta) e
+ *  pretos (baixa), sem as setas dos sinais; nas Oportunidades, só as condições do setup. O usuário liga o que quiser. */
 const PREDEFINICOES = {
+  padrao: {
+    nome: "Limpo (padrão)", fundo: "#ffffff", gradeV: false, gradeH: false, corAlta: "#2962ff", corBaixa: "#131722",
+    mm20: false, mm50: false, mm200: false, bb: false, ifr: false, sinais: false,
+  },
   escuro: {
     nome: "Escuro", fundo: "#0f141c", gradeV: true, gradeH: true, corAlta: "#26c281", corBaixa: "#f0506e",
     mm20: true, mm50: true, mm200: true, bb: true, ifr: true, sinais: true,
@@ -333,9 +338,11 @@ const Preferencias = {
   chave: "grafico-preferencias",
   atual: null,
   ler() {
-    this.atual ??= { ...PREDEFINICOES.escuro, ...guardar.ler(this.chave, {}) };
+    this.atual ??= { ...PREDEFINICOES.padrao, ...guardar.ler(this.chave, {}) };
     return this.atual;
   },
+  /** Nunca mexeu no gráfico (está no padrão limpo). */
+  personalizou() { return guardar.ler(this.chave, null) != null; },
   definir(mudancas) {
     this.atual = { ...this.ler(), ...mudancas };
     guardar.gravar(this.chave, this.atual);

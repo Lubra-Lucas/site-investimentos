@@ -1038,7 +1038,23 @@ function baixar(formato) {
   window.avisoRapido?.(`${lista.length} ativos baixados.`);
 }
 
+/** Quem nunca mexeu no gráfico vê o padrão limpo: um aviso discreto mostra que dá para personalizar. */
+const DICA_GRAFICO = "dica-grafico-v1";
+function renderDicaGrafico() {
+  const caixa = $("op-dica-grafico");
+  caixa.hidden = Preferencias.personalizou() || guardar.ler(DICA_GRAFICO, false);
+  if (caixa.hidden) return;
+  caixa.replaceChildren(
+    el("span", {}, el("b", {}, "Gráficos no modo limpo: "), "candles azuis (alta) e pretos (baixa), só com as condições do setup. Quer médias, Bollinger, IFR ou outras cores? "),
+    el("button", { type: "button", class: "botao-link", onclick: (e) => abrirPersonalizacao(e.currentTarget) }, "⚙ Personalizar o gráfico"),
+    el("button", { type: "button", class: "botao-remover", "aria-label": "Fechar o aviso", title: "Fechar",
+      onclick: () => { guardar.gravar(DICA_GRAFICO, true); renderDicaGrafico(); } }, "✕"));
+}
+
 function ligarNav() {
+  $("op-personalizar").addEventListener("click", (e) => { e.stopPropagation(); abrirPersonalizacao(e.currentTarget); });
+  document.addEventListener("preferencias", renderDicaGrafico);
+  renderDicaGrafico();
   $("op-abrir-nav").addEventListener("click", abrirNav);
   $("op-nav-fechar").addEventListener("click", () => fecharNav(true));
   $("op-ver").addEventListener("click", () => fecharNav());

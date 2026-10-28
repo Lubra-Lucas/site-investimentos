@@ -1175,6 +1175,14 @@ main.pagina-setups { padding-top: 10px; gap: 10px; }
 
 .chip.preco-atrasado { color: var(--aviso); border-color: rgba(227, 162, 59, 0.55); background: rgba(227, 162, 59, 0.1); flex: none; cursor: help; }
 
+.op-dica-grafico {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; padding: 6px 10px; font-size: var(--t-sm);
+  color: var(--texto-fraco); background: color-mix(in srgb, var(--acento) 8%, transparent); border: 1px solid color-mix(in srgb, var(--acento) 30%, transparent); border-radius: var(--r-md);
+}
+.op-dica-grafico b { color: var(--texto); }
+.op-dica-grafico .botao-remover { margin-left: auto; font-size: 14px; min-width: var(--h-sm); min-height: var(--h-sm); }
+.op-personalizar { margin-top: 6px; }
+
 /* minhas buscas */
 .op-buscas { padding-top: var(--s-3); border-top: 1px solid var(--borda); }
 #op-buscas { display: grid; gap: 2px; }
