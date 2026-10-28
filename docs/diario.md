@@ -53,12 +53,31 @@ blob, criada }`). Captura do gráfico: `grafico.chart.takeScreenshot()` (Lightwe
 - `Diario.registrar(ctx, { grafico } = {})` → cria um trade a partir de um contexto
   `{ ticker, lado, setup?, tf?, data?, preco?, entrada?, stop?, alvo?, origem }` (níveis sugeridos quando
   faltarem: entrada no rompimento da máxima/mínima do último candle, stop pela MMS 20 ou 1,5 ATR, alvo 2R) e,
-  com `grafico`, já tira a foto da entrada. Abre o editor do trade. Devolve o trade.
+  com `grafico`, já tira a foto da entrada. Abre o editor do trade. Devolve o trade. **O trade aberto por "Simular" é
+  um rascunho** (ver "Rascunho" abaixo): só é gravado quando a pessoa clica em "Salvar trade".
 - `Diario.abrir(id)` → abre o editor/detalhe do trade (modal, em qualquer página).
 - `Diario.salvarFoto(tradeId, blob, tipo)`, `Diario.fotos(tradeId)` → `Promise<[{id, url, tipo}]>`.
 - `Diario.estatisticas(trades, filtro)` → por estratégia/setup: trades, acertos, % acerto, R total, R médio,
   expectativa, fator de lucro, maior sequência de perdas, drawdown máximo em R, tempo médio.
 - Evento `document` `"diario"` a cada mudança (além do `"simulacoes"` que já existe).
+
+## Rascunho (trade aberto por "Simular")
+
+`registrar(ctx, { grafico, abrirEditor = true })`: com `abrirEditor` (padrão) o trade fica **só na memória** (rascunho) e o
+editor abre em modo rascunho. Com `abrirEditor: false` (uso programático) o trade é salvo direto, como antes.
+
+- Nada vai para `simulacoes-v1`, nem eventos `simulacoes`/`diario`, nem fotos no IndexedDB, até "Salvar trade".
+  `Diario.trade(id)` e `Diario.atualizar(id, patch)` enxergam o rascunho (alteram o objeto em memória); `Diario.trades()` não.
+- O editor mostra o chip "Rascunho: ainda não salvo", o botão primário "Salvar trade" (desligado se os níveis forem
+  inválidos) e "Descartar". Tese, etiquetas, nota, estratégia, setup e níveis (digitados ou arrastados no gráfico) valem
+  no rascunho e são gravados junto com o trade. Fotos, saída manual, arquivar e excluir ficam desligados até salvar.
+- Fechar (X, Esc ou clique no fundo): rascunho intocado fecha e some; rascunho alterado pergunta, dentro do modal,
+  "Descartar este trade? Ele não foi salvo." (Descartar / Continuar editando; Esc de novo = continuar editando).
+- "Salvar trade": grava (`Simulacoes.salvar` + eventos), avisa "Trade salvo no Diário", tira a foto da entrada do gráfico do
+  editor (espera 150 ms, como `capturar`) e o mesmo modal passa ao modo de trade salvo (autosave dos campos).
+- O `Simulador` aceita `opcoes.rascunho`: um trade não salvo que ele desenha e deixa arrastar sem gravar (a página
+  do ativo não usa; o rascunho dela continua sendo `simulador.rascunho` com a boleta).
+- Trades já salvos abertos pelo Diário (`Diario.abrir(id)`) mantêm o autosave de sempre.
 
 ## Páginas
 
