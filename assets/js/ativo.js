@@ -2,7 +2,7 @@
  * tela cheia) e, ao lado, os setups recentes, o contexto a favor/cuidado e as simulações; embaixo,
  * como cada setup do catálogo se saiu neste ativo e o panorama dos indicadores. */
 
-const ficha = { ticker: null, tfCtx: "D", vies: null };
+const ficha = { ticker: null, tfCtx: "D", vies: null, cond: guardar.ler("ativo-condicoes", {}).meus ? "meus" : "auto" };
 let R, porTicker, painel;
 let F;  // rastreador: undefined enquanto carrega (é grande, 700 KB), null se falhou
 
@@ -15,6 +15,7 @@ function abrirAtivo(tk, historico = true) {
   const mudou = ficha.ticker !== tk;
   ficha.ticker = tk;
   if (mudou) ficha.vies = null, ficha.todos = false;  // o viés volta a ser o dos setups recentes do novo ativo
+  if (mudou && ficha.cond !== "meus") ficha.cond = "auto";  // as condições voltam a ser as dos setups mais recentes do novo ativo
   guardar.gravar("ativo-ticker", tk);
   document.querySelector(".aviso-ativo")?.remove();
   const hash = `#${encodeURIComponent(tk)}`;
@@ -24,7 +25,7 @@ function abrirAtivo(tk, historico = true) {
   renderCabecalho(a);
   renderLateral(a);
   // o gráfico pede os candles antes do histórico pedir o backtest (430 KB): o gráfico é o que a pessoa veio ver
-  const pronto = mudou ? painel.selecionar(a, eventosDoAtivo(R, tk).map(eventoParaGrafico)).then(() => definirContextoSimulacao(a))
+  const pronto = mudou ? painel.selecionar(a, eventosDoAtivo(R, tk).map(eventoParaGrafico)).then(() => (condicoes(), definirContextoSimulacao(a)))
     : Promise.resolve();
   renderHistorico(a);
   renderPanorama(a);
@@ -127,10 +128,13 @@ function desdeOSinal(e, a) {
     el("b", { class: cor(v) }, `${fmtPct(v)} ${v >= 0 ? "a favor" : "contra"}`));
 }
 
-function irParaSinal(e, item) {
+async function irParaSinal(e, item, grupo) {
   document.querySelectorAll(".ficha-sinal.ativo, .data-evento.ativo").forEach((n) => n.classList.remove("ativo"));
   item.classList.add("ativo");
-  painel.irPara(e.data, e.tf === "W" ? "W" : "D");
+  if (grupo) ficha.cond = chaveGrupo(grupo);  // o setup clicado passa a ser o que o gráfico explica
+  condicoes();
+  await painel.irPara(e.data, e.tf === "W" ? "W" : "D");  // se muda o tempo gráfico, aoMostrar refaz as condições
+  condicoes();
   if (window.innerWidth < 1100) document.getElementById("painel-grafico").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -146,9 +150,10 @@ function blocoSetups(a) {
     grupos.length ? el("ul", { class: "ficha-sinais" }, grupos.map((g, i) => {
       const ultimo = g.eventos[0], primeiro = g.eventos.at(-1);
       const s = SETUP_POR_ID.get(g.setup);
-      return el("li", { class: `ficha-sinal ${g.lado}`, tabindex: "0", title: "Ver no gráfico", hidden: i >= VISIVEIS_SETUPS && !ficha.todos,
-        onclick: (ev) => { if (!ev.target.closest(".data-evento")) irParaSinal(ultimo, ev.currentTarget); },
-        onkeydown: (ev) => ev.key === "Enter" && ev.target === ev.currentTarget && irParaSinal(ultimo, ev.currentTarget) },
+      return el("li", { class: `ficha-sinal ${g.lado}${ficha.cond === chaveGrupo(g) ? " cond-ativa" : ""}`, tabindex: "0", "data-grupo": chaveGrupo(g),
+        title: "Ver no gráfico, com as condições deste setup", hidden: i >= VISIVEIS_SETUPS && !ficha.todos,
+        onclick: (ev) => { if (!ev.target.closest(".data-evento")) irParaSinal(ultimo, ev.currentTarget, g); },
+        onkeydown: (ev) => ev.key === "Enter" && ev.target === ev.currentTarget && irParaSinal(ultimo, ev.currentTarget, g) },
         el("div", { class: "ficha-sinal-topo" },
           el("span", { class: "data" }, fmtData(g.ultima)),
           el("span", { class: "chip ctx", title: g.tf === "W" ? "Setup no semanal" : "Setup no diário" }, NOME_TF_EVENTO[g.tf] ?? g.tf),
@@ -158,7 +163,7 @@ function blocoSetups(a) {
         el("div", { class: "datas-evento" },
           g.eventos.length > 1 ? el("span", { class: "sub" }, `${g.eventos.length} ${unidade(g.tf, g.eventos.length)}:`) : null,
           g.eventos.map((e) => el("button", { class: "data-evento", title: `Ver ${fmtData(e.data)} no gráfico`,
-            onclick: (ev) => irParaSinal(e, ev.currentTarget) }, fmtData(e.data)))),
+            onclick: (ev) => irParaSinal(e, ev.currentTarget, g) }, fmtData(e.data)))),
         desdeOSinal(primeiro, a));
     })) : null,
     grupos.length > VISIVEIS_SETUPS ? el("button", { class: "botao ver-mais", onclick: () => { ficha.todos = !ficha.todos; renderLateral(a); } },
@@ -214,6 +219,101 @@ function renderLateral(a) {
   document.getElementById("ficha-lateral").replaceChildren(blocoSetups(a), blocoContexto(a), blocoSimulacoes(a), Notas.bloco(a.ticker));
 }
 
+// ------------------------------------------------------------- condições dos setups no gráfico
+
+/*
+ * Com o gráfico limpo (padrão), nada explica por que o ativo apareceu. Aqui o gráfico desenha o que os setups recentes usam
+ * (médias, Bollinger, IFR...), com a mesma sobreposição das Oportunidades (sobreposicaoDasRegras). ficha.cond:
+ * "auto" = setups do pregão (ou semana) mais recente, do lado da maioria; "<tf>|<setup>|<lado>" = só aquele setup;
+ * "meus" = os indicadores do ⚙ Personalizar. Só vale em Diário e Semanal (as fotos do rastreador não têm outros tempos).
+ */
+const GRUPO_ESTADO = "Tendência";  // setups de estado (disparam em todo candle de uma tendência): não explicam uma entrada
+const chaveGrupo = (g) => `${g.tf}|${g.setup}|${g.lado}`;
+let barraCond, prefsVistas;
+
+/** Regras do setup que o JS sabe desenhar (a boca de jacaré usa a Bollinger; multitempo e ranking não têm desenho). */
+function regrasDoSetup(id) {
+  return (SETUP_POR_ID.get(id)?.regras ?? []).map((r) => (r.t === "boca" ? { t: "bollinger", pos: "fechou_acima" } : r))
+    .filter((r) => CONDICOES[r.t] && r.t !== "multitempo" && r.t !== "ranking");
+}
+
+/** Quais setups o gráfico explica agora: {grupos, uteis, auto, dia}. */
+function gruposEmFoco(a, tf) {
+  const todos = agruparPorSetup(eventosDoAtivo(R, a.ticker)).filter((g) => g.tf === tf);
+  const uteis = todos.filter((g) => regrasDoSetup(g.setup).length);
+  const entradas = uteis.filter((g) => SETUP_POR_ID.get(g.setup)?.grupo !== GRUPO_ESTADO);
+  const base = entradas.length ? entradas : uteis;
+  const dia = base[0]?.ultima;  // agruparPorSetup ordena pelo mais recente
+  const escolhido = uteis.find((g) => chaveGrupo(g) === ficha.cond);
+  if (escolhido) return { grupos: [escolhido], uteis, auto: false, dia };
+  if (!base.length) return { grupos: [], uteis, auto: true };
+  const doDia = base.filter((g) => g.ultima === dia);
+  const c = doDia.filter((g) => g.lado === "compra").length, v = doDia.filter((g) => g.lado === "venda").length;
+  const lado = c > v ? "compra" : v > c ? "venda" : doDia[0].lado;
+  return { grupos: doDia.filter((g) => g.lado === lado || g.lado === "neutro"), uteis, auto: true, dia };
+}
+
+/** Atualiza a sobreposição do gráfico, a legenda e a barra de escolha conforme ficha.cond e o tempo gráfico. */
+function condicoes() {
+  const a = porTicker?.get(ficha.ticker);
+  if (!a || !painel || !barraCond) return;
+  const g = painel.grafico, tf = g.tf;
+  const pode = tf === "D" || tf === "W";
+  const { grupos, uteis, auto, dia } = pode ? gruposEmFoco(a, tf) : { grupos: [], uteis: [], auto: true };
+  const meus = ficha.cond === "meus";
+  let sob = null;
+  if (!meus && grupos.length && F) {
+    try {
+      const regras = grupos.flatMap((x) => regrasDoSetup(x.setup));
+      const datas = F.ativos?.[a.ticker]?.[tf]?.datas;
+      const p = datas ? datas.lastIndexOf(grupos[0].ultima) : -1;
+      sob = sobreposicaoDasRegras(regras, F.ativos?.[a.ticker]?.[tf], tf, F, p < 0 ? 0 : datas.length - 1 - p);
+    } catch { sob = null; }
+  }
+  g.definirSobreposicao(sob);
+  prefsVistas = JSON.stringify(Preferencias.ler());
+
+  const foco = barraCond.contains(document.activeElement) ? document.activeElement.dataset.k : null;
+  barraCond.hidden = !uteis.length;
+  const botao = (k, rot, ativo, titulo) => el("button", { type: "button", class: "chip-cond", "data-k": k, "aria-pressed": String(ativo), title: titulo,
+    onclick: () => { ficha.cond = k; guardar.gravar("ativo-condicoes", { meus: k === "meus" }); condicoes(); } }, rot);
+  const entradas = uteis.filter((x) => SETUP_POR_ID.get(x.setup)?.grupo !== GRUPO_ESTADO);
+  const chips = (entradas.length ? entradas : uteis).slice(0, 6);
+  const escolhido = !auto && grupos[0];
+  if (escolhido && !chips.includes(escolhido)) chips.push(escolhido);
+  const legenda = sob ? legendaSobreposicao(sob) : [];
+  barraCond.replaceChildren(...[
+    el("span", { class: "cond-rotulo" }, "Condições no gráfico"),
+    el("div", { class: "cond-opcoes", role: "group", "aria-label": "Condições dos setups no gráfico" },
+      botao("auto", dia ? `Setups de ${fmtData(dia)}` : "Setups recentes", !meus && auto, "Desenha o que os setups mais recentes deste ativo usam, no lado da maioria"),
+      chips.map((x) => botao(chaveGrupo(x), `${setaLado(x.lado)}${nomeSetup(x.setup)}`, !meus && !auto && chaveGrupo(x) === ficha.cond,
+        `Desenhar só as condições de ${nomeSetup(x.setup)}`)),
+      botao("meus", "Meus indicadores", meus, "Volta aos indicadores escolhidos em ⚙ Personalizar")),
+    !meus && !sob ? el("span", { class: "sub cond-nota" }, F === undefined ? "Carregando as condições…" : F ? "Estes setups não têm indicador para desenhar." : "Condições indisponíveis.") : null,
+    legenda.length ? el("div", { class: "legenda-extras cond-legenda" }, legenda.map((x) =>
+      el("span", {}, el("i", { class: x.pontilhado ? "pontilhado" : null, style: `--cor:${x.cor}` }), x.txt))) : null].filter(Boolean));
+  if (foco) barraCond.querySelector(`[data-k="${CSS.escape(foco)}"]`)?.focus({ preventScroll: true });
+  document.querySelectorAll("#ficha-lateral .ficha-sinal[data-grupo]").forEach((n) => {
+    const on = !meus && !auto && n.dataset.grupo === ficha.cond;
+    n.classList.toggle("cond-ativa", on);
+    if (on) n.setAttribute("aria-current", "true"); else n.removeAttribute("aria-current");
+  });
+}
+
+function prepararCondicoes() {
+  barraCond = el("div", { class: "cond-grafico", hidden: true });
+  document.getElementById("painel-grafico").querySelector(".barra-grafico").after(barraCond);
+  const g = painel.grafico, anterior = g.aoMostrar;  // o Simulador também usa este gancho
+  g.aoMostrar = () => { anterior?.(); condicoes(); };
+  prefsVistas = JSON.stringify(Preferencias.ler());
+  // mexer nos indicadores em ⚙ Personalizar ou nas caixas acima do gráfico devolve o gráfico aos indicadores do usuário
+  document.addEventListener("preferencias", () => {
+    if (JSON.stringify(Preferencias.ler()) === prefsVistas || ficha.cond === "meus") return;
+    ficha.cond = "meus";
+    condicoes();
+  });
+}
+
 // ------------------------------------------------------------- histórico dos setups neste ativo
 
 /** Como cada setup do catálogo se saiu neste ativo (backtest), do de maior vantagem para o de menor. */
@@ -235,18 +335,22 @@ function renderHistorico(a) {
     const sinal = (v) => el("span", { class: cor(v) }, fmtPct(v));
     caixa.replaceChildren(
       cab(`${validos} setup(s) com ${min} ou mais casos nos últimos 6 anos, entrando na abertura seguinte ao setup.${prazo} ` +
-        "Vantagem: quanto rendeu a mais que entrar num dia qualquer. Clique para ver o setup."),
+        "Vantagem: quanto rendeu a mais que entrar num dia qualquer. Clique num setup para ver todos os casos no gráfico."),
       el("div", { class: "tabela-wrap" }, el("table", { class: "tabela-bt tabela-historico" },
         el("thead", {}, el("tr", {}, ["Setup", "Tempo", "Casos", "Acerto", "Médio", "Mediana", "Pior", "Melhor", "Vantagem"]
           .map((h, i) => el("th", { class: i >= 2 ? "num" : "" }, h)))),
         el("tbody", {}, linhas.map(({ tf, id, e, poucos }) => {
           const s = SETUP_POR_ID.get(id);
           const href = `setups.html?setup=${encodeURIComponent(id)}`;
+          const abrir = () => abrirCasos({ ativo: a, setupId: id, nomeSetup: s?.nome ?? id, vies: s?.vies, tf, resumo: e,
+            principal: B.principal?.[tf] ?? (tf === "W" ? B.principal?.S ?? 8 : 10) });
           return el("tr", { class: poucos ? "poucos" : null, title: poucos ? `Só ${e.n} caso(s): pouco para tirar conclusão` : s?.desc ?? null,
-            onclick: (ev) => { if (!ev.target.closest("a")) location.href = href; } },
-            el("td", {}, el("b", { class: classeLado(s?.vies) }, setaLado(s?.vies)), el("a", { class: "link-setup", href }, s?.nome ?? id)),
+            onclick: (ev) => { if (!ev.target.closest("a, button")) abrir(); } },
+            el("td", {}, el("b", { class: classeLado(s?.vies) }, setaLado(s?.vies)),
+              el("button", { type: "button", class: "link-setup botao-casos", title: `Ver os ${e.n} casos de ${s?.nome ?? id} no gráfico`, onclick: abrir }, s?.nome ?? id),
+              " ", el("a", { class: "bt-ver", href, title: "Ver os ativos neste setup agora" }, "hoje →")),
             el("td", {}, NOME_TF_EVENTO[tf] ?? tf),
-            el("td", { class: "num" }, String(e.n)),
+            el("td", { class: "num" }, el("span", { class: "bt-casos-link" }, `${e.n} ›`)),
             el("td", { class: "num" }, e.acerto == null ? "—" : `${fmtNum(e.acerto, 0)}%`),
             el("td", { class: "num" }, sinal(e.medio)),
             el("td", { class: "num" }, sinal(e.mediana)),
@@ -289,6 +393,7 @@ function renderPanorama(a) {
 
 document.addEventListener("keydown", (e) => {
   if (!R || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || document.fullscreenElement) return;
+  if (document.body.classList.contains("dr-travado")) return;  // janela dos casos aberta
   if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); vizinho(e.key === "ArrowRight" ? 1 : -1); }
 });
@@ -302,6 +407,7 @@ async function iniciar() {
   document.querySelector(".cab-ativo").append(avisoFormacao(R));
   await catalogo;
   painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
+  prepararCondicoes();
   // diário: o trade salvo no gráfico leva o setup mais recente do mesmo lado e o tempo do gráfico
   if (painel.simulador) painel.simulador.contexto = (p) => {
     const ev = eventosDoAtivo(R, p.ticker).filter((e) => e.lado === p.lado);
@@ -341,6 +447,7 @@ async function iniciar() {
     F = f;
     const a = porTicker.get(ficha.ticker);
     if (a) renderLateral(a);
+    condicoes();
   });
   await abrirSimulacaoDoEndereco();
 }
