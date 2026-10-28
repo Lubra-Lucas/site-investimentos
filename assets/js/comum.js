@@ -680,7 +680,6 @@ const AJUDA = {
     "Oportunidades de hoje: quantos setups dispararam no último pregão fechado de cada mercado. Clique num setup para ver os ativos dele, ou em Simular trade para treinar a entrada.",
     "R é a unidade de risco: o stop vale −1R (você perde o que se dispôs a arriscar) e um alvo com o dobro da distância vale +2R. Assim os trades ficam comparáveis, seja qual for o preço do ativo.",
     "Meus trades: os trades que você simulou, o resultado de cada um em R e o total do mês. O Diário guarda o histórico e as estatísticas.",
-    "Os três passos podem ser recolhidos depois que você pegar o jeito; o botão \"Como funciona\" os traz de volta.",
   ]],
   carteira: ["Carteira", [
     "O que você tem e acompanha: posições, simulações e a sua lista de ativos, com os setups que dispararam em cada um.",
