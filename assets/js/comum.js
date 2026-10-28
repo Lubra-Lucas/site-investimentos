@@ -1,6 +1,20 @@
 /* Código compartilhado pelas páginas: formatação, dados, indicadores e o gráfico. */
 
-const LWC = window.LightweightCharts;
+// a biblioteca de gráficos: carregada no <head> das páginas com gráfico; nas outras (Início), sob demanda (carregarGraficos)
+let LWC = window.LightweightCharts;
+const URL_LWC = "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js";
+let _lwcPromessa = null;
+function carregarGraficos() {
+  if (window.LightweightCharts) { LWC = window.LightweightCharts; return Promise.resolve(LWC); }
+  _lwcPromessa ??= new Promise((ok) => {
+    const s = document.createElement("script");
+    s.src = URL_LWC;
+    s.onload = () => { LWC = window.LightweightCharts; ok(LWC); };
+    s.onerror = () => ok(null);
+    document.head.append(s);
+  });
+  return _lwcPromessa;
+}
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 // ------------------------------------------------------------- formatação
@@ -867,14 +881,15 @@ function navegacao(pagina) {
 let _diarioPromessa = null;
 function carregarDiario() {
   const api = () => (typeof Diario !== "undefined" ? Diario : window.Diario) ?? null;
-  if (api()) return Promise.resolve(api());
-  _diarioPromessa ??= new Promise((ok) => {
+  if (api()) return carregarGraficos().then(api);
+  // o editor do trade tem gráfico: a biblioteca vem antes (o Início não a carrega no <head>)
+  _diarioPromessa ??= carregarGraficos().then(() => new Promise((ok) => {
     const s = document.createElement("script");
     s.src = "assets/js/diario-dados.js";
     s.onload = () => ok(api());
     s.onerror = () => ok(null);
     document.head.append(s);
-  });
+  }));
   return _diarioPromessa;
 }
 
