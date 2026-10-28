@@ -129,7 +129,10 @@
   const candlesDe = async (t) => carregarCandles((await ativoDe(t.ticker))?.arquivo ?? t.ticker);
 
   const trades = () => Simulacoes.todas();
-  const trade = (id) => Simulacoes.todas().find((t) => t.id === id) ?? null;
+  // rascunhos: trades abertos por "Simular" que ainda não foram salvos. Vivem só na memória (id -> trade) até "Salvar trade";
+  // `trade(id)` e `gravar(id, patch)` enxergam o rascunho, mas `trades()` (a lista do diário) e o localStorage não.
+  const rascunhos = new Map();
+  const trade = (id) => rascunhos.get(id) ?? Simulacoes.todas().find((t) => t.id === id) ?? null;
 
   /** Reavalia o trade com os candles diários (honra a saída manual). Acrescenta `fechado`, `dias` e `ultima`. */
   async function avaliar(t) {
@@ -152,6 +155,11 @@
   function gravar(id, patch) {
     const t = trade(id);
     if (!t) return null;
+    if (rascunhos.has(id)) {  // muda o próprio objeto (o Simulador do editor desenha e arrasta esta mesma referência); nada é gravado
+      Object.assign(t, patch);
+      for (const k of Object.keys(patch)) if (patch[k] === undefined) delete t[k];
+      return t;
+    }
     const novo = { ...t, ...patch };
     for (const k of Object.keys(patch)) if (patch[k] === undefined) delete novo[k];
     Simulacoes.salvar(novo);
@@ -213,6 +221,7 @@
 
   /** Guarda a foto no IndexedDB e a liga ao trade. tipo: "entrada" | "saida" | "outra". Devolve o id. */
   async function salvarFoto(tradeId, blob, tipo = "outra", extra = {}) {
+    if (rascunhos.has(tradeId)) throw new Error("Salve o trade antes de anexar fotos.");  // evita foto órfã no IndexedDB
     const id = extra.id ?? novoIdFoto();
     await fotoGravar({ id, trade: tradeId, tipo, blob, criada: extra.criada ?? new Date().toISOString() });
     const t = trade(tradeId);
@@ -236,14 +245,18 @@
   /** Fotografa o gráfico e guarda no trade (usado ao salvar a simulação no gráfico). */
   async function fotografar(tradeId, grafico, tipo = "entrada", opcoes = {}) {
     const t = trade(tradeId);
-    if (!t || !grafico?.chart?.takeScreenshot) return null;
+    if (!t || rascunhos.has(tradeId) || !grafico?.chart?.takeScreenshot) return null;
     const blob = await capturar(grafico, t, opcoes);
     return blob ? salvarFoto(tradeId, blob, tipo) : null;
   }
 
   // ---------------------------------------------------------- criar o trade
 
-  /** Contexto {ticker, lado?, setup?, tf?, data?, preco?, entrada?, stop?, alvo?, origem?} -> trade salvo (e editor aberto). */
+  /**
+   * Contexto {ticker, lado?, setup?, tf?, data?, preco?, entrada?, stop?, alvo?, origem?} -> trade.
+   * Com `abrirEditor` (padrão), o trade é um RASCUNHO: fica só na memória e o editor abre em modo rascunho; fechar sem
+   * "Salvar trade" descarta tudo. Com `abrirEditor: false` (uso programático), o trade é salvo direto, como antes.
+   */
   async function registrar(ctx = {}, { grafico = null, abrirEditor = true } = {}) {
     const a = await ativoDe(ctx.ticker);
     if (!a) { aviso(`Não encontrei ${ctx.ticker ?? "o ativo"} nos dados publicados.`); return null; }
@@ -268,11 +281,14 @@
       capital: capitalPadrao(a, niv.entrada),
       criada: ctx.data ?? a.data, preco_criacao: preco,
     }, { setup: ctx.setup, tf: ctx.tf, estrategia: ctx.estrategia, origem: ctx.origem ?? "manual" });
+    if (abrirEditor) {
+      rascunhos.set(t.id, t);
+      abrir(t.id, { grafico, fotoEntrada: true });  // sem await: o editor carrega os candles; o rascunho já vale
+      return t;
+    }
     Simulacoes.salvar(t);
     avisar();
-    // a foto da entrada sai do gráfico do editor (com entrada, stop e alvo desenhados); sem editor, do gráfico da página
-    if (abrirEditor) abrir(t.id, { grafico, fotoEntrada: true });
-    else if (grafico) await fotografar(t.id, grafico, "entrada").catch(() => {});
+    if (grafico) await fotografar(t.id, grafico, "entrada").catch(() => {});
     return trade(t.id) ?? t;
   }
 
@@ -364,10 +380,20 @@
     if (!ed) return;
     const e = ed;
     e.vaiFechar = true;
-    e.descarregar?.();
+    clearTimeout(e.timer);
+    if (e.rascunho) {  // rascunho não salvo: descarta (nada foi gravado, nem fotos)
+      rascunhos.delete(e.id);
+      e.pend = {};
+    } else e.descarregar?.();
     e.soltar?.();
     document.body.classList.remove("dr-travado");
     ed = null;
+    // salvou agora e a foto da entrada ainda está sendo tirada: o gráfico só sai depois dela
+    if (e.capturando) {
+      Object.assign(e.fundo.style, { visibility: "hidden", pointerEvents: "none" });
+      e.capturando.finally(() => { e.g?.remover(); e.fundo.remove(); });
+      return;
+    }
     // trade novo sem foto: a foto da entrada sai com os níveis onde a pessoa deixou. O editor some na hora, mas o
     // gráfico só sai depois da captura (uma captura síncrona logo depois de gravar travava a página)
     const t = trade(e.id);
@@ -402,7 +428,7 @@
     const cur = () => trade(id);
     const sid = (s) => `dr-${s}`;
     const e = { id, av: null, fundo: null, g: null, sim: null, pend: {}, timer: 0, marcas: null, inputs: {},
-      fotoEntrada: !!opcoes.fotoEntrada, ultimoValido: null };
+      fotoEntrada: !!opcoes.fotoEntrada, ultimoValido: null, rascunho: rascunhos.has(id), modificado: false, capturando: null };
     ed = e;
     const moeda = a?.moeda ?? t0.moeda;
     const casas = (v) => casasPreco(v || 1, moeda);
@@ -413,7 +439,27 @@
     const resultadoEl = el("div", { class: "dr-resultado" });
     const datasEl = el("p", { class: "sub dr-datas" });
     const salvoEl = el("span", { class: "dr-salvo sub", role: "status" }, "");
-    const fechar = el("button", { class: "fechar", "aria-label": "Fechar editor", onclick: () => fecharEditor() }, "×");
+    // X, Esc e clique no fundo passam por aqui: rascunho mexido pede confirmação; o resto fecha direto
+    const pedirFechar = () => {
+      if (e.vaiFechar) return;
+      if (!confirmaDescarte.hidden) { cancelarDescarte(); return; }  // Esc de novo = continuar editando
+      if (e.rascunho && e.modificado) {
+        confirmaDescarte.hidden = false;
+        confirmaDescarte.scrollIntoView?.({ block: "nearest" });
+        confirmaDescarte.querySelector("button").focus();
+      } else fecharEditor();
+    };
+    const cancelarDescarte = () => { confirmaDescarte.hidden = true; (e.rascunho ? botSalvarTopo : dialogo).focus(); };
+    const fechar = el("button", { class: "fechar", "aria-label": e.rascunho ? "Fechar e descartar o rascunho" : "Fechar editor", onclick: pedirFechar }, "×");
+    const confirmaDescarte = el("div", { class: "dr-confirma dr-confirma-descarte", role: "alertdialog", "aria-labelledby": sid("descarte-txt"), hidden: true },
+      el("span", { id: sid("descarte-txt") }, "Descartar este trade? Ele não foi salvo."),
+      el("button", { type: "button", class: "botao perigo", onclick: () => fecharEditor() }, "Descartar"),
+      el("button", { type: "button", class: "botao", onclick: cancelarDescarte }, "Continuar editando"));
+    const botSalvarTopo = el("button", { type: "button", class: "botao primario dr-salvar-trade", onclick: () => salvarRascunho() }, "Salvar trade");
+    const botSalvarFim = el("button", { type: "button", class: "botao primario dr-salvar-trade", onclick: () => salvarRascunho() }, "Salvar trade");
+    const botDescartar = el("button", { type: "button", class: "botao", onclick: pedirFechar }, "Descartar");
+    const dicaSalvar = el("p", { class: "sub dr-dica-rascunho", id: sid("dica-rascunho") },
+      "Este trade ainda não foi salvo: se você fechar, ele some. Ajuste os níveis e a tese e clique em Salvar trade para registrá-lo no diário.");
 
     // ---- gráfico
     const corpoGraf = el("div", { class: "dr-grafico", role: "img", "aria-label": `Gráfico de ${semSufixo(t0.ticker)} com entrada, stop e alvo` });
@@ -427,8 +473,9 @@
       for (const f of ev.target.files) await adicionarImagem(f);
       ev.target.value = "";
     } });
-    const botaoCapturar = el("button", { class: "botao", type: "button", title: "Tira uma foto do gráfico desta página, com entrada, stop e alvo",
+    const botaoCapturar = el("button", { class: "botao dr-so-salvo", type: "button", title: "Tira uma foto do gráfico desta página, com entrada, stop e alvo",
       onclick: async () => {
+        if (e.rascunho) return;
         try {
           const blob = await capturar(opcoes.grafico, cur());
           if (blob) { await salvarFoto(id, blob, tipoFoto.value); aviso("Foto do gráfico guardada."); }
@@ -436,16 +483,18 @@
         await vistaFotos();
       } }, "Capturar gráfico");
     async function adicionarImagem(arq) {
+      if (e.rascunho) { aviso("Salve o trade para anexar fotos."); return; }
       if (!arq?.type?.startsWith("image/")) { aviso("Só imagens (PNG, JPG...)."); return; }
       await salvarFoto(id, await reduzir(arq), tipoFoto.value);
       await vistaFotos();
     }
 
+    const fotosDica = el("p", { class: "sub dr-fotos-dica", hidden: !e.rascunho }, "Salve o trade para anexar fotos. A foto da entrada é tirada ao salvar.");
     // ---- campos
     const campoTexto = (rot, chave, ajuda, linhas = 3) => {
       const ta = el("textarea", { id: sid(chave), rows: linhas, placeholder: ajuda, "aria-label": rot });
       ta.value = t0[chave] ?? "";
-      ta.addEventListener("input", () => agendar(chave, ta.value));
+      ta.addEventListener("input", () => { if (e.rascunho) e.modificado = true; agendar(chave, ta.value); });
       ta.addEventListener("blur", () => descarregar());
       return el("div", { class: "dr-campo" }, el("label", { for: sid(chave) }, rot), ta);
     };
@@ -595,12 +644,35 @@
     } }, "Excluir");
     const vistaAcoes = () => { botArquivar.textContent = cur()?.arquivado ? "Desarquivar" : "Arquivar"; };
 
+    const saidaSet = el("fieldset", { class: "dr-niveis" }, el("legend", {}, "Saída manual"), saidaEl);
+    // modo rascunho x trade salvo: o que aparece, o que está desligado
+    function modoTela() {
+      const r = e.rascunho;
+      botSalvarTopo.hidden = botSalvarFim.hidden = botDescartar.hidden = !r;
+      botArquivar.hidden = botExcluir.hidden = r;
+      saidaSet.hidden = r;
+      dicaSalvar.hidden = !r;
+      fotosDica.hidden = !r;
+      dialogo.classList.toggle("e-rascunho", r);
+      fechar.setAttribute("aria-label", r ? "Fechar e descartar o rascunho" : "Fechar editor");
+      for (const b of dialogo.querySelectorAll(".dr-so-salvo")) {
+        if (b.dataset.titulo === undefined) b.dataset.titulo = b.title;
+        b.disabled = r;
+        b.title = r ? "Salve o trade para anexar fotos" : b.dataset.titulo;
+      }
+      tipoFoto.disabled = r;
+      const ok = !r || contasSimulacao(cur() ?? {}).valido;
+      botSalvarTopo.disabled = botSalvarFim.disabled = !ok;
+    }
+
     // ---- montagem
     const dialogo = el("div", { class: "dr-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": sid("titulo"), tabindex: "-1" },
       el("header", { class: "dr-cab" },
         el("div", { class: "dr-cab-id" }, tituloEl, chipsEl, datasEl),
         resultadoEl,
-        el("div", { class: "dr-cab-acoes" }, salvoEl, fechar)),
+        el("div", { class: "dr-cab-acoes" }, salvoEl, e.rascunho ? botSalvarTopo : null, fechar)),
+      confirmaDescarte,
+      e.rascunho ? dicaSalvar : null,
       el("div", { class: "dr-corpo" },
         el("section", { class: "dr-col-esq", "aria-label": "Gráfico e fotos" },
           corpoGraf, resumoEl,
@@ -612,7 +684,8 @@
             el("div", { class: "dr-acoes" },
               el("label", { class: "dr-rot-tipo", for: tipoFoto.id }, "Tipo"), tipoFoto,
               opcoes.grafico && !opcoes.grafico.removido ? botaoCapturar : null,
-              el("button", { type: "button", class: "botao", onclick: () => arquivoEl.click() }, "Anexar imagem"), arquivoEl)),
+              el("button", { type: "button", class: "botao dr-so-salvo", onclick: () => arquivoEl.click() }, "Anexar imagem"), arquivoEl)),
+          fotosDica,
           galeria,
           el("p", { class: "sub" }, "Dica: com o editor aberto, cole uma imagem da área de transferência (Ctrl+V).")),
         el("section", { class: "dr-col-dir", "aria-label": "Diário do trade" },
@@ -630,15 +703,16 @@
               nivel("Alvo", "alvo", (1 / 10 ** casas(t0.entrada)).toString()),
               nivel(`Capital (${moeda === "USD" ? "US$" : "R$"})`, "capital", "100")),
             msgNiveis),
-          el("fieldset", { class: "dr-niveis" }, el("legend", {}, "Saída manual"), saidaEl),
-          el("div", { class: "dr-acoes dr-rodape" }, botArquivar, botExcluir,
+          saidaSet,
+          el("div", { class: "dr-acoes dr-rodape" }, botSalvarFim, botDescartar, botArquivar, botExcluir,
             a ? el("a", { class: "botao", href: `ativo.html#${encodeURIComponent(t0.ticker)}` }, "Abrir o ativo") : null),
           confirmaEl)));
-    const fundo = el("div", { class: "modal-fundo dr-fundo", onclick: (ev) => { if (ev.target === fundo) fecharEditor(); } }, dialogo);
+    const fundo = el("div", { class: "modal-fundo dr-fundo", onclick: (ev) => { if (ev.target === fundo) pedirFechar(); } }, dialogo);
     e.fundo = fundo;
     document.body.append(fundo);
     document.body.classList.add("dr-travado");
-    e.soltar = prender(dialogo, fecharEditor);
+    e.soltar = prender(dialogo, pedirFechar);
+    modoTela();
     dialogo.focus();
 
     fundo.addEventListener("paste", async (ev) => {
@@ -651,6 +725,7 @@
     // ---- ações de gravação
     function agendar(chave, valor) {
       e.pend[chave] = valor;
+      if (e.rascunho) e.modificado = true;
       clearTimeout(e.timer);
       e.timer = setTimeout(descarregar, 600);
     }
@@ -663,10 +738,41 @@
     e.descarregar = descarregar;
     function gravarCampo(patch) {
       if (!gravar(id, patch)) return;
-      salvoEl.textContent = "Salvo";
-      clearTimeout(e.salvoT);
-      e.salvoT = setTimeout(() => { salvoEl.textContent = ""; }, 1800);
+      if (e.rascunho) e.modificado = true;
+      else {
+        salvoEl.textContent = "Salvo";
+        clearTimeout(e.salvoT);
+        e.salvoT = setTimeout(() => { salvoEl.textContent = ""; }, 1800);
+      }
       if (!e.vaiFechar) vista();
+    }
+
+    /** "Salvar trade": grava o rascunho de verdade, tira a foto da entrada e passa o mesmo editor para o modo de trade salvo. */
+    function salvarRascunho() {
+      if (!e.rascunho || e.vaiFechar) return;
+      descarregar();
+      const t = rascunhos.get(id);
+      if (!t || !contasSimulacao(t).valido) { aviso("Ajuste os níveis: na compra o stop fica abaixo da entrada e o alvo acima."); return; }
+      rascunhos.delete(id);
+      e.rascunho = false;
+      e.fotoEntrada = false;  // a foto sai agora, não ao fechar
+      Simulacoes.salvar(t);
+      if (e.sim) { e.sim.rascunho = e.sim.rascunhoFixo = null; e.sim.editando = id; }
+      avisar();
+      aviso("Trade salvo no Diário");
+      confirmaDescarte.hidden = true;
+      e.tipoDefinido = false;
+      modoTela();
+      vista();
+      dialogo.focus();
+      // o gráfico precisa assentar depois de salvar/redesenhar: `capturar` espera 150 ms (síncrono travava a página)
+      if (e.g?.chart && !e.g.removido) {
+        const p = capturar(e.g, t, { linhas: false })
+          .then((b) => (b && trade(id) && !(trade(id).fotos ?? []).length ? salvarFoto(id, b, "entrada") : null))
+          .then(() => { if (ed === e) return vistaFotos(); }).catch(() => {})
+          .finally(() => { if (e.capturando === p) e.capturando = null; });
+        e.capturando = p;
+      }
     }
 
     // ---- vista (cabeçalho, gráfico, saída) reavaliada a cada mudança
@@ -680,8 +786,9 @@
       tituloEl.replaceChildren(...limpo([el("a", { href: `ativo.html#${encodeURIComponent(t.ticker)}`, class: "mono" }, semSufixo(t.ticker)),
         a2 ? el("span", { class: "sub dr-nome" }, ` ${a2.nome}`) : null]));
       chipsEl.replaceChildren(...limpo([
+        e.rascunho ? el("span", { class: "dr-chip rascunho" }, "Rascunho: ainda não salvo") : null,
         el("span", { class: `dr-chip ${t.lado === "compra" ? "alta" : "baixa"}` }, rotuloLado(t.lado)),
-        chipEstado(av),
+        e.rascunho ? null : chipEstado(av),
         t.setup ? el("span", { class: "dr-chip" }, nomeDoSetup(t.setup)) : null,
         t.arquivado ? el("span", { class: "dr-chip aviso" }, "Arquivado") : null]));
       resultadoEl.replaceChildren(
@@ -693,8 +800,9 @@
       if (contasSimulacao(t).valido) e.ultimoValido = { entrada: t.entrada, stop: t.stop, alvo: t.alvo };
       mostrarNiveis(t);
       desenharGrafico(t, av);
-      vistaSaida();
+      if (!e.rascunho) vistaSaida();
       vistaAcoes();
+      modoTela();
       // o tipo da próxima foto sugere o que falta
       if (!e.tipoDefinido) {
         e.tipoDefinido = true;
@@ -765,7 +873,8 @@
       e.g.sinais = [];
       // o mesmo simulador da página do ativo: linhas arrastáveis e zonas de risco/retorno, só deste trade
       e.sim = new Simulador(e.g, corpoGraf, null, null, { so: id, arrastar: true,
-        aoArrastar: (p) => mostrarNiveis(p), aoMudar: (p) => aposArrastar(p) });
+        aoArrastar: (p) => mostrarNiveis(p), aoMudar: (p) => aposArrastar(p),
+        rascunho: e.rascunho ? cur() : null });
       const ok = await e.g.mostrar(a.arquivo, "D").catch(() => false);
       if (ok && ed === e && e.av) {
         await e.sim.definirAtivo(a);

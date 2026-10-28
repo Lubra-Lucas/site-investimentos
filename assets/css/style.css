@@ -2531,7 +2531,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .grafico-claro .ferramentas, .grafico-claro .ferramentas.compacta:not(.aberta) { background: rgba(255, 255, 255, 0.85); border-color: #d6dae0; }
 .grafico-claro .ferramentas .ferr { color: #4a5361; }
 
-/* ---------- Backtest: casos de um ativo (janela com gráfico e lista, backtest.js abrirCasos) ---------- */
+/* ---------- Backtest: casos de um ativo (janela com gráfico e lista, casos.js abrirCasos) ---------- */
 .bt-ativo { padding: 0; align-items: stretch; flex-wrap: nowrap; gap: 0; }
 .bt-ativo-botao {
   flex: 1; min-width: 0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 8px;
@@ -2568,4 +2568,43 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .bt-casos-tabela { font-size: var(--t-sm); }
   .bt-casos-tabela th, .bt-casos-tabela td { padding-inline: 6px; }
   .bt-casos-data { display: block; }
+}
+
+/* ---------- Ativo: condições dos setups no gráfico e histórico com casos (ativo.js, casos.js) ---------- */
+.cond-grafico {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; padding: 6px 8px;
+  background: var(--bg-elev); border: 1px solid var(--borda); border-radius: 8px;
+}
+.cond-grafico[hidden] { display: none; }
+.cond-rotulo { font: 11px var(--mono); color: var(--texto-fraco); }
+.cond-opcoes { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.chip-cond {
+  min-height: var(--h-sm); padding: 2px 10px; border-radius: 999px; border: 1px solid var(--borda-forte);
+  background: transparent; color: var(--texto); font: inherit; font-size: 12px; cursor: pointer; max-width: 100%;
+}
+.chip-cond:hover { border-color: var(--acento); }
+.chip-cond[aria-pressed="true"] { background: color-mix(in srgb, var(--acento) 20%, transparent); border-color: var(--acento); font-weight: 600; }
+.cond-nota { margin: 0; }
+.cond-legenda { flex-basis: 100%; margin-top: 0; }
+.ficha-sinal.cond-ativa { border-top-color: var(--acento); border-right-color: var(--acento); border-bottom-color: var(--acento); }
+.tabela-historico .botao-casos {
+  background: none; border: 0; padding: 0; margin-left: 2px; font: inherit; color: var(--texto); text-align: left; cursor: pointer;
+}
+.tabela-historico .botao-casos:hover { color: var(--acento); text-decoration: underline; }
+.tabela-historico .bt-ver { margin-left: 4px; font-size: 11px; }
+@media (max-width: 600px) {
+  .cond-grafico { padding: 6px; }
+  .chip-cond { min-height: var(--h-md); }
+}
+
+/* ---------- Editor do trade: modo rascunho (trade aberto por "Simular" que ainda não foi salvo) ---------- */
+.dr-chip.rascunho { color: var(--aviso); border-color: rgba(227, 162, 59, 0.7); background: rgba(227, 162, 59, 0.12); }
+.dr-modal.e-rascunho { border-color: rgba(227, 162, 59, 0.55); }
+.dr-dica-rascunho { margin: 0; padding: 8px 10px; border-left: 3px solid var(--aviso); background: rgba(227, 162, 59, 0.08); border-radius: 4px; }
+.dr-fotos-dica { margin: 0; }
+.dr-confirma-descarte { position: sticky; top: 0; z-index: 3; background: var(--bg); }
+.dr-salvar-trade { font-weight: 700; }
+.dr-modal .dr-so-salvo:disabled { opacity: 0.45; cursor: not-allowed; }
+@media (max-width: 600px) {
+  .dr-cab-acoes { flex-wrap: wrap; justify-content: flex-end; }
 }

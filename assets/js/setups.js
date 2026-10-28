@@ -6,12 +6,14 @@
 
 const estado = Object.assign({
   mercado: "", tf: "D", periodo: 1, lado: "compra", estilo: "tendencia", setup: "todos",
-  so2: false, ordem: "confluencia", grade: "3", tfGrafico: "D", camadas: "condicoes",
+  so2: false, ordem: "confluencia", grade: "2", tfGrafico: "D", camadas: "condicoes",
   pagina: 0, verVazios: false, modo: "simples", soAtualizados: true, editando: false, minhas: null,
 }, guardar.ler("setups-v1", {}));
 estado.ticker = null;  // o ativo aberto vem do endereço (#PETR4.SA), não fica salvo
 delete estado.visao;   // a antiga visão "lista + gráfico" saiu: só a grade
 delete estado.arvore;  // a árvore deu lugar à navegação lateral
+// a grade padrão passou de 3×3 para 2×2 (gráficos maiores): vale uma vez para quem já tinha a antiga salva
+if (!estado.grade2x2) { estado.grade = "2"; estado.grade2x2 = true; }
 // modo simples (padrão): perguntas sem termos técnicos e sinais só do último pregão; trader: setups pelo nome, período e Meus setups
 if (!["simples", "trader"].includes(estado.modo)) estado.modo = "simples";
 const simples = () => estado.modo === "simples";
