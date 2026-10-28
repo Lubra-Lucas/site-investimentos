@@ -2049,6 +2049,7 @@ main.triagem { padding-top: 10px; gap: 10px; }
 .inicio-intro h1 { margin: 0; font-size: clamp(var(--t-2xl), 4vw, 38px); line-height: 1.15; letter-spacing: -0.02em; max-width: 22em; text-wrap: balance; }
 .hero-sub { margin: 0; max-width: 62ch; color: var(--texto); font-size: var(--t-lg); line-height: 1.6; }
 .hero-acoes { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-2); }
+.hero-acoes .botao { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .botao-grande { min-height: var(--h-lg); padding: 0 var(--s-5); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-size: var(--t-md); font-weight: 600; }
 .recursos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); }
 .recurso { display: grid; gap: var(--s-2); align-content: start; padding: var(--s-4); border-radius: var(--r-lg); background: var(--bg-painel); border: 1px solid var(--borda-forte); }
