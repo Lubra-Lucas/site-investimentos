@@ -136,9 +136,21 @@ class Simulador {
     requestAnimationFrame(loop);
   }
 
+  /** Bateu no alvo, no stop ou foi encerrada à mão (precisa dos candles; sem eles, ainda não se sabe). */
+  concluida(p) {
+    if (!this.diarios) return false;
+    const chave = `${p.id}|${p.entrada}|${p.stop}|${p.alvo}|${p.criada}|${p.saida_manual?.data ?? ""}|${this.diarios.length}`;
+    this._concluidas ??= new Map();
+    if (!this._concluidas.has(chave)) this._concluidas.set(chave, ["alvo", "stop", "manual"].includes(avaliarSimulacao(p, this.diarios).estado));
+    return this._concluidas.get(chave);
+  }
+
+  /** O que aparece no gráfico: as simulações em andamento (aberta ou aguardando entrada) e o rascunho. Uma concluída
+   *  só aparece se for a escolhida (chip da boleta, ou o trade aberto no editor do diário). */
   visiveis() {
     if (!this.ativo) return [];
-    const salvas = Simulacoes.doAtivo(this.ativo.ticker).filter((p) => !this.so || p.id === this.so);
+    const salvas = Simulacoes.doAtivo(this.ativo.ticker)
+      .filter((p) => (this.so ? p.id === this.so : p.id === this.editando || !this.concluida(p)));
     return this.rascunho ? [...salvas, this.rascunho] : salvas;
   }
 
@@ -155,12 +167,13 @@ class Simulador {
   async definirAtivo(a) {
     this.ativo = a;
     this.rascunho = this.rascunhoFixo;
-    const salvas = Simulacoes.doAtivo(a.ticker);
-    this.editando = this.so ?? (salvas.length ? salvas[salvas.length - 1].id : null);
+    this.editando = this.so;
     this.diarios = null;
     const diarios = (await carregarCandles(a.arquivo)).candles;
     if (this.ativo !== a) return;  // trocou de ativo enquanto carregava
     this.diarios = diarios;
+    // abre na simulação em andamento mais recente; as concluídas ficam só nos chips da boleta
+    if (!this.so) this.editando = Simulacoes.doAtivo(a.ticker).filter((p) => !this.concluida(p)).at(-1)?.id ?? null;
     if (this.g.removido) return;
     this.desenhar();
     this.renderBoleta();
