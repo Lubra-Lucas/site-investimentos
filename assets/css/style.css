@@ -2034,33 +2034,85 @@ main.triagem { padding-top: 10px; gap: 10px; }
   .ajuda { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; max-height: calc(100vh - 150px); overflow-y: auto; }
 }
 
-/* ---------- Início ---------- */
-.pagina-inicio { max-width: 1240px; gap: 16px; }
-/* apresentação fixa do topo (hero + recursos + 3 passos + palavras-chave + aviso); sem recolher */
+/* ---------- Início (página de apresentação) ---------- */
+.pagina-inicio { max-width: 1240px; gap: 48px; padding-top: 20px; }
 .inicio-intro {
-  display: grid; gap: var(--s-5); padding: var(--s-6); border: 1px solid var(--borda); border-radius: var(--r-lg);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--acento) 12%, var(--bg-painel)), var(--bg-painel) 62%);
+  display: grid; gap: var(--s-6); padding: 40px var(--s-6); border: 1px solid var(--borda); border-radius: var(--r-lg);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--acento) 14%, var(--bg-painel)), var(--bg-painel) 62%);
 }
-.hero { display: grid; gap: var(--s-3); justify-items: start; }
+.hero { display: grid; gap: var(--s-4); justify-items: start; }
 .hero-selo {
   margin: 0; padding: var(--s-1) var(--s-3); border-radius: var(--r-pill); font-size: var(--t-sm); font-weight: 600; letter-spacing: 0.02em;
   color: var(--acento); background: color-mix(in srgb, var(--acento) 14%, transparent); border: 1px solid color-mix(in srgb, var(--acento) 40%, transparent);
 }
-.inicio-intro h1 { margin: 0; font-size: clamp(var(--t-2xl), 4vw, 38px); line-height: 1.15; letter-spacing: -0.02em; max-width: 22em; text-wrap: balance; }
+.inicio-intro h1 { margin: 0; font-size: clamp(var(--t-3xl), 4.4vw, 44px); line-height: 1.12; letter-spacing: -0.025em; max-width: 21em; text-wrap: balance; }
 .hero-sub { margin: 0; max-width: 62ch; color: var(--texto); font-size: var(--t-lg); line-height: 1.6; }
 .hero-acoes { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-2); }
-.hero-acoes .botao { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.pagina-inicio a.botao { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .botao-grande { min-height: var(--h-lg); padding: 0 var(--s-5); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-size: var(--t-md); font-weight: 600; }
 .recursos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); }
 .recurso { display: grid; gap: var(--s-2); align-content: start; padding: var(--s-4); border-radius: var(--r-lg); background: var(--bg-painel); border: 1px solid var(--borda-forte); }
 .recurso p { margin: 0; color: var(--texto-fraco); font-size: var(--t-md); line-height: 1.55; }
 .recurso-titulo { margin: 0; font-size: var(--t-lg); font-weight: 600; }
-.recurso-icone { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-md); color: var(--acento); background: color-mix(in srgb, var(--acento) 14%, transparent); }
+.recurso-icone { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-md); color: var(--acento); background: color-mix(in srgb, var(--acento) 14%, transparent); flex: none; }
 .icone-inicio { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.recursos-extra { margin: calc(-1 * var(--s-2)) 0 0; color: var(--texto-fraco); font-size: var(--t-md); line-height: 1.5; }
-.recursos-extra b { color: var(--texto); }
-.fluxo { display: grid; gap: var(--s-3); }
-.fluxo-titulo { margin: 0; font-size: var(--t-xl); font-weight: 600; }
+
+/* faixa "Seus trades": só aparece para quem já tem trades */
+.faixa-trades { margin-top: -24px; }
+.faixa-link {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-5); min-height: 48px; padding: var(--s-2) var(--s-4); border-radius: var(--r-lg);
+  background: var(--bg-elev); border: 1px solid var(--borda-forte); color: var(--texto); text-decoration: none; font-size: var(--t-md);
+}
+.faixa-link:hover { border-color: var(--acento); }
+.faixa-link .alta { color: var(--alta-texto); }
+.faixa-link .baixa { color: var(--baixa-texto); }
+.faixa-ir { margin-left: auto; color: var(--acento); font-weight: 600; }
+
+/* seções da página */
+.secao-inicio { display: grid; gap: var(--s-5); }
+.secao-cab { display: grid; gap: var(--s-2); }
+.secao-cab h2 { margin: 0; font-size: clamp(var(--t-xl), 3vw, 30px); line-height: 1.2; letter-spacing: -0.015em; text-wrap: balance; }
+.secao-lead { margin: 0; max-width: 70ch; color: var(--texto-fraco); font-size: var(--t-md); line-height: 1.6; }
+.perfis { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
+.perfil {
+  display: grid; gap: var(--s-3); align-content: start; padding: var(--s-5); border-radius: var(--r-lg);
+  background: var(--bg-painel); border: 1px solid var(--borda-forte);
+}
+.perfil p { margin: 0; color: var(--texto-fraco); font-size: var(--t-md); line-height: 1.55; }
+.perfil p b { color: var(--texto); }
+.perfil-cab { display: flex; align-items: center; gap: var(--s-3); }
+.perfil-cab > div { min-width: 0; }
+.perfil .perfil-quem { font-size: var(--t-sm); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--acento); }
+.perfil-titulo { margin: 0; font-size: var(--t-xl); font-weight: 600; line-height: 1.25; }
+.perfil-exemplo { padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--bg-elev); border: 1px dashed var(--borda-forte); display: grid; gap: var(--s-1); }
+.perfil .perfil-exemplo p { color: var(--texto); font-size: var(--t-base); }
+.perfil .perfil-exemplo .perfil-exemplo-rot { color: var(--texto-fraco); font-size: var(--t-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.perfil-cta { justify-self: start; display: inline-flex; align-items: center; min-height: var(--h-lg); text-decoration: none; font-weight: 600; margin-top: var(--s-1); }
+
+/* vitrine ao vivo */
+.hoje-filtros { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.hoje-filtros .segmento { flex-wrap: wrap; }
+.hoje-filtros .segmento button { min-height: 36px; padding: 0 14px; font-size: 13px; }
+.inicio-ativos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+.inicio-ativo { display: grid; gap: 8px; align-content: start; padding: 14px; border-radius: 10px; background: var(--bg-painel); border: 1px solid var(--borda-forte); border-left: 3px solid var(--alta); min-width: 0; }
+.inicio-ativo.lado-venda { border-left-color: var(--baixa); }
+.ia-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ia-nome { display: grid; min-width: 0; text-decoration: none; color: var(--texto); }
+.ia-nome b { font-size: 16px; }
+.ia-nome .cartao-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ia-spark svg { width: 96px; height: 30px; display: block; }
+.spark polyline { fill: none; stroke: var(--alta); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.spark.baixa polyline { stroke: var(--baixa); }
+.ia-preco { font-size: 14px; }
+.ia-preco .baixa, .inicio-ativo .baixa { color: var(--baixa-texto); }
+.inicio-ativo .chips { margin-top: 0; }
+.inicio-ativo .chip.setup { text-decoration: none; }
+.ia-acoes { display: flex; gap: 8px; }
+.ia-acoes .botao { flex: 1; text-align: center; display: inline-flex; align-items: center; justify-content: center; min-height: 36px; text-decoration: none; }
+.ia-acoes .botao.primario { flex: 1.4; }
+.ao-vivo-rodape { margin: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-3); }
+
+/* 3 passos e palavras-chave */
 .etapas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); }
 .etapa { position: relative; }
 .etapa + .etapa::before {
@@ -2078,85 +2130,21 @@ main.triagem { padding-top: 10px; gap: 10px; }
 .etapa-titulo { font-size: var(--t-lg); font-weight: 600; }
 .etapa-texto { color: var(--texto-fraco); font-size: var(--t-md); line-height: 1.55; }
 .etapa-cta { color: var(--acento); font-weight: 600; font-size: var(--t-md); margin-top: var(--s-1); }
+.termos-titulo { margin: var(--s-2) 0 calc(-1 * var(--s-2)); font-size: var(--t-lg); font-weight: 600; }
 .termos { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-3); }
 .termo { padding: var(--s-3); border-radius: var(--r-md); background: var(--bg-elev); border: 1px solid var(--borda); }
 .termo dt { font-weight: 700; color: var(--acento); font-size: var(--t-md); }
 .termo dd { margin: var(--s-1) 0 0; color: var(--texto-fraco); font-size: var(--t-base); line-height: 1.5; }
-.intro-aviso { margin: 0; color: var(--texto-fraco); font-size: var(--t-base); line-height: 1.5; padding-top: var(--s-3); border-top: 1px solid var(--borda); }
 
-.inicio-grade {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 16px; align-items: start;
-  grid-template-areas: "hoje trades";
-}
-.inicio-hoje { grid-area: hoje; }
-.inicio-trades { grid-area: trades; position: sticky; top: 72px; }
-.inicio-grade .painel-cab { margin-bottom: 12px; flex-wrap: nowrap; }
-.inicio-grade .painel-cab > div { min-width: 0; }
-.inicio-grade .painel-cab .botao { flex: none; text-decoration: none; }
-.inicio-grade h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.hoje-mercados { list-style: none; margin: 0 0 14px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-.hoje-mercado { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; padding: 10px 12px; border-radius: 10px; background: var(--bg-elev); border: 1px solid var(--borda); }
-.hoje-mercado-topo { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.hoje-lado { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 4px; }
-.hoje-n { font-size: 22px; font-weight: 700; line-height: 1.2; }
-.hoje-seta { font-size: 11px; }
-.hoje-rot { grid-column: 1 / -1; color: var(--texto-fraco); font-size: 12px; }
-.hoje-lado.compra .hoje-n, .hoje-lado.compra .hoje-seta { color: var(--alta-texto); }
-.hoje-lado.venda .hoje-n, .hoje-lado.venda .hoje-seta { color: var(--baixa-texto); }
-.hoje-filtros { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 14px; }
-.hoje-filtros .segmento { flex-wrap: wrap; }
-.hoje-filtros .segmento button { min-height: 36px; padding: 0 14px; font-size: 13px; }
-.hoje-setups { margin-bottom: 16px; }
-.hoje-setups .sub { margin-bottom: 8px; }
-.chips-setups { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.chip-setup {
-  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; text-decoration: none; font-size: 13px;
-  color: var(--texto); background: var(--bg-elev); border: 1px solid var(--borda-forte);
-}
-.chip-setup.vies-compra { border-color: rgba(34, 176, 125, 0.55); }
-.chip-setup.vies-venda { border-color: rgba(229, 72, 77, 0.6); }
-.chip-setup b { color: var(--bg); background: var(--texto); border-radius: 999px; padding: 0 7px; font-size: 12px; line-height: 20px; }
-.chip-setup:hover { background: color-mix(in srgb, var(--acento) 16%, var(--bg-elev)); }
-.hoje-ativos h3 { margin-bottom: 8px; }
-.inicio-ativos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 10px; }
-.inicio-ativo { display: grid; gap: 8px; align-content: start; padding: 12px; border-radius: 10px; background: var(--bg-elev); border: 1px solid var(--borda); border-left: 3px solid var(--alta); min-width: 0; }
-.inicio-ativo.lado-venda { border-left-color: var(--baixa); }
-.ia-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.ia-nome { display: grid; min-width: 0; text-decoration: none; color: var(--texto); }
-.ia-nome b { font-size: 16px; }
-.ia-nome .cartao-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ia-spark svg { width: 96px; height: 30px; display: block; }
-.spark polyline { fill: none; stroke: var(--alta); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
-.spark.baixa polyline { stroke: var(--baixa); }
-.ia-preco { font-size: 14px; }
-.ia-preco .baixa, .trades-abertos .baixa, .inicio-ativo .baixa { color: var(--baixa-texto); }
-.inicio-ativo .chips { margin-top: 0; }
-.inicio-ativo .chip.setup { text-decoration: none; }
-.ia-acoes { display: flex; gap: 8px; }
-.ia-acoes .botao { flex: 1; text-align: center; display: inline-flex; align-items: center; justify-content: center; min-height: 36px; text-decoration: none; }
-.ia-acoes .botao.primario { flex: 1.4; }
-
-.kpis-trades { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
-.kpis-trades .kpi { padding: 10px; }
-.kpis-trades .kpi-valor { font-size: 20px; }
-.kpis-trades .kpi-valor.baixa { color: var(--baixa-texto); }
-.kpis-trades .kpi-extra { font-family: Inter, sans-serif; color: var(--texto-fraco); }
-.trades-abertos { list-style: none; margin: 0; padding: 0; display: grid; }
-.trade-linha {
-  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 6px; border: 0; border-top: 1px solid var(--borda);
-  background: none; color: var(--texto); font: 13.5px Inter, sans-serif; text-align: left; text-decoration: none; cursor: pointer; border-radius: 6px;
-}
-.trade-linha:hover { background: var(--bg-elev); }
-.trade-linha > :last-child { margin-left: auto; }
-.trades-vazio { display: grid; gap: 6px; justify-items: start; padding: 16px; border: 1px dashed var(--borda-forte); border-radius: 10px; }
-.trades-vazio p { margin: 0; }
-.trades-vazio .botao { text-decoration: none; display: inline-flex; align-items: center; min-height: 36px; margin-top: 4px; }
-.nota-fonte { margin-top: 8px; }
+/* perguntas e aviso */
+.faq { display: grid; gap: var(--s-2); }
+.faq-item { border-radius: var(--r-md); background: var(--bg-painel); border: 1px solid var(--borda-forte); padding: 0 var(--s-4); }
+.faq-item summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; font-weight: 600; font-size: var(--t-md); }
+.faq-item p { margin: 0 0 var(--s-3); color: var(--texto-fraco); font-size: var(--t-md); line-height: 1.6; max-width: 70ch; }
+.intro-aviso { margin: 0; color: var(--texto-fraco); font-size: var(--t-base); line-height: 1.5; padding-top: var(--s-4); border-top: 1px solid var(--borda); }
 
 @media (max-width: 1000px) {
-  .inicio-grade { grid-template-columns: minmax(0, 1fr); grid-template-areas: "trades" "hoje"; }
-  .inicio-trades { position: static; }
-  .hoje-mercados { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .perfis { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 900px) {
   .recursos { grid-template-columns: minmax(0, 1fr); }
@@ -2167,20 +2155,22 @@ main.triagem { padding-top: 10px; gap: 10px; }
   .etapa + .etapa::before { content: "↓"; left: 30px; top: -15px; transform: none; }
 }
 @media (max-width: 600px) {
-  .pagina-inicio { padding-top: 12px; }
-  .inicio-intro { padding: var(--s-4); gap: var(--s-4); }
+  .pagina-inicio { padding-top: 12px; gap: 36px; }
+  .inicio-intro { padding: var(--s-5) var(--s-4); gap: var(--s-5); }
   .hero-sub { font-size: var(--t-md); }
   .hero-acoes { width: 100%; }
   .hero-acoes .botao-grande { flex: 1 1 100%; }
+  .faixa-trades { margin-top: -20px; }
+  .perfil { padding: var(--s-4); }
+  .perfil-cta { justify-self: stretch; justify-content: center; }
   .termos { grid-template-columns: minmax(0, 1fr); }
-  .inicio-grade .painel-cab .botao { min-height: 44px; display: inline-flex; align-items: center; }
   .ia-nome { min-height: 44px; align-content: center; }
-  .chip-setup, .hoje-filtros .segmento button, .ia-acoes .botao, .trades-vazio .botao { min-height: 44px; }
+  .hoje-filtros .segmento button, .ia-acoes .botao { min-height: 44px; }
   .hoje-filtros .segmento { width: 100%; }
   .hoje-filtros .segmento button { flex: 1 1 auto; }
   .inicio-ativos { grid-template-columns: minmax(0, 1fr); }
-  .kpis-trades .kpi-valor { font-size: 18px; }
-  .kpis-trades .kpi-rotulo { font-size: 11.5px; }
+  .ao-vivo-rodape .botao-grande { width: 100%; }
+  .faixa-ir { margin-left: 0; }
 }
 
 /* ---------- Simular trade: botão do card, botão do ativo, alvo de arrastar, botão da Triagem ---------- */
@@ -2235,18 +2225,15 @@ main.triagem { padding-top: 10px; gap: 10px; }
 .glossario dt { font-weight: 600; color: var(--texto); }
 .glossario dd { margin: 0; color: var(--texto-fraco); line-height: 1.5; }
 .ajuda-glossario { margin: 0 0 14px; }
-.ajuda-glossario summary, .inicio-glossario summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+.ajuda-glossario summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
 .ajuda .glossario { grid-template-columns: 1fr; gap: 0; }
 .ajuda .glossario dd { margin-bottom: 8px; }
-.inicio-glossario { padding: 6px 16px; }
-.inicio-glossario summary { min-height: 44px; }
 @media (max-width: 600px) { .glossario { grid-template-columns: 1fr; gap: 0; } .glossario dd { margin-bottom: 10px; } }
 
 /* ---------- ajustes: cabeçalho do card (com o botão Simular) e topo compacto no celular ---------- */
 .celula > header { flex-wrap: wrap; row-gap: 4px; }
 .celula > header .celula-nome { min-width: 0; flex: 1 1 90px; }
 .celula-acoes { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; min-width: 0; }
-.hoje-rot { white-space: nowrap; }
 @media (max-width: 600px) {
   .topo { flex-wrap: nowrap; }
   .topo:has(.busca-topo.aberta) { flex-wrap: wrap; }

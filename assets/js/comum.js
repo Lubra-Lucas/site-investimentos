@@ -677,9 +677,9 @@ document.addEventListener("keydown", (e) => {
 const AJUDA = {
   inicio: ["Início", [
     "O terminal serve a um ciclo só: encontrar uma boa oportunidade de compra ou venda, simular o trade (entrada, stop e alvo) e registrar no Diário para aprender com o resultado.",
-    "Oportunidades de hoje: quantos setups dispararam no último pregão fechado de cada mercado. Clique num setup para ver os ativos dele, ou em Simular trade para treinar a entrada.",
+    "A página mostra, para cada tipo de investidor (iniciante, longo prazo, trader, quem quer disciplina), como o terminal ajuda. Em \"Veja ao vivo\" estão os ativos com mais setups apontando no último pregão fechado: filtre por mercado e por compra ou venda e clique em Simular trade para treinar a entrada.",
     "R é a unidade de risco: o stop vale −1R (você perde o que se dispôs a arriscar) e um alvo com o dobro da distância vale +2R. Assim os trades ficam comparáveis, seja qual for o preço do ativo.",
-    "Meus trades: os trades que você simulou, o resultado de cada um em R e o total do mês. O Diário guarda o histórico e as estatísticas.",
+    "Seus trades: quando você já tem trades, uma faixa no topo mostra quantos estão em aberto e o R do mês. O Diário guarda o histórico e as estatísticas.",
   ]],
   carteira: ["Carteira", [
     "O que você tem e acompanha: posições, simulações e a sua lista de ativos, com os setups que dispararam em cada um.",

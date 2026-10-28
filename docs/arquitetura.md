@@ -62,10 +62,14 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
   ("229 ativos para comprar · A favor da tendência › todos os setups"), com Ordenar, "Só com 2+ setups", Baixar e
   ⚙ Exibição (grade 1, 2×2, 3×3, 4×3; tempo do gráfico; condições ou meus indicadores). `radar.html` e `multitela.html`
   redirecionam para cá.
-- **Início** (`index.html`, `assets/js/inicio.js`): o que o terminal faz e os 3 passos (encontrar → simular → registrar,
-  recolhíveis; `inicio-intro-v1`), oportunidades de hoje (contagem de ativos com setup de compra/venda no último pregão fechado
-  de cada mercado, a partir de `radar.json`, `tf: "D"`; setups de entrada mais frequentes, excluindo o grupo "Tendência", que é
-  estado; ativos com mais setups, com "Simular trade") e meus trades (abertos e R do mês, por `Diario` ou, sem ele, `Simulacoes`).
+- **Início** (`index.html`, `assets/js/inicio.js`): página de apresentação do terminal (landing). O texto fixo está no HTML:
+  hero (títulos e CTAs para Oportunidades e Diário) com os 3 recursos, "Para cada tipo de investidor" (iniciante, longo prazo,
+  trader, quem quer disciplina; cada um com dor, ajuda, exemplo ilustrativo sem promessa de retorno e CTA), "Como funciona, em 3
+  passos" com as 4 palavras-chave, e perguntas frequentes com o aviso de ferramenta de estudo. O `inicio.js` preenche só o que
+  tem dados: o selo do topo (ativos e mercados), a vitrine "Veja ao vivo: os ativos com mais setups apontando hoje" (de
+  `radar.json`, `tf: "D"`, último pregão fechado de cada mercado; setups de entrada, excluindo o grupo "Tendência", que é estado;
+  filtro de mercado e compra/venda em `inicio-v1`; "Ver gráfico" e "Simular trade") e a faixa "Seus trades" (`#inicio-trades`,
+  oculta para quem não tem trades; abertos e R do mês, por `Diario` ou, sem ele, `Simulacoes`).
 - **Navegação** (`montarTopo`/`navegacao` em `comum.js`): Início · Oportunidades (`setups.html`) · Diário (`diario.html`) · Mais
   (Triagem, Backtest, Carteira). No celular o mesmo `<nav>` vira barra de abas na base da tela (só CSS).
 - **Simular trade** (`simularTrade(ctx, {grafico})` em `comum.js`): `Diario.registrar` se existir (carregado sob demanda de
