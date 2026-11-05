@@ -189,7 +189,8 @@ body.com-cursor, body.com-cursor a, body.com-cursor button, body.com-cursor summ
 .numero span { display: block; margin-top: 10px; color: var(--texto-fraco); font-size: 14px; }
 .fonte { margin-top: 16px; font-size: 13px; color: var(--texto-fraco); }
 
-.prova-cartao { margin-top: 40px; padding: 24px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: start; }
+.prova-cartao { margin-top: 18px; padding: 24px; min-height: 420px; }
+.prova-conteudo { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: start; }
 .prova-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
 .prova-cab .tk { font: 700 28px var(--mono); }
 .prova-cab .preco { font: 500 16px var(--mono); }
@@ -281,48 +282,25 @@ body.com-cursor, body.com-cursor a, body.com-cursor button, body.com-cursor summ
 .hero-provas dt { font-size: 12px; color: var(--texto-fraco); }
 .nota { margin-top: 14px; font-size: 12px; line-height: 1.5; color: #6f7a8c; max-width: 70ch; }
 
-/* calculadora */
-.calc { margin-top: 40px; padding: clamp(20px, 3vw, 32px); display: grid; grid-template-columns: 1fr 1.1fr; gap: clamp(20px, 3vw, 40px); }
-.calc-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: start; }
-.calc-campos label { display: grid; gap: 6px; font-size: 13px; color: var(--texto-fraco); }
-.calc-campos input, .calc-campos select {
-  width: 100%; min-height: 46px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--borda-forte); background: rgba(0, 0, 0, 0.3);
-  color: var(--texto); font: 500 16px var(--mono);
-}
-.calc-campos select { font-family: Inter, sans-serif; font-size: 15px; }
-.calc-campos input:focus, .calc-campos select:focus { border-color: var(--acento); }
-.calc-resultado { display: grid; gap: 14px; align-content: start; }
-.calc-grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.calc-grade div { padding: 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--borda); display: grid; gap: 2px; }
-.calc-grade b { font: 700 clamp(18px, 1.9vw, 25px)/1.2 var(--mono); white-space: nowrap; }
-.calc-grade small { font-size: 12px; color: var(--texto-fraco); }
-.calc-historico { font-size: 15px; color: var(--texto-fraco); }
-.calc-historico b { color: var(--texto); }
-.calc-historico b.alta { color: var(--alta); } .calc-historico b.baixa { color: var(--baixa); }
-.calc-sequencia { font-size: 14px; color: var(--texto-fraco); }
-.calc-resultado .botao { justify-self: start; }
 .numeros-sub { margin-bottom: 32px; }
 
 /* ---------- responsivo ---------- */
 @media (max-width: 1000px) {
-  .calc { grid-template-columns: 1fr; }
   .anuncio-meio { display: none; }
   .hero-grade { grid-template-columns: 1fr; }
   .hero-terminal { max-width: 560px; }
   .topo-nav { display: none; }
   .topo { justify-content: space-between; }
   .dores, .recursos-grade, .perfis { grid-template-columns: 1fr 1fr; }
-  .prova-cartao { grid-template-columns: 1fr; }
+  .prova-conteudo { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .hero-provas { grid-template-columns: repeat(2, auto); }
-  .calc-campos { grid-template-columns: 1fr; }
-  .calc-grade { grid-template-columns: 1fr; }
-  .calc-resultado .botao { justify-self: stretch; }
   .barra-fixa { padding-left: 16px; }
   .barra-fixa-extra { display: none; }
   .barra-fixa .botao { padding: 0 14px; font-size: 13px; }
-  .anuncio { font-size: 12px; gap: 4px 14px; }
+  .anuncio { font-size: 12px; gap: 4px 14px; flex-wrap: nowrap; white-space: nowrap; }
+  .anuncio-extra { display: none; }
   .topo { padding-left: 14px; }
   .topo .botao { padding: 0 14px; font-size: 13px; }
   .hero { padding-top: 136px; min-height: auto; }
@@ -348,4 +326,46 @@ body.com-cursor, body.com-cursor a, body.com-cursor button, body.com-cursor summ
 .hero-texto::before {
   content: ""; position: absolute; inset: -60px -80px; z-index: -1; pointer-events: none;
   background: radial-gradient(closest-side, rgba(7, 9, 13, 0.88), rgba(7, 9, 13, 0.55) 60%, transparent);
+}
+
+/* ---------- exemplos reais em abas ---------- */
+.prova-abas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px; }
+.prova-abas button {
+  display: grid; gap: 2px; text-align: left; min-height: 52px; padding: 8px 16px; border-radius: 12px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.03); border: 1px solid var(--borda); color: var(--texto); font: 500 13px Inter, sans-serif;
+}
+.prova-abas button b { font: 700 16px var(--mono); }
+.prova-abas button span { color: var(--texto-fraco); font-size: 12px; }
+.prova-abas button:hover { border-color: var(--borda-forte); }
+.prova-abas button[aria-selected="true"] { border-color: var(--acento); background: rgba(76, 141, 255, 0.14); box-shadow: 0 10px 30px -14px rgba(76, 141, 255, 0.9); }
+.prova-abas button[aria-selected="true"] span { color: var(--acento-2); }
+
+/* ---------- planos ---------- */
+.planos-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 420px)); justify-content: center; gap: 22px; margin-top: 48px; }
+.plano-cartao { padding: 32px 28px; display: grid; gap: 6px; align-content: start; }
+.plano-cartao.recomendado { border-color: rgba(76, 141, 255, 0.55); box-shadow: 0 40px 90px -40px rgba(76, 141, 255, 0.9);
+  background: radial-gradient(500px 240px at 50% 0%, rgba(76, 141, 255, 0.18), transparent 70%), var(--painel); }
+.plano-faixa { position: absolute; top: -13px; left: 50%; translate: -50% 0; padding: 4px 14px; border-radius: 999px; background: var(--acento); color: #fff; font: 700 12px Inter, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; }
+.plano-nome { font: 700 24px Inter, sans-serif; }
+.plano-para { color: var(--texto-fraco); font-size: 14px; min-height: 42px; }
+.plano-preco { margin-top: 14px; display: flex; align-items: center; gap: 10px; color: var(--texto-fraco); font: 500 16px var(--mono); }
+.plano-preco s { text-decoration-color: var(--baixa); }
+.selo-desconto { padding: 2px 10px; border-radius: 999px; background: rgba(34, 176, 125, 0.16); color: #7fe0b9; font: 700 13px var(--mono); }
+.plano-valor { display: flex; align-items: baseline; gap: 4px; }
+.plano-valor span { font: 600 20px var(--mono); color: var(--texto-fraco); }
+.plano-valor b { font: 800 60px/1 var(--mono); letter-spacing: -0.04em; }
+.plano-valor small { font-size: 16px; color: var(--texto-fraco); }
+.plano-dia { font-size: 13px; color: var(--acento-2); }
+.plano-itens { list-style: none; margin: 18px 0 24px; padding: 0; display: grid; gap: 10px; }
+.plano-itens li { display: flex; gap: 10px; font-size: 15px; color: var(--texto-fraco); }
+.plano-itens li::before { content: "✓"; color: var(--alta); font-weight: 700; }
+.plano-itens b { color: var(--texto); }
+.plano-cartao .botao { width: 100%; }
+.planos-aviso { margin: 22px auto 0; max-width: 640px; text-align: center; padding: 14px 18px; border-radius: 12px; border: 1px solid rgba(227, 162, 59, 0.4); background: rgba(227, 162, 59, 0.08); color: var(--texto); font-size: 14px; }
+.planos-aviso a { color: var(--acento-2); font-weight: 600; }
+.barra-fixa .desconto { color: #7fe0b9; }
+@media (max-width: 760px) {
+  .planos-grade { grid-template-columns: 1fr; }
+  .prova-abas { display: grid; grid-template-columns: 1fr 1fr; }
+  .prova-cartao { padding: 18px; }
 }

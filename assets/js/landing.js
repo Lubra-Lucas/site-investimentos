@@ -23,7 +23,11 @@
   const semSufixo = (tk) => tk.replace(/\.SA$/, "").replace(/-USD$/, "").replace(/^\^/, "");
   const el = (tag, attrs = {}, ...filhos) => {
     const n = document.createElement(tag);
-    for (const [k, v] of Object.entries(attrs)) if (v != null && v !== false) n.setAttribute(k, v === true ? "" : v);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (typeof v === "function" && k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? "" : v);
+    }
     for (const f of filhos.flat()) if (f != null && f !== false) n.append(f);
     return n;
   };
@@ -194,12 +198,18 @@
 
     // contagem até a próxima publicação de sinais
     contagem(R);
-    calculadora(itens);
 
-    // prova: o primeiro ativo do topo com um setup que tem histórico suficiente
-    const candidatos = top.flatMap((x) => [...x.setups.values()].filter((s) => s.bt && s.bt[0] >= 8 && s.bt[1] != null)
-      .map((s) => ({ x, s }))).sort((p, q) => q.x.setups.size - p.x.setups.size || q.s.bt[1] - p.s.bt[1]);
-    if (candidatos.length) prova(candidatos[0], porTk.get(candidatos[0].x.ticker), porSetup, nomeCurto);
+    // prova: até 4 ativos de hoje (um por mercado primeiro), cada um com o setup de melhor histórico nele
+    const candidatos = [...lista].sort((p, q) => q.setups.size - p.setups.size)
+      .map((x) => ({ x, s: [...x.setups.values()].filter((s) => s.bt && s.bt[0] >= 8 && s.bt[1] != null).sort((p, q) => q.bt[1] - p.bt[1])[0] }))
+      .filter((c) => c.s);
+    const escolhidos = [];
+    for (const m of ["BR", "US", "CRIPTO", "MACRO"]) {
+      const c = candidatos.find((c) => porTk.get(c.x.ticker)?.mercado === m && !escolhidos.includes(c));
+      if (c) escolhidos.push(c);
+    }
+    for (const c of candidatos) if (escolhidos.length < 4 && !escolhidos.includes(c)) escolhidos.push(c);
+    if (escolhidos.length) provas(escolhidos, porTk, porSetup, nomeCurto);
     else $("#prova-cartao").replaceChildren(el("p", { class: "carregando" }, "Sem um sinal com histórico suficiente hoje. Abra o terminal para ver todos."));
   }).catch(() => {
     $("#terminal-lista").replaceChildren(el("li", { class: "carregando" }, "Não consegui carregar os sinais agora."));
@@ -208,65 +218,46 @@
     faixaAnimada();
   });
 
-  /* ---------- calculadora de 30 segundos: quanto comprar, quanto perder e o que o histórico do setup diz ---------- */
-  function calculadora(itens) {
-    const f = $("#calc");
-    const sel = f.elements.setup;
-    const comBt = itens.filter((x) => x.bt?.D?.n >= 30 && x.vies !== "neutro");
-    const grupos = [...new Set(comBt.map((x) => x.grupo))];
-    sel.replaceChildren(el("option", { value: "" }, "Nenhum (só a conta do risco)"),
-      ...grupos.map((g) => el("optgroup", { label: g }, comBt.filter((x) => x.grupo === g).map((x) => el("option", { value: x.id }, x.nome)))));
-    const padrao = comBt.find((x) => x.id === "pb-mme9") ?? comBt[0];
-    if (padrao) sel.value = padrao.id;
-    const moeda = (v) => (v == null || !Number.isFinite(v) ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
-    const conta = () => {
-      const num = (k) => parseFloat(String(f.elements[k].value).replace(",", "."));
-      const capital = num("capital"), risco = num("risco"), entrada = num("entrada"), stop = num("stop"), alvo = num("alvo");
-      const compra = stop < entrada;
-      const dist = Math.abs(entrada - stop);
-      const ok = capital > 0 && risco > 0 && entrada > 0 && stop > 0 && dist > 0 && (compra ? alvo > entrada : alvo < entrada);
-      if (!ok) {
-        ["r-qtd", "r-perda", "r-ganho"].forEach((id) => { $(`#${id}`).textContent = "—"; });
-        $("#r-perda-pct").textContent = ""; $("#r-rr").textContent = "";
-        $("#r-historico").textContent = "Confira os valores: na compra o stop fica abaixo da entrada e o alvo acima (na venda, o contrário).";
-        $("#r-sequencia").textContent = "";
-        return;
-      }
-      // quanto comprar para perder no stop só o risco escolhido (sem passar do capital)
-      const qtd = Math.max(0, Math.min(Math.floor((capital * risco / 100) / dist), Math.floor(capital / entrada)));
-      const perda = qtd * dist, ganho = qtd * Math.abs(alvo - entrada), rr = Math.abs(alvo - entrada) / dist;
-      $("#r-qtd").textContent = fmtNum(qtd);
-      $("#r-perda").textContent = moeda(-perda);
-      $("#r-perda-pct").textContent = `${fmtNum(perda / capital * 100, 1)}% do capital`;
-      $("#r-ganho").textContent = moeda(ganho);
-      $("#r-rr").textContent = `+${fmtNum(rr, 1)}R · R:R 1 : ${fmtNum(rr, 2)}`;
-      const x = comBt.find((i) => i.id === sel.value);
-      if (x) {
-        const p = x.bt.D.acerto / 100, exp = p * rr - (1 - p);
-        $("#r-historico").replaceChildren("Nos últimos 6 anos, ", el("b", {}, x.nome), ` apareceu ${fmtNum(x.bt.D.n)} vezes e deu lucro em `,
-          el("b", {}, `${fmtNum(x.bt.D.acerto, 0)}%`), " delas. Com esse acerto e o seu alvo, a conta simples dá ",
-          el("b", { class: exp >= 0 ? "alta" : "baixa" }, `${exp >= 0 ? "+" : ""}${fmtNum(exp, 2)}R por trade`), ` (≈ ${moeda(exp * perda)}).`);
-      } else $("#r-historico").textContent = "Escolha um setup para ver o que o histórico dele diz.";
-      // quantos stops seguidos até perder 10% do capital
-      const seguidos = Math.ceil(Math.log(0.9) / Math.log(1 - perda / capital));
-      $("#r-sequencia").textContent = Number.isFinite(seguidos) && seguidos > 0
-        ? `Com esse risco, seriam precisos ${fmtNum(seguidos)} stops seguidos para perder 10% do capital.` : "";
+  /* ---------- prova: sinais reais de hoje, cada um com o histórico do setup naquele ativo, em abas ---------- */
+  function provas(escolhidos, porTk, porSetup, nomeCurto) {
+    const abas = $("#prova-abas");
+    const cache = new Map();
+    const mostrar = async (i) => {
+      abas.querySelectorAll("button").forEach((b, j) => { b.setAttribute("aria-selected", String(i === j)); b.tabIndex = i === j ? 0 : -1; });
+      const c = escolhidos[i];
+      const caixa = $("#prova-cartao");
+      if (anima) gsap.fromTo(caixa, { opacity: 0.35, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
+      if (!cache.has(i)) cache.set(i, prova(c, porTk.get(c.x.ticker), porSetup, nomeCurto));
+      mostrar.atual = i;
+      caixa.replaceChildren(el("p", { class: "carregando" }, "Carregando o histórico…"));
+      const conteudo = await cache.get(i);
+      if (mostrar.atual === i) caixa.replaceChildren(conteudo);  // outra aba escolhida enquanto carregava: fica a dela
+      magneticos(caixa);
     };
-    f.addEventListener("input", conta);
-    conta();
+    abas.replaceChildren(...escolhidos.map((c, i) => {
+      const a = porTk.get(c.x.ticker);
+      return el("button", { type: "button", role: "tab", "aria-controls": "prova-cartao", onclick: () => mostrar(i),
+        onkeydown: (e) => {
+          const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+          if (!d) return;
+          const j = (i + d + escolhidos.length) % escolhidos.length;
+          abas.children[j].focus(); mostrar(j);
+        } },
+      el("b", {}, a.rotulo ?? semSufixo(a.ticker)), el("span", {}, `${NOMES_MERCADO[a.mercado] ?? a.mercado} · ${fmtNum(c.s.bt[1], 0)}% com lucro`));
+    }));
+    mostrar(0);
   }
 
-  /* ---------- prova: um sinal real com o histórico do setup naquele ativo ---------- */
   async function prova({ x, s }, a, porSetup, nomeCurto) {
-    const caixa = $("#prova-cartao");
+    const caixa = el("div", { class: "prova-conteudo" });
     const [velas, casos] = await Promise.all([
       buscar(`data/ativos/${a.arquivo}.json`).catch(() => null),
       buscar(`data/casos/${a.arquivo}.json`).catch(() => null)]);
     const lista = casos?.casos?.D?.[s.setup] ?? [];
     const [n, acerto, medio] = s.bt;
     const setup = porSetup.get(s.setup);
-    const c = (velas?.c ?? []).slice(-90);
-    const grafico = c.length ? miniGrafico(c, s.data) : null;
+    const c = (velas?.c ?? []).slice(-260);
+    const grafico = c.length ? miniGrafico(c, s.data, lista) : null;
     const tk = a.rotulo ?? semSufixo(a.ticker);
     caixa.replaceChildren(
       el("div", {},
@@ -290,11 +281,11 @@
         el("div", { class: "prova-acoes" },
           el("a", { class: "botao botao-primario magnetico", href: `ativo.html#${encodeURIComponent(a.ticker)}` }, `Ver ${tk} no terminal →`),
           el("a", { class: "botao botao-fantasma", href: "setups.html" }, "Ver todos os sinais de hoje"))));
-    magneticos(caixa);
+    return caixa;
   }
 
-  /** Mini gráfico de velas em SVG (últimos ~90 pregões), com a seta no candle do sinal. */
-  function miniGrafico(c, dataSinal) {
+  /** Mini gráfico de velas em SVG, com cada caso anterior do setup (verde = lucro, vermelho = prejuízo) e o sinal de hoje. */
+  function miniGrafico(c, dataSinal, casos = []) {
     const W = 560, H = 200, n = c.length, lw = W / n;
     const lo = Math.min(...c.map((v) => v[3])), hi = Math.max(...c.map((v) => v[2]));
     const y = (p) => 8 + (1 - (p - lo) / (hi - lo || 1)) * (H - 30);
@@ -310,10 +301,17 @@
       partes += `<line x1="${x + lw / 2}" y1="${y(mx)}" x2="${x + lw / 2}" y2="${y(mn)}" stroke="${cor}" stroke-width="1"/>`;
       partes += `<rect x="${x + 1}" y="${y(Math.max(ab, fe))}" width="${Math.max(1, lw - 2)}" height="${Math.max(1, Math.abs(y(ab) - y(fe)))}" fill="${alta ? cor : "#1b222c"}" stroke="${cor}" stroke-width="${alta ? 0 : 1}"/>`;
     });
+    const idx = new Map(c.map((v, k) => [v[0], k]));
+    for (const [sinal, , , , r] of casos) {
+      const k = idx.get(sinal);
+      if (k == null) continue;
+      const x = k * lw + lw / 2, yy = y(c[k][3]) + 9, cor = r >= 0 ? "#22b07d" : "#f06a6e";
+      partes += `<circle cx="${x}" cy="${Math.min(yy, H - 6)}" r="4.5" fill="${cor}" opacity=".9"><title>${fmtData(sinal)}: ${fmtPct(r)}</title></circle>`;
+    }
     const i = c.findIndex((v) => v[0] === dataSinal);
     if (i >= 0) {
       const x = i * lw + lw / 2, yy = y(c[i][3]) + 14;
-      partes += `<path d="M${x} ${yy - 8} l-6 10 h12 z" fill="#22b07d"/><text x="${Math.min(x - 14, W - 60)}" y="${Math.min(yy + 16, H - 2)}" fill="#22b07d" font-size="11" font-family="JetBrains Mono, monospace">sinal</text>`;
+      partes += `<path d="M${x} ${yy - 8} l-6 10 h12 z" fill="#8bb4ff"/><text x="${Math.min(x - 14, W - 50)}" y="${Math.min(yy + 16, H - 2)}" fill="#8bb4ff" font-size="11" font-family="JetBrains Mono, monospace">hoje</text>`;
     }
     svg.innerHTML = partes;
     return svg;
@@ -409,13 +407,24 @@
 
   /* ---------- revelações ao rolar ---------- */
   if (anima) {
-    $$(".secao h2, .secao .sobretitulo, .secao-sub, .dor-card, .recurso, .perfil, .lado, .numero, .acordeao details, .prova-cartao, .final-cartao, .calc")
+    $$(".secao h2, .secao .sobretitulo, .secao-sub, .dor-card, .recurso, .perfil, .lado, .numero, .acordeao details, .prova-cartao, .final-cartao, .plano-cartao")
       .forEach((n) => n.classList.add("revelar"));
     ScrollTrigger.batch(".revelar", { start: "top 88%", once: true,
       onEnter: (els) => gsap.to(els, { opacity: 1, translate: "0px 0px", duration: 1.1, ease: "expo.out", stagger: 0.08 }) });
     gsap.from(".hero h1, .hero-sub, .hero-acoes, .hero-garantias, .selo", { y: 40, opacity: 0, duration: 1.2, ease: "expo.out", stagger: 0.08 });
     gsap.from(".hero-terminal", { y: 60, opacity: 0, rotateX: 8, duration: 1.4, ease: "expo.out", delay: 0.25 });
   }
+
+  /* ---------- planos: os links de pagamento entram aqui quando existirem ---------- */
+  const PAGAMENTO = { inicial: "", pro: "" };
+  $$("[data-plano]").forEach((b) => b.addEventListener("click", (e) => {
+    const link = PAGAMENTO[b.dataset.plano];
+    if (link) { location.href = link; return; }
+    e.preventDefault();
+    const aviso = $("#planos-aviso");
+    aviso.hidden = false;
+    if (anima) gsap.fromTo(aviso, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4 });
+  }));
 
   /* ---------- perguntas com abertura suave ---------- */
   $$(".acordeao details").forEach((d) => {
