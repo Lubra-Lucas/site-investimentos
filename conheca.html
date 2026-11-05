@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Carteira Terminal · Compre com estatística, não no achismo</title>
-  <meta name="description" content="O Carteira Terminal varre centenas de ativos do Brasil, EUA e cripto todo dia, aponta os que formaram um setup de compra ou venda e mostra quantas vezes esse mesmo sinal funcionou naquele ativo. Gratuito e sem cadastro.">
+  <meta name="description" content="O Carteira Terminal varre centenas de ativos do Brasil, EUA e cripto todo dia, aponta os que formaram um setup de compra ou venda e mostra quantas vezes esse mesmo sinal funcionou naquele ativo. Planos a partir de R$ 180 por mês no lançamento, com 10% de desconto.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -17,9 +17,9 @@
   <div class="cursor" aria-hidden="true"><i class="cursor__ponto"></i><i class="cursor__anel"></i></div>
 
   <div class="anuncio" role="note">
-    <span><i class="ponto-vivo"></i> <b>Grátis e sem cadastro</b></span>
+    <span><i class="ponto-vivo"></i> <b>Lançamento: 10% de desconto</b><span class="anuncio-extra"> nos planos</span></span>
     <span class="anuncio-meio">Os próximos sinais saem em <b data-contagem>breve</b></span>
-    <a href="setups.html">Ver os sinais de hoje →</a>
+    <a href="#planos">Garantir o desconto →</a>
   </div>
   <header class="topo" id="topo">
     <a class="marca" href="#conteudo" aria-label="Carteira Terminal, início da página">
@@ -30,6 +30,7 @@
       <a href="#como">Como funciona</a>
       <a href="#prova">Ao vivo</a>
       <a href="#recursos">Recursos</a>
+      <a href="#planos">Planos</a>
       <a href="#para-quem">Para quem</a>
       <a href="#perguntas">Perguntas</a>
     </nav>
@@ -48,10 +49,10 @@
             <b>setup</b> de compra ou de venda e mostra <b>quantas vezes esse mesmo sinal funcionou naquele ativo</b>. A decisão continua sua, só que agora com números.</p>
           <div class="hero-acoes">
             <a class="botao botao-primario botao-grande magnetico" href="setups.html">Ver as oportunidades de hoje <span aria-hidden="true">→</span></a>
-            <a class="botao botao-fantasma botao-grande" href="#como">Como funciona</a>
+            <a class="botao botao-fantasma botao-grande" href="#planos">Ver os planos · −10%</a>
           </div>
           <ul class="hero-garantias">
-            <li>Gratuito</li><li>Sem cadastro</li><li>Seus trades ficam no seu navegador</li>
+            <li>Brasil, EUA e cripto</li><li>Sinais no diário e no semanal</li><li>Histórico de cada sinal, caso a caso</li>
           </ul>
           <dl class="hero-provas">
             <div><dt>casos testados*</dt><dd data-vivo="casos">412.435</dd></div>
@@ -114,34 +115,6 @@
       <p data-palavras>Todo setup é uma hipótese matemática. O terminal mostra quantas vezes ela deu certo no passado, naquele ativo. Você olha o gráfico e decide se o sinal de hoje merece o seu dinheiro.</p>
     </section>
 
-    <!-- plano: a calculadora de 30 segundos -->
-    <section class="secao plano" id="plano" aria-labelledby="plano-titulo">
-      <p class="sobretitulo">Teste grátis · 30 segundos</p>
-      <h2 id="plano-titulo">Você não perde dinheiro por falta de setup. <em>Perde por falta de plano.</em></h2>
-      <p class="secao-sub">Coloque o seu capital e o trade que você está pensando em fazer. A calculadora mostra quanto comprar, quanto você perde se der errado e o que o histórico do setup diz.</p>
-      <div class="calc vidro">
-        <form class="calc-campos" id="calc" novalidate>
-          <label>Capital (R$)<input type="number" inputmode="decimal" min="0" step="100" name="capital" value="10000"></label>
-          <label>Risco por trade (% do capital)<input type="number" inputmode="decimal" min="0.1" max="10" step="0.1" name="risco" value="1"></label>
-          <label>Preço de entrada<input type="number" inputmode="decimal" min="0" step="0.01" name="entrada" value="30"></label>
-          <label>Stop (onde você admite que errou)<input type="number" inputmode="decimal" min="0" step="0.01" name="stop" value="28.5"></label>
-          <label>Alvo<input type="number" inputmode="decimal" min="0" step="0.01" name="alvo" value="33"></label>
-          <label>Setup do sinal<select name="setup"><option value="">Carregando os setups…</option></select></label>
-        </form>
-        <div class="calc-resultado" aria-live="polite">
-          <div class="calc-grade">
-            <div><span class="rotulo">Comprar</span><b id="r-qtd">—</b><small>ações</small></div>
-            <div><span class="rotulo">Se der stop (−1R)</span><b class="baixa" id="r-perda">—</b><small id="r-perda-pct"></small></div>
-            <div><span class="rotulo">Se der alvo</span><b class="alta" id="r-ganho">—</b><small id="r-rr"></small></div>
-          </div>
-          <p class="calc-historico" id="r-historico"></p>
-          <p class="calc-sequencia" id="r-sequencia"></p>
-          <a class="botao botao-primario botao-grande magnetico" href="setups.html">Simular no gráfico de verdade →</a>
-        </div>
-      </div>
-      <p class="nota">A conta da expectativa é a simples: acerto × ganho em R − erros × 1R. O acerto vem do backtest do setup em todos os ativos (casos com lucro na saída de 10 pregões), não da chance de bater o seu alvo. Resultado passado não garante resultado futuro.</p>
-    </section>
-
     <!-- 3. como funciona -->
     <section class="secao como" id="como" aria-labelledby="como-titulo">
       <p class="sobretitulo">Como funciona</p>
@@ -179,13 +152,14 @@
 
     <!-- 5. prova: um caso real de hoje -->
     <section class="secao prova" id="prova" aria-labelledby="prova-titulo">
-      <p class="sobretitulo">Veja ao vivo</p>
-      <h2 id="prova-titulo">Um sinal de hoje, com o <em>histórico</em> dele na mão.</h2>
-      <p class="secao-sub">Este é um ativo real que formou um setup no último pregão. Embaixo, as últimas vezes que esse mesmo setup apareceu nele, com a entrada, a saída e o resultado.</p>
-      <div class="prova-cartao vidro" id="prova-cartao" data-tilt data-tilt-max="3">
+      <p class="sobretitulo">Veja ao vivo · histórico de sinais</p>
+      <h2 id="prova-titulo">Sinais de hoje, com o <em>histórico</em> de cada um na mão.</h2>
+      <p class="secao-sub">Ativos reais que formaram um setup no último pregão. No gráfico, cada vez que o mesmo setup apareceu antes (verde = deu lucro, vermelho = prejuízo). Do lado, os números e as últimas operações. Escolha um ativo:</p>
+      <div class="prova-abas" id="prova-abas" role="tablist" aria-label="Exemplos de sinais de hoje"></div>
+      <div class="prova-cartao vidro" id="prova-cartao" role="tabpanel" aria-live="polite">
         <p class="carregando">Carregando um sinal de hoje…</p>
       </div>
-      <p class="aviso-legal">Exemplo com dados reais, escolhido automaticamente entre os sinais do dia. Resultado passado não garante resultado futuro.</p>
+      <p class="aviso-legal">Exemplos com dados reais, escolhidos automaticamente entre os sinais do dia. Resultado passado não garante resultado futuro.</p>
     </section>
 
     <!-- 6. recursos -->
@@ -259,6 +233,48 @@
     </section>
 
     <!-- 9. perguntas -->
+    <!-- planos -->
+    <section class="secao planos" id="planos" aria-labelledby="planos-titulo">
+      <p class="sobretitulo">Planos · oferta de lançamento</p>
+      <h2 id="planos-titulo">Feche agora com <em>10% de desconto</em>.</h2>
+      <p class="secao-sub">Menos do que custa um trade errado por impulso. Escolha o seu plano:</p>
+      <div class="planos-grade">
+        <article class="plano-cartao vidro" data-tilt>
+          <p class="plano-nome">Inicial</p>
+          <p class="plano-para">Para quem quer achar boas oportunidades e aprender com cada trade.</p>
+          <p class="plano-preco"><s>R$ 200</s> <span class="selo-desconto">−10%</span></p>
+          <p class="plano-valor"><span>R$</span><b>180</b><small>/mês</small></p>
+          <p class="plano-dia">equivale a R$ 6 por dia</p>
+          <ul class="plano-itens">
+            <li>Oportunidades do dia no modo simples</li>
+            <li>Brasil, EUA e cripto, no diário e no semanal</li>
+            <li>Histórico de cada setup no ativo, caso a caso</li>
+            <li>Simulador de trade com entrada, stop e alvo em R</li>
+            <li>Diário com calendário de R e fotos dos trades</li>
+          </ul>
+          <a class="botao botao-fantasma botao-grande" href="#planos" data-plano="inicial">Assinar o Inicial</a>
+        </article>
+        <article class="plano-cartao vidro recomendado" data-tilt>
+          <p class="plano-faixa">Recomendado</p>
+          <p class="plano-nome">Pro</p>
+          <p class="plano-para">Para quem opera com método e quer números de verdade.</p>
+          <p class="plano-preco"><s>R$ 350</s> <span class="selo-desconto">−10%</span></p>
+          <p class="plano-valor"><span>R$</span><b>315</b><small>/mês</small></p>
+          <p class="plano-dia">equivale a R$ 10,50 por dia · economize R$ 35 por mês</p>
+          <ul class="plano-itens">
+            <li><b>Tudo do Inicial</b></li>
+            <li>Modo trader: setups pelo nome, período e confluência</li>
+            <li>Meus setups: monte e salve as suas próprias regras</li>
+            <li>Backtest completo por mercado e por ativo</li>
+            <li>Lista para o TradingView e planilha dos sinais</li>
+            <li>Estatísticas por estratégia: acerto, fator de lucro e drawdown</li>
+          </ul>
+          <a class="botao botao-primario botao-grande magnetico" href="#planos" data-plano="pro">Assinar o Pro</a>
+        </article>
+      </div>
+      <p class="planos-aviso" id="planos-aviso" role="status" hidden>As assinaturas abrem em breve, com o desconto de lançamento garantido. Enquanto isso, o terminal está liberado para você testar: <a href="setups.html">ver as oportunidades de hoje →</a></p>
+    </section>
+
     <section class="secao perguntas" id="perguntas" aria-labelledby="perguntas-titulo">
       <p class="sobretitulo">Perguntas frequentes</p>
       <h2 id="perguntas-titulo">Antes de você abrir o terminal.</h2>
@@ -267,8 +283,10 @@
           <div><p>Não. No modo simples você responde quatro perguntas (comprar ou vender, onde, que tipo de oportunidade e com que frequência acompanha) e o terminal mostra os ativos. Ao simular, entrada, stop e alvo já vêm sugeridos, e você ajusta arrastando no gráfico.</p></div></details>
         <details><summary>É recomendação de investimento?</summary>
           <div><p>Não. Os setups são filtros técnicos automáticos: mostram onde um padrão apareceu e como ele se saiu no passado. A decisão, o risco e o tamanho da posição são seus. Resultado passado não garante resultado futuro.</p></div></details>
-        <details><summary>Preciso pagar ou criar conta?</summary>
-          <div><p>Hoje o terminal é gratuito e não pede cadastro: é só abrir no navegador.</p></div></details>
+        <details><summary>Quanto custa?</summary>
+          <div><p>São dois planos: o Inicial, de R$ 200 por mês, e o Pro, de R$ 350 por mês. No lançamento, os dois saem com 10% de desconto: R$ 180 e R$ 315 por mês.</p></div></details>
+        <details><summary>Qual a diferença entre o Inicial e o Pro?</summary>
+          <div><p>O Inicial tem as oportunidades do dia no modo simples, o histórico de cada setup no ativo, o simulador e o Diário. O Pro soma o modo trader (setups pelo nome, período e confluência), os seus próprios setups, o backtest completo, a lista para o TradingView e as estatísticas por estratégia.</p></div></details>
         <details><summary>O que é um setup?</summary>
           <div><p>É uma regra objetiva que marca um possível ponto de entrada. Por exemplo, "em alta, a mínima toca a média de 9 e o candle fecha acima". Como a regra é fixa, dá para medir quantas vezes ela funcionou.</p></div></details>
         <details><summary>O que é R?</summary>
@@ -286,10 +304,10 @@
     <section class="secao final" aria-labelledby="final-titulo">
       <div class="final-cartao vidro">
         <p class="sobretitulo">Os próximos sinais saem em <b id="contagem">breve</b></p>
-        <h2 id="final-titulo">Abra o terminal e veja as <em>oportunidades de hoje</em>.</h2>
-        <p class="secao-sub">Gratuito, sem cadastro. Escolha um sinal, confira o histórico e simule o trade em menos de um minuto.</p>
-        <a class="botao botao-primario botao-grande magnetico" href="setups.html">Ver as oportunidades de hoje <span aria-hidden="true">→</span></a>
-        <a class="botao botao-fantasma botao-grande" href="index.html">Conhecer o terminal</a>
+        <h2 id="final-titulo">Pare de operar no achismo. <em>Feche agora com 10% de desconto.</em></h2>
+        <p class="secao-sub">A partir de R$ 180 por mês no lançamento. Escolha um sinal, confira o histórico e simule o trade em menos de um minuto.</p>
+        <a class="botao botao-primario botao-grande magnetico" href="#planos">Garantir os 10% de desconto <span aria-hidden="true">→</span></a>
+        <a class="botao botao-fantasma botao-grande" href="setups.html">Ver as oportunidades de hoje</a>
       </div>
     </section>
   </main>
@@ -301,8 +319,8 @@
   </footer>
 
   <div class="barra-fixa" aria-label="Acesso rápido">
-    <p><b>Grátis</b> · sem cadastro <span class="barra-fixa-extra">· próximos sinais em <b data-contagem>breve</b></span></p>
-    <a class="botao botao-primario" href="setups.html">Ver as oportunidades →</a>
+    <p><b class="desconto">−10%</b> no lançamento · <b>a partir de R$ 180/mês</b> <span class="barra-fixa-extra">· próximos sinais em <b data-contagem>breve</b></span></p>
+    <a class="botao botao-primario" href="#planos">Ver os planos →</a>
   </div>
 
   <script src="assets/vendor/gsap.min.js"></script>
