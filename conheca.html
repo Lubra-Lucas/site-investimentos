@@ -16,6 +16,11 @@
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
   <div class="cursor" aria-hidden="true"><i class="cursor__ponto"></i><i class="cursor__anel"></i></div>
 
+  <div class="anuncio" role="note">
+    <span><i class="ponto-vivo"></i> <b>Grátis e sem cadastro</b></span>
+    <span class="anuncio-meio">Os próximos sinais saem em <b data-contagem>breve</b></span>
+    <a href="setups.html">Ver os sinais de hoje →</a>
+  </div>
   <header class="topo" id="topo">
     <a class="marca" href="#conteudo" aria-label="Carteira Terminal, início da página">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="3.4" height="9" rx="1"/><rect x="10.3" y="6" width="3.4" height="14" rx="1"/><rect x="17.6" y="3" width="3.4" height="17" rx="1"/></svg>
@@ -48,6 +53,14 @@
           <ul class="hero-garantias">
             <li>Gratuito</li><li>Sem cadastro</li><li>Seus trades ficam no seu navegador</li>
           </ul>
+          <dl class="hero-provas">
+            <div><dt>casos testados*</dt><dd data-vivo="casos">412.435</dd></div>
+            <div><dt>setups matemáticos</dt><dd data-vivo="setups">35</dd></div>
+            <div><dt>anos de histórico</dt><dd>6</dd></div>
+            <div><dt>mercados</dt><dd>4</dd></div>
+          </dl>
+          <p class="nota">*Backtest de todos os setups do catálogo em todos os ativos monitorados, com 6 anos de candles diários e semanais:
+            entrada na abertura seguinte ao sinal, saída 10 pregões (ou 8 semanas) depois. Simulação com o histórico, não é garantia de resultado.</p>
         </div>
 
         <!-- uma tela do terminal com os dados de hoje -->
@@ -101,6 +114,34 @@
       <p data-palavras>Todo setup é uma hipótese matemática. O terminal mostra quantas vezes ela deu certo no passado, naquele ativo. Você olha o gráfico e decide se o sinal de hoje merece o seu dinheiro.</p>
     </section>
 
+    <!-- plano: a calculadora de 30 segundos -->
+    <section class="secao plano" id="plano" aria-labelledby="plano-titulo">
+      <p class="sobretitulo">Teste grátis · 30 segundos</p>
+      <h2 id="plano-titulo">Você não perde dinheiro por falta de setup. <em>Perde por falta de plano.</em></h2>
+      <p class="secao-sub">Coloque o seu capital e o trade que você está pensando em fazer. A calculadora mostra quanto comprar, quanto você perde se der errado e o que o histórico do setup diz.</p>
+      <div class="calc vidro">
+        <form class="calc-campos" id="calc" novalidate>
+          <label>Capital (R$)<input type="number" inputmode="decimal" min="0" step="100" name="capital" value="10000"></label>
+          <label>Risco por trade (% do capital)<input type="number" inputmode="decimal" min="0.1" max="10" step="0.1" name="risco" value="1"></label>
+          <label>Preço de entrada<input type="number" inputmode="decimal" min="0" step="0.01" name="entrada" value="30"></label>
+          <label>Stop (onde você admite que errou)<input type="number" inputmode="decimal" min="0" step="0.01" name="stop" value="28.5"></label>
+          <label>Alvo<input type="number" inputmode="decimal" min="0" step="0.01" name="alvo" value="33"></label>
+          <label>Setup do sinal<select name="setup"><option value="">Carregando os setups…</option></select></label>
+        </form>
+        <div class="calc-resultado" aria-live="polite">
+          <div class="calc-grade">
+            <div><span class="rotulo">Comprar</span><b id="r-qtd">—</b><small>ações</small></div>
+            <div><span class="rotulo">Se der stop (−1R)</span><b class="baixa" id="r-perda">—</b><small id="r-perda-pct"></small></div>
+            <div><span class="rotulo">Se der alvo</span><b class="alta" id="r-ganho">—</b><small id="r-rr"></small></div>
+          </div>
+          <p class="calc-historico" id="r-historico"></p>
+          <p class="calc-sequencia" id="r-sequencia"></p>
+          <a class="botao botao-primario botao-grande magnetico" href="setups.html">Simular no gráfico de verdade →</a>
+        </div>
+      </div>
+      <p class="nota">A conta da expectativa é a simples: acerto × ganho em R − erros × 1R. O acerto vem do backtest do setup em todos os ativos (casos com lucro na saída de 10 pregões), não da chance de bater o seu alvo. Resultado passado não garante resultado futuro.</p>
+    </section>
+
     <!-- 3. como funciona -->
     <section class="secao como" id="como" aria-labelledby="como-titulo">
       <p class="sobretitulo">Como funciona</p>
@@ -124,7 +165,9 @@
 
     <!-- 4. números ao vivo -->
     <section class="secao numeros" aria-labelledby="numeros-titulo">
-      <h2 class="so-leitor" id="numeros-titulo">O terminal em números</h2>
+      <p class="sobretitulo">35 setups · 4 mercados · validados com a B3</p>
+      <h2 id="numeros-titulo">Setup não é palpite. <em>É modelo.</em></h2>
+      <p class="secao-sub numeros-sub">Cada setup é uma regra fixa, testada em 6 anos de dados de cada ativo. Os números abaixo são os mesmos que você vê dentro do terminal.</p>
       <div class="numeros-grade">
         <div class="numero"><b data-contar="ativos">400</b><span>ativos monitorados todo dia</span></div>
         <div class="numero"><b data-contar="setups">35</b><span>setups matemáticos no catálogo</span></div>
@@ -220,6 +263,8 @@
       <p class="sobretitulo">Perguntas frequentes</p>
       <h2 id="perguntas-titulo">Antes de você abrir o terminal.</h2>
       <div class="acordeao">
+        <details><summary>Preciso de experiência para começar?</summary>
+          <div><p>Não. No modo simples você responde quatro perguntas (comprar ou vender, onde, que tipo de oportunidade e com que frequência acompanha) e o terminal mostra os ativos. Ao simular, entrada, stop e alvo já vêm sugeridos, e você ajusta arrastando no gráfico.</p></div></details>
         <details><summary>É recomendação de investimento?</summary>
           <div><p>Não. Os setups são filtros técnicos automáticos: mostram onde um padrão apareceu e como ele se saiu no passado. A decisão, o risco e o tamanho da posição são seus. Resultado passado não garante resultado futuro.</p></div></details>
         <details><summary>Preciso pagar ou criar conta?</summary>
@@ -255,7 +300,10 @@
       Dados: Yahoo Finance, conferidos com B3 (COTAHIST e cotações), Nasdaq (EUA) e Coinbase (cripto).</p>
   </footer>
 
-  <a class="cta-fixo botao botao-primario" href="setups.html">Ver as oportunidades de hoje →</a>
+  <div class="barra-fixa" aria-label="Acesso rápido">
+    <p><b>Grátis</b> · sem cadastro <span class="barra-fixa-extra">· próximos sinais em <b data-contagem>breve</b></span></p>
+    <a class="botao botao-primario" href="setups.html">Ver as oportunidades →</a>
+  </div>
 
   <script src="assets/vendor/gsap.min.js"></script>
   <script src="assets/vendor/ScrollTrigger.min.js"></script>

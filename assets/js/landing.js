@@ -194,6 +194,7 @@
 
     // contagem até a próxima publicação de sinais
     contagem(R);
+    calculadora(itens);
 
     // prova: o primeiro ativo do topo com um setup que tem histórico suficiente
     const candidatos = top.flatMap((x) => [...x.setups.values()].filter((s) => s.bt && s.bt[0] >= 8 && s.bt[1] != null)
@@ -206,6 +207,54 @@
     contadores();
     faixaAnimada();
   });
+
+  /* ---------- calculadora de 30 segundos: quanto comprar, quanto perder e o que o histórico do setup diz ---------- */
+  function calculadora(itens) {
+    const f = $("#calc");
+    const sel = f.elements.setup;
+    const comBt = itens.filter((x) => x.bt?.D?.n >= 30 && x.vies !== "neutro");
+    const grupos = [...new Set(comBt.map((x) => x.grupo))];
+    sel.replaceChildren(el("option", { value: "" }, "Nenhum (só a conta do risco)"),
+      ...grupos.map((g) => el("optgroup", { label: g }, comBt.filter((x) => x.grupo === g).map((x) => el("option", { value: x.id }, x.nome)))));
+    const padrao = comBt.find((x) => x.id === "pb-mme9") ?? comBt[0];
+    if (padrao) sel.value = padrao.id;
+    const moeda = (v) => (v == null || !Number.isFinite(v) ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+    const conta = () => {
+      const num = (k) => parseFloat(String(f.elements[k].value).replace(",", "."));
+      const capital = num("capital"), risco = num("risco"), entrada = num("entrada"), stop = num("stop"), alvo = num("alvo");
+      const compra = stop < entrada;
+      const dist = Math.abs(entrada - stop);
+      const ok = capital > 0 && risco > 0 && entrada > 0 && stop > 0 && dist > 0 && (compra ? alvo > entrada : alvo < entrada);
+      if (!ok) {
+        ["r-qtd", "r-perda", "r-ganho"].forEach((id) => { $(`#${id}`).textContent = "—"; });
+        $("#r-perda-pct").textContent = ""; $("#r-rr").textContent = "";
+        $("#r-historico").textContent = "Confira os valores: na compra o stop fica abaixo da entrada e o alvo acima (na venda, o contrário).";
+        $("#r-sequencia").textContent = "";
+        return;
+      }
+      // quanto comprar para perder no stop só o risco escolhido (sem passar do capital)
+      const qtd = Math.max(0, Math.min(Math.floor((capital * risco / 100) / dist), Math.floor(capital / entrada)));
+      const perda = qtd * dist, ganho = qtd * Math.abs(alvo - entrada), rr = Math.abs(alvo - entrada) / dist;
+      $("#r-qtd").textContent = fmtNum(qtd);
+      $("#r-perda").textContent = moeda(-perda);
+      $("#r-perda-pct").textContent = `${fmtNum(perda / capital * 100, 1)}% do capital`;
+      $("#r-ganho").textContent = moeda(ganho);
+      $("#r-rr").textContent = `+${fmtNum(rr, 1)}R · R:R 1 : ${fmtNum(rr, 2)}`;
+      const x = comBt.find((i) => i.id === sel.value);
+      if (x) {
+        const p = x.bt.D.acerto / 100, exp = p * rr - (1 - p);
+        $("#r-historico").replaceChildren("Nos últimos 6 anos, ", el("b", {}, x.nome), ` apareceu ${fmtNum(x.bt.D.n)} vezes e deu lucro em `,
+          el("b", {}, `${fmtNum(x.bt.D.acerto, 0)}%`), " delas. Com esse acerto e o seu alvo, a conta simples dá ",
+          el("b", { class: exp >= 0 ? "alta" : "baixa" }, `${exp >= 0 ? "+" : ""}${fmtNum(exp, 2)}R por trade`), ` (≈ ${moeda(exp * perda)}).`);
+      } else $("#r-historico").textContent = "Escolha um setup para ver o que o histórico dele diz.";
+      // quantos stops seguidos até perder 10% do capital
+      const seguidos = Math.ceil(Math.log(0.9) / Math.log(1 - perda / capital));
+      $("#r-sequencia").textContent = Number.isFinite(seguidos) && seguidos > 0
+        ? `Com esse risco, seriam precisos ${fmtNum(seguidos)} stops seguidos para perder 10% do capital.` : "";
+    };
+    f.addEventListener("input", conta);
+    conta();
+  }
 
   /* ---------- prova: um sinal real com o histórico do setup naquele ativo ---------- */
   async function prova({ x, s }, a, porSetup, nomeCurto) {
@@ -306,7 +355,7 @@
 
   /* ---------- contagem até os próximos sinais (rodada da noite: 22:30 UTC, 19h30 em Brasília) ---------- */
   function contagem(R) {
-    const alvo = $("#contagem");
+    const alvos = [$("#contagem"), ...$$("[data-contagem]")].filter(Boolean);
     const proxima = () => {
       const formacao = Object.values(R.em_formacao ?? {}).map((f) => Date.parse(f.sinais_em)).filter((t) => t > Date.now());
       const d = new Date(); d.setUTCHours(22, 30, 0, 0);
@@ -316,7 +365,8 @@
     const tick = () => {
       const ms = proxima() - Date.now(), min = Math.max(1, Math.round(ms / 60000));
       const hora = new Date(proxima()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-      alvo.textContent = `${min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`} (≈ ${hora})`;
+      const txt = `${min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`} (≈ ${hora})`;
+      alvos.forEach((a) => { a.textContent = txt; });
     };
     tick();
     setInterval(tick, 30000);
@@ -359,7 +409,7 @@
 
   /* ---------- revelações ao rolar ---------- */
   if (anima) {
-    $$(".secao h2, .secao .sobretitulo, .secao-sub, .dor-card, .recurso, .perfil, .lado, .numero, .acordeao details, .prova-cartao, .final-cartao")
+    $$(".secao h2, .secao .sobretitulo, .secao-sub, .dor-card, .recurso, .perfil, .lado, .numero, .acordeao details, .prova-cartao, .final-cartao, .calc")
       .forEach((n) => n.classList.add("revelar"));
     ScrollTrigger.batch(".revelar", { start: "top 88%", once: true,
       onEnter: (els) => gsap.to(els, { opacity: 1, translate: "0px 0px", duration: 1.1, ease: "expo.out", stagger: 0.08 }) });
@@ -378,13 +428,12 @@
     });
   });
 
-  /* ---------- botão fixo no celular: aparece depois da abertura e some na chamada final ---------- */
-  (function ctaFixo() {
-    const b = $(".cta-fixo");
-    const celular = matchMedia("(max-width: 640px)");
+  /* ---------- barra fixa embaixo: aparece depois da abertura e some na chamada final ---------- */
+  (function barraFixa() {
+    const b = $(".barra-fixa");
     const atualizar = () => {
       const hero = $(".hero").getBoundingClientRect(), final = $(".final").getBoundingClientRect();
-      b.classList.toggle("visivel", celular.matches && hero.bottom < 0 && final.top > innerHeight);
+      b.classList.toggle("visivel", hero.bottom < 0 && final.top > innerHeight);
     };
     addEventListener("scroll", atualizar, { passive: true });
     addEventListener("resize", atualizar);
