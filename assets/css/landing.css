@@ -91,7 +91,7 @@ body.com-cursor, body.com-cursor a, body.com-cursor button, body.com-cursor summ
 .topo .botao { min-height: 40px; }
 
 /* ---------- abertura ---------- */
-.hero { position: relative; min-height: 100svh; display: grid; align-items: center; padding: 110px var(--s-gutter) 70px; overflow: hidden; isolation: isolate; }
+.hero { position: relative; min-height: 100svh; display: grid; align-items: center; padding: 150px var(--s-gutter) 70px; overflow: hidden; isolation: isolate; }
 .hero::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: radial-gradient(900px 500px at 75% 30%, rgba(76, 141, 255, 0.18), transparent 60%), radial-gradient(700px 500px at 10% 90%, rgba(34, 176, 125, 0.08), transparent 60%);
@@ -252,11 +252,61 @@ body.com-cursor, body.com-cursor a, body.com-cursor button, body.com-cursor summ
 .rodape p { max-width: 80ch; }
 .rodape-marca { font-weight: 700; color: var(--texto); font-size: 15px; }
 
-.cta-fixo { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 40; display: none; min-height: 52px; }
-.cta-fixo.visivel { display: flex; }
+/* barra fixa embaixo (como a do HIRAN TG, com o que é verdade aqui: grátis e a próxima rodada de sinais) */
+.barra-fixa {
+  position: fixed; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 40; width: min(760px, calc(100% - 24px));
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 20px; border-radius: 999px;
+  background: rgba(10, 13, 18, 0.88); border: 1px solid rgba(76, 141, 255, 0.35); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.9); translate: -50% 140%; transition: translate 0.4s cubic-bezier(.2, .8, .2, 1);
+}
+.barra-fixa.visivel { translate: -50% 0; }
+.barra-fixa p { font-size: 14px; color: var(--texto-fraco); }
+.barra-fixa p b { color: var(--texto); }
+
+/* barra de anúncio no topo */
+.anuncio {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60; display: flex; align-items: center; justify-content: center; gap: 6px 22px; flex-wrap: wrap;
+  min-height: 36px; padding: 6px 16px; font-size: 13px; color: var(--texto-fraco);
+  background: linear-gradient(90deg, rgba(76, 141, 255, 0.22), rgba(34, 176, 125, 0.16)); border-bottom: 1px solid var(--borda); backdrop-filter: blur(10px);
+}
+.anuncio b { color: var(--texto); }
+.anuncio a { color: var(--acento-2); font-weight: 600; text-decoration: none; }
+.anuncio .ponto-vivo { display: inline-block; vertical-align: middle; margin-right: 4px; }
+.topo { top: 48px; }
+
+/* números de prova na abertura, com a nota de rodapé */
+.hero-provas { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 10px 28px; margin: 26px 0 0; }
+.hero-provas div { display: flex; flex-direction: column-reverse; }
+.hero-provas dd { margin: 0; font: 700 26px/1.1 var(--mono); color: var(--texto); }
+.hero-provas dt { font-size: 12px; color: var(--texto-fraco); }
+.nota { margin-top: 14px; font-size: 12px; line-height: 1.5; color: #6f7a8c; max-width: 70ch; }
+
+/* calculadora */
+.calc { margin-top: 40px; padding: clamp(20px, 3vw, 32px); display: grid; grid-template-columns: 1fr 1.1fr; gap: clamp(20px, 3vw, 40px); }
+.calc-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: start; }
+.calc-campos label { display: grid; gap: 6px; font-size: 13px; color: var(--texto-fraco); }
+.calc-campos input, .calc-campos select {
+  width: 100%; min-height: 46px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--borda-forte); background: rgba(0, 0, 0, 0.3);
+  color: var(--texto); font: 500 16px var(--mono);
+}
+.calc-campos select { font-family: Inter, sans-serif; font-size: 15px; }
+.calc-campos input:focus, .calc-campos select:focus { border-color: var(--acento); }
+.calc-resultado { display: grid; gap: 14px; align-content: start; }
+.calc-grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.calc-grade div { padding: 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--borda); display: grid; gap: 2px; }
+.calc-grade b { font: 700 clamp(18px, 1.9vw, 25px)/1.2 var(--mono); white-space: nowrap; }
+.calc-grade small { font-size: 12px; color: var(--texto-fraco); }
+.calc-historico { font-size: 15px; color: var(--texto-fraco); }
+.calc-historico b { color: var(--texto); }
+.calc-historico b.alta { color: var(--alta); } .calc-historico b.baixa { color: var(--baixa); }
+.calc-sequencia { font-size: 14px; color: var(--texto-fraco); }
+.calc-resultado .botao { justify-self: start; }
+.numeros-sub { margin-bottom: 32px; }
 
 /* ---------- responsivo ---------- */
 @media (max-width: 1000px) {
+  .calc { grid-template-columns: 1fr; }
+  .anuncio-meio { display: none; }
   .hero-grade { grid-template-columns: 1fr; }
   .hero-terminal { max-width: 560px; }
   .topo-nav { display: none; }
@@ -265,9 +315,17 @@ body.com-cursor, body.com-cursor a, body.com-cursor button, body.com-cursor summ
   .prova-cartao { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
+  .hero-provas { grid-template-columns: repeat(2, auto); }
+  .calc-campos { grid-template-columns: 1fr; }
+  .calc-grade { grid-template-columns: 1fr; }
+  .calc-resultado .botao { justify-self: stretch; }
+  .barra-fixa { padding-left: 16px; }
+  .barra-fixa-extra { display: none; }
+  .barra-fixa .botao { padding: 0 14px; font-size: 13px; }
+  .anuncio { font-size: 12px; gap: 4px 14px; }
   .topo { padding-left: 14px; }
   .topo .botao { padding: 0 14px; font-size: 13px; }
-  .hero { padding-top: 96px; min-height: auto; }
+  .hero { padding-top: 136px; min-height: auto; }
   .hero-acoes .botao { width: 100%; }
   .dores, .recursos-grade, .perfis, .contraste-grade { grid-template-columns: 1fr; }
   .numeros-grade { grid-template-columns: 1fr 1fr; }
