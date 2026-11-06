@@ -3,7 +3,8 @@
 Terminal pessoal de análise técnica, feito para a rotina **depois do fechamento**: ver quais setups se formaram,
 comparar os gráficos dos ativos na mesma condição, simular o trade e registrar no Diário. Páginas:
 
-- **Início** (`index.html`): o que o terminal faz e os 3 passos (encontre uma oportunidade → simule o trade → registre no Diário), as oportunidades de hoje por mercado, os seus trades abertos e o R do mês, e um glossário.
+- **Conheça o terminal** (`index.html`, a página inicial): a landing page (`assets/css/landing.css`, `assets/js/landing.js`), com sinais e exemplos reais do dia e os planos. `conheca.html` redireciona para ela.
+- **Guia** (`guia.html`, antes o Início): o manual do terminal: o que ele faz e os 3 passos (encontre uma oportunidade → simule o trade → registre no Diário), as oportunidades de hoje por mercado, os seus trades abertos e o R do mês, e um glossário.
 - **Oportunidades** (`setups.html`): a grade de setups, descrita abaixo (antes "Setups"). Cada card tem **Simular**.
 - **Diário** (`diario.html`): os trades simulados, o resultado em R por dia e as estatísticas por estratégia.
 - **Mais ▾**: **Triagem**, **Backtest** e **Carteira** (`carteira.html`, antes `index.html`).

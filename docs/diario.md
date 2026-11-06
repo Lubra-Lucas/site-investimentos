@@ -81,7 +81,7 @@ editor abre em modo rascunho. Com `abrirEditor: false` (uso programático) o tra
 
 ## Páginas
 
-- **Início** (`index.html`): para quem chega: o que é o terminal e os 3 passos; oportunidades de hoje; trades
+- **Guia** (`guia.html`, antes o Início; a página inicial agora é a landing `index.html`): para quem chega: o que é o terminal e os 3 passos; oportunidades de hoje; trades
   abertos; R do mês. A antiga Carteira vai para `carteira.html` (no menu "Mais").
 - **Oportunidades** (`setups.html`): a grade de setups (sem mudança de regra), com "Simular trade" em cada card.
 - **Diário** (`diario.html`): calendário de R por dia (clicar no dia abre os trades dele com foto, setup, entrada,

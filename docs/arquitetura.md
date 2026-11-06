@@ -73,7 +73,9 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
   ("229 ativos para comprar · A favor da tendência › todos os setups"), com Ordenar, "Só com 2+ setups", Baixar e
   ⚙ Exibição (grade 1, 2×2, 3×3, 4×3; tempo do gráfico; condições ou meus indicadores). `radar.html` e `multitela.html`
   redirecionam para cá.
-- **Início** (`index.html`, `assets/js/inicio.js`): página de apresentação do terminal (landing). O texto fixo está no HTML:
+- **Conheça o terminal** (`index.html`, `assets/css/landing.css`, `assets/js/landing.js`): a página inicial do site, uma landing
+  page com os sinais e exemplos reais do dia, os perfis, os planos e as perguntas. `conheca.html` só redireciona para ela.
+- **Guia** (`guia.html`, `assets/js/inicio.js`; era o Início): o manual do terminal, para quem já entrou. O texto fixo está no HTML:
   hero (títulos e CTAs para Oportunidades e Diário) com os 3 recursos, "Para cada tipo de investidor" (iniciante, longo prazo,
   trader, quem quer disciplina; cada um com dor, ajuda, exemplo ilustrativo sem promessa de retorno e CTA), "Como funciona, em 3
   passos" com as 4 palavras-chave, e perguntas frequentes com o aviso de ferramenta de estudo. O `inicio.js` preenche só o que
@@ -81,8 +83,8 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
   `radar.json`, `tf: "D"`, último pregão fechado de cada mercado; setups de entrada, excluindo o grupo "Tendência", que é estado;
   filtro de mercado e compra/venda em `inicio-v1`; "Ver gráfico" e "Simular trade") e a faixa "Seus trades" (`#inicio-trades`,
   oculta para quem não tem trades; abertos e R do mês, por `Diario` ou, sem ele, `Simulacoes`).
-- **Navegação** (`montarTopo`/`navegacao` em `comum.js`): Início · Oportunidades (`setups.html`) · Diário (`diario.html`) · Mais
-  (Triagem, Backtest, Carteira). No celular o mesmo `<nav>` vira barra de abas na base da tela (só CSS).
+- **Navegação** (`montarTopo`/`navegacao` em `comum.js`): Guia (`guia.html`) · Oportunidades (`setups.html`) · Diário (`diario.html`) · Mais
+  (Triagem, Backtest, Carteira, Conheça o terminal). O logotipo leva à página inicial (a landing). No celular o mesmo `<nav>` vira barra de abas na base da tela (só CSS).
 - **Simular trade** (`simularTrade(ctx, {grafico})` em `comum.js`): `Diario.registrar` se existir (carregado sob demanda de
   `assets/js/diario-dados.js`), senão `ativo.html?simular=compra|venda&setup=ID&tf=D#TICKER`, que abre um rascunho no gráfico
   do ativo (`simulador.contexto = {setup, tf, origem}`). Pontos de entrada: botão do card, menu ⋯ e alvo de arrastar
