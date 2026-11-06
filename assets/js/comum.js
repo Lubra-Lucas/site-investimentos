@@ -766,7 +766,7 @@ const ATALHOS = [
 function montarTopo(pagina, dados) {
   const topo = document.getElementById("topo");
   const v = dados?.verificacao;
-  const marca = el("a", { class: "marca", href: "index.html", "aria-label": "Carteira Terminal: página inicial" });
+  const marca = el("a", { class: "marca", href: "index.html", "aria-label": "Carteira Terminal: conheça o terminal" });
   marca.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="4" height="9" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="11" width="4" height="6" rx="1"/></svg><span>Carteira <b>Terminal</b></span>';
 
   // status dos dados: data do último pregão e, no detalhe, a verificação
@@ -814,7 +814,8 @@ function montarTopo(pagina, dados) {
 
 /** Páginas do menu. Três destinos principais (o ciclo: achar → simular → registrar) e o resto em "Mais". */
 const NAV_PRINCIPAL = [
-  { id: "inicio", href: "index.html", rot: "Início", icone: "M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" },
+  { id: "inicio", href: "guia.html", rot: "Guia", dica: "Como usar o terminal e para quem cada recurso é indicado",
+    icone: "M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 5v16M8 7h7M8 11h7" },
   { id: "setups", href: "setups.html", rot: "Oportunidades", dica: "Os setups que se formaram: ativos em bom momento de compra ou de venda",
     icone: "M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 100 8 4 4 0 000-8z" },
   { id: "diario", href: "diario.html", rot: "Diário", dica: "Seus trades simulados, resultado em R e estatísticas",
@@ -824,7 +825,7 @@ const NAV_MAIS = [
   { id: "triagem", href: "triagem.html", rot: "Triagem", dica: "Passe os sinais do dia, um a um, como num baralho" },
   { id: "backtest", href: "backtest.html", rot: "Backtest", dica: "Como cada setup se saiu nos últimos 6 anos" },
   { id: "carteira", href: "carteira.html", rot: "Carteira", dica: "Posições, minha lista e plano de amanhã" },
-  { id: "conheca", href: "conheca.html", rot: "Conheça o terminal", dica: "O que o Carteira Terminal faz por você, em uma página" },
+  { id: "conheca", href: "index.html", rot: "Conheça o terminal", dica: "O que o Carteira Terminal faz por você, em uma página" },
 ];
 
 function iconeSvg(d) {

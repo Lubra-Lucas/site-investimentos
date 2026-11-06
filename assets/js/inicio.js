@@ -1,4 +1,4 @@
-/* Início (index.html): a página de apresentação do terminal. O texto fixo (hero, perfis de investidor, 3 passos,
+/* Guia (guia.html, antes o Início): o manual do terminal. O texto fixo (hero, perfis de investidor, 3 passos,
  * perguntas) está no HTML; aqui entram só as partes com dados: o número de ativos no topo, a vitrine ao vivo
  * dos ativos com mais setups hoje e, para quem já tem trades, a faixa "Seus trades". Dados: data/radar.json
  * (sinais: {ticker, setup, tf, data, lado, preco, bt}) e data/setups.json (nomes); trades: Diario

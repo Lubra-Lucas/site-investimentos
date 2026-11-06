@@ -1,5 +1,5 @@
 /* =========================================================
-   Carteira Terminal — landing page (conheca.html)
+   Carteira Terminal — landing page (index.html, a página inicial do site)
    GSAP + ScrollTrigger (animações no scroll), Lenis (scroll suave), canvas (velas da abertura)
    e JS puro. Técnicas reaproveitadas do site da Garnet: tilt com brilho, faixa que acelera
    com o scroll, manifesto palavra por palavra, linha das etapas, cursor e botões magnéticos.
