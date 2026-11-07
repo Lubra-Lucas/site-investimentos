@@ -102,6 +102,17 @@ def enviar_foto(token: str, chat: str, imagem: Path, legenda: str) -> dict:
         return {"ok": False, "description": f"HTTP {e.code}: {corpo[:300]}"}
 
 
+def status(ok: bool, msg: str) -> None:
+    """Grava o resultado da última tentativa no site (sem segredos), para diagnóstico."""
+    print("Telegram:", msg)
+    try:
+        PASTA.mkdir(parents=True, exist_ok=True)
+        (PASTA / "telegram-status.json").write_text(
+            json.dumps({"ok": ok, "mensagem": msg}, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+
+
 def main() -> int:
     simular = "--simular" in sys.argv
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
@@ -111,21 +122,21 @@ def main() -> int:
     gravar_ultimo(ultimo)  # mantém o registro no site mesmo quando não posta
 
     if not simular and not (token and chat):
-        print("Telegram: segredos não configurados, nada a fazer.")
+        status(False, "segredos não configurados" + ("" if token else " (falta TELEGRAM_BOT_TOKEN)") + ("" if chat else " (falta TELEGRAM_CHAT_ID)"))
         return 0
 
     hoje = ler_json(PASTA / "hoje.json")
     if not hoje or hoje.get("vazio") or not hoje.get("principal"):
-        print("Telegram: sem post hoje.")
+        status(True, "sem post hoje")
         return 0
     principal = hoje["principal"]
     data = principal.get("data") or hoje.get("data")
     if data and data == ultimo:
-        print(f"Telegram: {data} já foi publicado.")
+        status(True, f"{data} já tinha sido publicado")
         return 0
     imagem = PASTA / (principal.get("post") or "")
     if not imagem.is_file():
-        print(f"Telegram: imagem {imagem.name} não encontrada.")
+        status(False, f"imagem {imagem.name} não encontrada")
         return 0
 
     legenda = montar_legenda(hoje, principal)
@@ -135,10 +146,10 @@ def main() -> int:
 
     resp = enviar_foto(token, chat, imagem, legenda)
     if not resp.get("ok"):
-        print(f"Telegram: falhou: {resp.get('description')}")
+        status(False, f"falhou: {resp.get('description')}")
         return 1
     gravar_ultimo(data)
-    print(f"Telegram: publicado {principal.get('rotulo')} de {data}.")
+    status(True, f"publicado {principal.get('rotulo')} de {data}")
     return 0
 
 
