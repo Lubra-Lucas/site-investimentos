@@ -51,6 +51,14 @@ jobs:
         continue-on-error: true
         run: python scripts/conteudo.py
 
+      - name: Publicar o post do dia no Telegram
+        # Sem os segredos TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID não faz nada; não posta a mesma data duas vezes.
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/telegram_postar.py
+
       - name: Montar site
         run: |
           mkdir _site
