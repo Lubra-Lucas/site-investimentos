@@ -46,6 +46,11 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: python scripts/atualizar_dados.py
 
+      - name: Conteúdo para redes (posts, legenda e newsletter)
+        # Opcional: se nada qualificar (ou der erro), grava hoje.json com vazio e o build segue.
+        continue-on-error: true
+        run: python scripts/conteudo.py
+
       - name: Montar site
         run: |
           mkdir _site
