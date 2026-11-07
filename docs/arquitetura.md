@@ -39,6 +39,17 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
   `{"ticker", "setup", "tf": "D"|"W", "data": "AAAA-MM-DD", "lado": "compra"|"venda"|"neutro", "preco",
   "bt": [casos, acerto %, retorno médio %, vantagem %] | null}`.
   Janela: últimos 15 pregões (D) e 8 semanas (W), só candles fechados. Tempo gráfico é sempre `D`/`W`.
+  **Formato no arquivo (colunar, para pesar menos):** os eventos eram 3,3 MB dos 3,8 MB do `radar.json`
+  (474 KB com gzip). Agora `sinais` é `{"v": 2, "tickers", "setups", "tfs", "datas", "lados", "bt", "e"}`:
+  as listas guardam cada texto uma vez, `bt` guarda cada resumo de backtest uma vez (ele é igual para todos
+  os eventos do mesmo ativo+setup+tempo) e `e` são 7 colunas paralelas de índices
+  `[ticker, setup, tf, data, lado, preco, bt]` (bt `-1` = sem backtest), na mesma ordem de antes. Resultado:
+  1,25 MB / 194 KB com gzip, com os mesmos números. Quem lê expande para a lista de objetos acima:
+  `expandirSinais` em `assets/js/comum.js` (dentro de `carregarRadar`, então as páginas continuam vendo
+  `R.sinais` como lista), um trecho igual em `assets/js/landing.js` (que não carrega o `comum.js`) e
+  `descompactar_sinais` em `scripts/conteudo.py`. O encoder é `compactar_sinais` em `scripts/atualizar_dados.py`.
+  Os leitores também aceitam a lista antiga, então um `radar.json` velho em cache do navegador não quebra o site.
+  Não há `radar.json` "leve" separado: toda página usa `R.sinais` ao abrir, então separar só adiaria o download.
 - `data/rastreador.json`: as fotos de sempre (para regras personalizadas, contexto e valores do card),
   mais os campos por candle das condições novas.
 - `data/backtest.json`: por setup (id do catálogo) em vez de família.

@@ -105,6 +105,15 @@ def entrada(ctx, id_) -> bool:
     return bool(x) and x["grupo"] != "Tendência" and x.get("vies") != "neutro"
 
 
+def descompactar_sinais(sinais) -> list[dict]:
+    """Inverso de atualizar_dados.compactar_sinais (aceita também a lista antiga de dicionários)."""
+    if isinstance(sinais, list):
+        return sinais
+    t, bt = sinais, sinais["bt"]
+    return [{"ticker": t["tickers"][a], "setup": t["setups"][b], "tf": t["tfs"][c], "data": t["datas"][d],
+             "lado": t["lados"][e], "preco": p, "bt": bt[i] if i >= 0 else None} for a, b, c, d, e, p, i in zip(*t["e"])]
+
+
 def ativo_ok(a: dict) -> bool:
     """Líquido e com preço em dia (sem conferência de fechamento pendente depois do último candle)."""
     if a.get("liquido") is False:
@@ -615,6 +624,8 @@ def main(argv=None) -> int:
     base = {"gerado_em": agora.isoformat(timespec="seconds"), "site": SITE}
 
     R, S = ler(dados / "radar.json"), ler(dados / "setups.json")
+    if R:
+        R["sinais"] = descompactar_sinais(R.get("sinais", []))
     escolhidos = []
     ctx = None
     if R and S:

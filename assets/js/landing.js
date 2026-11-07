@@ -142,6 +142,12 @@
   const NOMES_MERCADO = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro" };
 
   Promise.all([buscar("data/radar.json"), buscar("data/setups.json")]).then(([R, C]) => {
+    if (!Array.isArray(R.sinais)) { // eventos colunares (ver compactar_sinais em scripts/atualizar_dados.py)
+      const t = R.sinais;
+      const [A, B, C, D, E, P, I] = t.e;
+      R.sinais = A.map((a, k) => ({ ticker: t.tickers[a], setup: t.setups[B[k]], tf: t.tfs[C[k]], data: t.datas[D[k]],
+        lado: t.lados[E[k]], preco: P[k], bt: I[k] >= 0 ? t.bt[I[k]] : null }));
+    }
     const porTk = new Map(R.ativos.map((a) => [a.ticker, a]));
     const itens = C.grupos.flatMap((g) => g.itens.map((x) => ({ ...x, grupo: g.nome })));
     const porSetup = new Map(itens.map((x) => [x.id, x]));
