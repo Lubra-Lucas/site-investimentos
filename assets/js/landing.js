@@ -8,6 +8,11 @@
 (() => {
   "use strict";
 
+  /* Configuração dos planos (detalhes no bloco "planos" mais abaixo). */
+  const LISTA_ESPERA = "";   // URL de Formulário Google ou Tally para a lista de espera
+  const CONTATO_EMAIL = "";  // e-mail que recebe o mini formulário (mailto:)
+  const PAGAMENTO = { inicial: "", pro: "" }; // links de pagamento por plano
+
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
   const reduzido = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -415,15 +420,72 @@
     gsap.from(".hero-terminal", { y: 60, opacity: 0, rotateX: 8, duration: 1.4, ease: "expo.out", delay: 0.25 });
   }
 
-  /* ---------- planos: os links de pagamento entram aqui quando existirem ---------- */
-  const PAGAMENTO = { inicial: "", pro: "" };
+  /* ---------- planos: pagamento, lista de espera ou mini formulário ----------
+     Configuração (o fundador preenche depois, sem mexer no resto do código):
+       PAGAMENTO     link de pagamento de cada plano. Se houver, o botão abre o pagamento.
+       LISTA_ESPERA  URL de um Formulário Google ou Tally. Sem link de pagamento, abre em nova aba
+                     (se o link não tiver "?", acrescenta ?plano=inicial|pro).
+       CONTATO_EMAIL e-mail que recebe os inscritos do mini formulário. Sem backend, o envio abre o
+                     app de e-mail do visitante (mailto:). Se estiver vazio, o contato fica salvo só
+                     no navegador (localStorage) e a página avisa que a lista abre em breve.
+     Se nada estiver preenchido, o botão mostra o mini formulário dentro de #planos-aviso. */
+  const NOME_PLANO = { inicial: "Inicial", pro: "Pro" };
+
+  function formularioEspera(aviso, plano) {
+    const nome = NOME_PLANO[plano] || plano;
+    const email = el("input", { type: "email", id: "espera-email", name: "email", required: true, autocomplete: "email", placeholder: "voce@email.com", inputmode: "email" });
+    const zap = el("input", { type: "tel", id: "espera-zap", name: "whatsapp", autocomplete: "tel", placeholder: "(11) 99999-9999", inputmode: "tel" });
+    const msg = el("p", { class: "espera-msg", role: "status" });
+    const form = el("form", { class: "espera-form", novalidate: true },
+      el("p", { class: "espera-titulo" }, `Lista de espera do plano ${nome}`),
+      el("p", { class: "espera-texto" }, "Preço de fundador para os primeiros inscritos. Deixe seu contato e avisamos quando as assinaturas abrirem."),
+      el("label", { for: "espera-email" }, "E-mail"), email,
+      el("label", { for: "espera-zap" }, "WhatsApp (opcional)"), zap,
+      el("button", { type: "submit", class: "botao botao-primario" }, "Entrar na lista com preço de fundador"),
+      msg,
+      el("p", { class: "espera-link" }, "Enquanto isso, o terminal está liberado: ", el("a", { href: "setups.html" }, "ver as oportunidades de hoje →")));
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const em = email.value.trim();
+      if (!/^\S+@\S+\.\S+$/.test(em)) { msg.textContent = "Digite um e-mail válido."; msg.className = "espera-msg erro"; email.focus(); return; }
+      const wa = zap.value.trim();
+      window.medir && window.medir("lista-espera-" + plano);
+      if (CONTATO_EMAIL) {
+        const corpo = `Quero entrar na lista de espera do plano ${nome}.\nE-mail: ${em}\nWhatsApp: ${wa || "não informado"}`;
+        location.href = `mailto:${CONTATO_EMAIL}?subject=${encodeURIComponent("Lista de espera: plano " + nome)}&body=${encodeURIComponent(corpo)}`;
+        msg.textContent = "Abrimos o seu app de e-mail. É só enviar a mensagem para entrar na lista.";
+      } else {
+        try {
+          const lista = JSON.parse(localStorage.getItem("lista-espera") || "[]");
+          lista.push({ plano, email: em, whatsapp: wa, em: new Date().toISOString() });
+          localStorage.setItem("lista-espera", JSON.stringify(lista));
+        } catch (_) { /* navegador sem armazenamento: segue só com o agradecimento */ }
+        msg.textContent = "Obrigado! A lista de espera abre em breve; guardamos o seu interesse neste navegador.";
+      }
+      msg.className = "espera-msg ok";
+    });
+    aviso.replaceChildren(form);
+    return email;
+  }
+
   $$("[data-plano]").forEach((b) => b.addEventListener("click", (e) => {
-    const link = PAGAMENTO[b.dataset.plano];
+    const plano = b.dataset.plano;
+    const link = PAGAMENTO[plano];
     if (link) { location.href = link; return; }
     e.preventDefault();
+    if (LISTA_ESPERA) {
+      window.medir && window.medir("lista-espera-" + plano);
+      const url = LISTA_ESPERA.includes("?") ? LISTA_ESPERA : `${LISTA_ESPERA}?plano=${plano}`;
+      window.open(url, "_blank", "noopener");
+      return;
+    }
     const aviso = $("#planos-aviso");
+    aviso.classList.add("com-form");
+    const campo = formularioEspera(aviso, plano);
     aviso.hidden = false;
     if (anima) gsap.fromTo(aviso, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4 });
+    aviso.scrollIntoView({ block: "center", behavior: reduzido ? "auto" : "smooth" });
+    campo.focus({ preventScroll: true });
   }));
 
   /* ---------- perguntas com abertura suave ---------- */
