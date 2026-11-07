@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Top do dia · Carteira Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/ranking.css">
+  <link rel="preload" as="fetch" crossorigin href="data/ranking.json">
+  <script defer src="assets/js/medicao.js"></script>
+</head>
+<body>
+  <header class="topo" id="topo"></header>
+
+  <main data-canal-cartao>
+    <section class="painel como-ler">
+      <div class="painel-cab">
+        <div>
+          <h1 class="rk-titulo">Top do dia: os sinais de hoje com melhor histórico</h1>
+          <p class="sub" id="rk-sub"></p>
+        </div>
+        <div class="segmento" id="rk-mercado">
+          <button data-v="" class="ativo">Todos</button>
+          <button data-v="BR">Brasil</button>
+          <button data-v="US">EUA</button>
+          <button data-v="CRIPTO">Cripto</button>
+        </div>
+      </div>
+      <p class="sub">
+        <b>Como é a nota:</b> entre os sinais de entrada acesos hoje no gráfico diário, olhamos quantas vezes aquele
+        mesmo setup terminou no lucro, naquele mesmo ativo, saindo 10 pregões depois (na venda, lucro é o preço cair).
+        A nota é o <b>limite inferior do intervalo de confiança de 95%</b> (Wilson) da taxa de acerto: ela desconta
+        amostras pequenas, então 9 de 10 não passa na frente de 60 de 80. Só entram setups com pelo menos
+        <b id="rk-min">10</b> casos e retorno médio positivo; cada ativo aparece uma vez, com o setup de melhor nota.
+      </p>
+      <p class="aviso-rk" role="note">
+        <b>Ranking estatístico do histórico de cada ativo, não recomendação.</b> Resultado passado não garante futuro;
+        os números não incluem custos nem impostos.
+      </p>
+    </section>
+
+    <div class="rk-colunas">
+      <section class="painel" aria-labelledby="rk-h-compra">
+        <h2 id="rk-h-compra" class="alta">▲ Compra</h2>
+        <ol class="rk-lista" id="rk-compra"></ol>
+      </section>
+      <section class="painel" aria-labelledby="rk-h-venda">
+        <h2 id="rk-h-venda" class="baixa">▼ Venda <small>(lucro = queda do preço)</small></h2>
+        <ol class="rk-lista" id="rk-venda"></ol>
+      </section>
+    </div>
+  </main>
+
+  <footer>Uso pessoal. Resultado passado não garante futuro; sem custos e impostos; possíveis oportunidades, não recomendação de investimento.<br><a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Política de privacidade</a></footer>
+
+  <script defer src="assets/js/config.js"></script>
+  <script defer src="assets/js/comum.js"></script>
+  <script defer src="assets/js/rastreador.js"></script>
+  <script defer src="assets/js/ranking.js"></script>
+</body>
+</html>

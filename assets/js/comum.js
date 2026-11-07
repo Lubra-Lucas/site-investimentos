@@ -833,6 +833,7 @@ const NAV_PRINCIPAL = [
 const NAV_MAIS = [
   { id: "triagem", href: "triagem.html", rot: "Triagem", dica: "Passe os sinais do dia, um a um, como num baralho" },
   { id: "backtest", href: "backtest.html", rot: "Backtest", dica: "Como cada setup se saiu nos últimos 6 anos" },
+  { id: "ranking", href: "ranking.html", rot: "Top do dia", dica: "Os sinais de hoje com melhor histórico de acerto, para compra e venda" },
   { id: "resultados", href: "resultados.html", rot: "Histórico dos sinais", dica: "Os sinais dos últimos 60 pregões e como cada um terminou, inclusive os que deram prejuízo" },
   { id: "carteira", href: "carteira.html", rot: "Carteira", dica: "Posições, minha lista e plano de amanhã" },
   { id: "conteudo", href: "conteudo.html", rot: "Conteúdo do dia", dica: "Post, story e newsletter gerados com os sinais do dia" },
