@@ -369,3 +369,17 @@ body.com-cursor, body.com-cursor a, body.com-cursor button, body.com-cursor summ
   .prova-abas { display: grid; grid-template-columns: 1fr 1fr; }
   .prova-cartao { padding: 18px; }
 }
+
+/* ---------- lista de espera (mini formulário dentro de #planos-aviso) ---------- */
+.planos-aviso.com-form { max-width: 520px; text-align: left; padding: 22px; border-color: var(--borda-forte); background: var(--painel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.espera-form { display: grid; gap: 8px; }
+.espera-titulo { margin: 0; font: 700 18px Inter, sans-serif; }
+.espera-texto { margin: 0 0 6px; color: var(--texto-fraco); }
+.espera-form label { font-size: 13px; color: var(--texto-fraco); margin-top: 4px; }
+.espera-form input { width: 100%; min-height: 46px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--borda-forte); background: rgba(255, 255, 255, 0.04); color: var(--texto); font: 400 16px Inter, sans-serif; }
+.espera-form input:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.espera-form .botao { width: 100%; margin-top: 8px; text-align: center; white-space: normal; padding-block: 10px; }
+.espera-msg { margin: 0; min-height: 1.4em; font-size: 14px; }
+.espera-msg.ok { color: var(--alta); }
+.espera-msg.erro { color: var(--baixa); }
+.espera-link { margin: 4px 0 0; font-size: 13px; color: var(--texto-fraco); }
