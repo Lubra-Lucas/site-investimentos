@@ -208,6 +208,26 @@ body.com-cursor, body.com-cursor a, body.com-cursor button, body.com-cursor summ
 .prova-acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .aviso-legal { margin-top: 14px; font-size: 13px; color: var(--texto-fraco); }
 
+/* ---------- o filtro: ranking do mês ---------- */
+.filtro[hidden], .canal[hidden], #rodape-canal[hidden] { display: none; }
+.filtro-grade { display: grid; grid-template-columns: 3fr 2fr; gap: 18px; margin-top: 40px; align-items: start; }
+.filtro-bloco { padding: 24px; }
+.filtro-bloco h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.filtro-lista { list-style: none; margin: 0; padding: 0; }
+.filtro-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; padding: 14px 0; border-top: 1px solid var(--borda); }
+.filtro-item:first-child { border-top: 0; }
+.filtro-nome b { display: block; font-weight: 600; }
+.filtro-nome small { color: var(--texto-fraco); font-size: 12px; }
+.filtro-med { font: 700 22px var(--mono); text-align: right; align-self: center; grid-row: span 2; grid-column: 2; }
+.filtro-det { grid-column: 1; font: 13px var(--mono); color: var(--texto-fraco); }
+.canal-cartao { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 28px 32px; border-color: rgba(76, 141, 255, 0.4); }
+.canal-cartao h2 { font-size: clamp(24px, 3vw, 34px); }
+.canal.secao { padding-block: clamp(30px, 5vw, 60px); }
+@media (max-width: 760px) {
+  .filtro-grade { grid-template-columns: minmax(0, 1fr); }
+  .canal-cartao { padding: 22px; }
+}
+
 .recursos-grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }
 .recurso { padding: 26px; }
 .recurso-icone { display: inline-grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: rgba(76, 141, 255, 0.12); color: var(--acento-2); margin-bottom: 18px; }

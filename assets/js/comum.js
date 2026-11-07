@@ -1295,3 +1295,36 @@ function abrirPersonalizacao(ancora) {
   };
   setTimeout(() => document.addEventListener("pointerdown", fora));
 }
+
+/* Canal do Telegram: só aparece se assets/js/config.js tiver a URL em canalTelegram.
+   Injeta o link nos rodapés e um cartão de destaque nas páginas com <main data-canal-cartao>. */
+(function canalTelegram() {
+  const url = ((window.CT_CONFIG && window.CT_CONFIG.canalTelegram) || "").trim();
+  if (!/^https:\/\//i.test(url)) return;
+  const clique = () => { window.medir && window.medir("canal-telegram"); };
+  const montar = () => {
+    document.querySelectorAll("footer").forEach((f) => {
+      if (f.querySelector("[data-canal-link]")) return;
+      const a = document.createElement("a");
+      a.href = url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Canal no Telegram";
+      a.setAttribute("data-canal-link", ""); a.addEventListener("click", clique);
+      f.append(" · ", a);
+    });
+    const main = document.querySelector("main[data-canal-cartao]");
+    const ref = main && main.querySelector(":scope > section");
+    if (!ref || main.querySelector(".canal-cartao")) return;
+    const cartao = document.createElement("section");
+    cartao.className = "painel canal-cartao";
+    const txt = document.createElement("div");
+    const h = document.createElement("h2"); h.textContent = "Siga o canal no Telegram";
+    const p = document.createElement("p"); p.className = "sub";
+    p.textContent = "O sinal do dia e como terminaram os anteriores, grátis.";
+    txt.append(h, p);
+    const a = document.createElement("a");
+    a.className = "botao primario"; a.href = url; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "Abrir o canal"; a.addEventListener("click", clique);
+    cartao.append(txt, a);
+    ref.after(cartao);
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", montar); else montar();
+})();
