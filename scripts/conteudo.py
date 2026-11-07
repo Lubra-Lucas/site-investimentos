@@ -201,7 +201,7 @@ def legenda(ctx, ex) -> str:
         linhas.append(f"Hoje {tk} tem {len(ex['setups'])} setups de {lado} ao mesmo tempo. Além deste: {junto}.")
     linhas += ["", "É um estudo estatístico do que já aconteceu, não uma previsão: resultado passado não garante resultado futuro.",
                "", f"E você, já acompanha {tk}? Qual setup você mais usa? Conta aqui nos comentários.",
-               "", f"Veja o histórico completo de cada sinal, ativo por ativo, no terminal gratuito: {SITE}",
+               "", f"Veja o histórico completo de cada sinal, ativo por ativo, no Carteira Terminal: {SITE}",
                "", "Estudo estatístico, não é recomendação de investimento.", "", hashtags(ex)]
     return "\n".join(linhas) + "\n"
 
@@ -519,7 +519,7 @@ def newsletter(ctx, ex, dia: str, saida: Path):
     md += [f"| {fmt_data(d)} | {fmt_preco(e)} | {fmt_preco(sa)} | {fmt_pct(r, 1)} |" for d, e, _sd, sa, r in ult]
     md += ["", "## O que olhar na próxima semana", ""] + [f"- {p}" for p in prox]
     md += ["", "## Aviso", "", AVISO + " Backtest sem custos operacionais, impostos ou deslizamento.", "",
-           f"Terminal gratuito: {SITE}", ""]
+           f"Carteira Terminal: {SITE}", ""]
     (saida / f"newsletter-{dia}.md").write_text("\n".join(md), encoding="utf-8")
 
     # --- html (tabelas e estilos inline, para clientes de e-mail)
