@@ -56,8 +56,9 @@ jobs:
         continue-on-error: true
         run: python scripts/resultados.py
 
-      - name: Publicar o post do dia no Telegram
-        # Sem os segredos TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID não faz nada; não posta a mesma data duas vezes.
+      - name: Publicar no Telegram (post do dia e resumos semanais)
+        # Sem os segredos TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID não faz nada; não repete data nem semana.
+        # Vem depois de resultados.py, que alimenta o "Como terminaram os sinais".
         continue-on-error: true
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
