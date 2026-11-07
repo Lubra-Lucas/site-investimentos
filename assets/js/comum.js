@@ -75,7 +75,16 @@ function buscarJSON(url) {
   });
   return cacheJSON[url];
 }
+/** Os eventos vêm colunares (scripts/atualizar_dados.py: compactar_sinais); aqui voltam a ser objetos
+ *  {ticker, setup, tf, data, lado, preco, bt}. Uma lista já expandida (arquivo antigo em cache) passa direto. */
+function expandirSinais(t) {
+  if (!t || Array.isArray(t)) return t ?? [];
+  const [A, B, C, D, E, P, I] = t.e;
+  return A.map((a, k) => ({ ticker: t.tickers[a], setup: t.setups[B[k]], tf: t.tfs[C[k]], data: t.datas[D[k]],
+    lado: t.lados[E[k]], preco: P[k], bt: I[k] >= 0 ? t.bt[I[k]] : null }));
+}
 const carregarRadar = () => buscarJSON("data/radar.json").then((r) => {
+  if (!Array.isArray(r.sinais)) r.sinais = expandirSinais(r.sinais);
   if (!ROTULOS.size) for (const a of r.ativos) if (a.rotulo) ROTULOS.set(a.ticker, a.rotulo);
   return r;
 });
@@ -824,6 +833,7 @@ const NAV_PRINCIPAL = [
 const NAV_MAIS = [
   { id: "triagem", href: "triagem.html", rot: "Triagem", dica: "Passe os sinais do dia, um a um, como num baralho" },
   { id: "backtest", href: "backtest.html", rot: "Backtest", dica: "Como cada setup se saiu nos últimos 6 anos" },
+  { id: "resultados", href: "resultados.html", rot: "Histórico dos sinais", dica: "Os sinais dos últimos 60 pregões e como cada um terminou, inclusive os que deram prejuízo" },
   { id: "carteira", href: "carteira.html", rot: "Carteira", dica: "Posições, minha lista e plano de amanhã" },
   { id: "conteudo", href: "conteudo.html", rot: "Conteúdo do dia", dica: "Post, story e newsletter gerados com os sinais do dia" },
   { id: "conheca", href: "index.html", rot: "Conheça o terminal", dica: "O que o Carteira Terminal faz por você, em uma página" },
