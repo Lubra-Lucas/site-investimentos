@@ -32,6 +32,15 @@ DIAS_RANKING = 30
 MIN_RANKING = 5
 
 
+
+def descompactar_sinais(sinais) -> list[dict]:
+    """Inverso de atualizar_dados.compactar_sinais (aceita também a lista antiga de dicionários)."""
+    if isinstance(sinais, list):
+        return sinais
+    t, bt = sinais, sinais["bt"]
+    return [{"ticker": t["tickers"][a], "setup": t["setups"][b], "tf": t["tfs"][c], "data": t["datas"][d],
+             "lado": t["lados"][e], "preco": p, "bt": bt[i] if i >= 0 else None} for a, b, c, d, e, p, i in zip(*t["e"])]
+
 def ler(caminho: Path):
     try:
         return json.loads(caminho.read_text(encoding="utf-8"))
@@ -54,7 +63,7 @@ def gerar(dados: Path) -> dict:
                for x in g["itens"] if x.get("vies") in ("compra", "venda")}
     ativos = {a["ticker"]: a for a in R["ativos"] if a["mercado"] in MERCADOS}
     sinais_radar: dict[str, list[dict]] = {}
-    for s in R["sinais"]:
+    for s in descompactar_sinais(R["sinais"]):
         if s["tf"] == "D" and s["setup"] in entrada and s["ticker"] in ativos:
             sinais_radar.setdefault(s["ticker"], []).append(s)
 
