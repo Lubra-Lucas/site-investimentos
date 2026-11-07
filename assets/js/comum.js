@@ -75,7 +75,16 @@ function buscarJSON(url) {
   });
   return cacheJSON[url];
 }
+/** Os eventos vêm colunares (scripts/atualizar_dados.py: compactar_sinais); aqui voltam a ser objetos
+ *  {ticker, setup, tf, data, lado, preco, bt}. Uma lista já expandida (arquivo antigo em cache) passa direto. */
+function expandirSinais(t) {
+  if (!t || Array.isArray(t)) return t ?? [];
+  const [A, B, C, D, E, P, I] = t.e;
+  return A.map((a, k) => ({ ticker: t.tickers[a], setup: t.setups[B[k]], tf: t.tfs[C[k]], data: t.datas[D[k]],
+    lado: t.lados[E[k]], preco: P[k], bt: I[k] >= 0 ? t.bt[I[k]] : null }));
+}
 const carregarRadar = () => buscarJSON("data/radar.json").then((r) => {
+  if (!Array.isArray(r.sinais)) r.sinais = expandirSinais(r.sinais);
   if (!ROTULOS.size) for (const a of r.ativos) if (a.rotulo) ROTULOS.set(a.ticker, a.rotulo);
   return r;
 });

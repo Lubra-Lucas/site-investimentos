@@ -234,6 +234,33 @@ def historico_patrimonio(cfg, transacoes, precos, cambio, moedas) -> list[dict]:
 _INICIO = perf_counter()
 
 
+def compactar_sinais(sinais: list[dict]) -> dict:
+    """Eventos dos setups em formato colunar (menos bytes no radar.json; o JS expande em comum.js).
+
+    "e" tem 7 colunas paralelas: ticker, setup, tf, data, lado, preco, bt. Os textos viram índices nas
+    listas do cabeçalho (tickers, setups, tfs, datas, lados); o bt (igual para todos os eventos do mesmo
+    ativo+setup+tf) vai uma vez só em "bt" e a coluna guarda o índice (-1 = sem bt). A ordem dos eventos
+    é preservada. Inverso: scripts/conteudo.py (descompactar_sinais) e comum.js (expandirSinais)."""
+    tabelas = {c: {} for c in ("ticker", "setup", "tf", "data", "lado")}
+    bts: dict[str, int] = {}
+    lista_bt: list = []
+    eventos = []
+    for e in sinais:
+        linha = [tabelas[c].setdefault(e[c], len(tabelas[c])) for c in tabelas]
+        linha.append(e["preco"])
+        if e.get("bt") is None:
+            linha.append(-1)
+        else:
+            chave = json.dumps(e["bt"], separators=(",", ":"))
+            if chave not in bts:
+                bts[chave] = len(lista_bt)
+                lista_bt.append(e["bt"])
+            linha.append(bts[chave])
+        eventos.append(linha)
+    colunas = [list(c) for c in zip(*eventos)] if eventos else [[] for _ in range(7)]
+    return {"v": 2, **{c + "s": list(t) for c, t in tabelas.items()}, "bt": lista_bt, "e": colunas}
+
+
 def etapa(msg: str) -> None:
     """Mensagem de progresso com o tempo desde o início (flush: o log do Actions mostra na hora)."""
     seg = int(perf_counter() - _INICIO)
@@ -412,7 +439,7 @@ def main() -> None:
         # sinais: eventos dos setups do catálogo nos últimos 15 pregões / 8 semanas (candles fechados)
         "em_formacao": em_formacao,
         "ativos": publicados,
-        "sinais": sinais,
+        "sinais": compactar_sinais(sinais),
         "retidos": retidos,
     }
     (SAIDA / "rastreador.json").write_text(json.dumps({
