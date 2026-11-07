@@ -332,6 +332,8 @@ tbody tr:hover { background: var(--bg-elev); }
 .alocacao b { color: var(--texto); font-weight: 500; }
 
 footer { text-align: center; color: var(--texto-fraco); font-size: 12px; padding: 0 16px 32px; }
+footer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+footer a:hover { color: var(--texto); }
 
 /* ---------- filtros ---------- */
 .filtros { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 12px 16px; }

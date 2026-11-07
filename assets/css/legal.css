@@ -1,0 +1,24 @@
+/* Páginas de Termos de uso e Política de privacidade: coluna de leitura simples sobre o estilo do terminal. */
+main.texto-legal { max-width: 78ch; margin: 0 auto; padding: 24px 16px 48px; display: block; line-height: 1.65; font-size: 15px; }
+.texto-legal h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; }
+.texto-legal h2 { font-size: 19px; margin: 36px 0 8px; padding-top: 4px; scroll-margin-top: 72px; }
+.texto-legal p, .texto-legal ul, .texto-legal ol { margin: 0 0 12px; }
+.texto-legal li { margin-bottom: 4px; }
+.texto-legal .atualizado { color: var(--texto-fraco); font-size: 13px; margin-bottom: 16px; }
+.texto-legal .rascunho { border: 1px solid var(--aviso); border-left-width: 4px; background: var(--bg-painel); border-radius: var(--raio); padding: 12px 14px; margin: 0 0 20px; }
+.texto-legal .indice { border: 1px solid var(--borda); background: var(--bg-painel); border-radius: var(--raio); padding: 12px 16px 12px 36px; margin: 0 0 8px; }
+.texto-legal .indice a { color: var(--acento); }
+.texto-legal .indice li { margin-bottom: 2px; }
+.texto-legal a { color: var(--acento); overflow-wrap: anywhere; }
+.texto-legal .marcador { background: color-mix(in srgb, var(--aviso) 22%, transparent); border-radius: 4px; padding: 0 4px; white-space: normal; }
+.texto-legal .quando { color: var(--aviso); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.texto-legal table { width: 100%; border-collapse: collapse; margin: 0; font-size: 14px; }
+.texto-legal .tabela-rolavel { overflow-x: auto; margin: 0 0 14px; }
+@media (max-width: 600px) { .texto-legal table { min-width: 560px; } }
+.texto-legal th, .texto-legal td { border: 1px solid var(--borda); padding: 8px 10px; text-align: left; vertical-align: top; }
+.texto-legal th { background: var(--bg-painel); }
+@media (max-width: 600px) { main.texto-legal { font-size: 15px; padding-bottom: 96px; } .texto-legal h1 { font-size: 24px; } }
+.texto-legal td, .texto-legal th { white-space: normal; }
+.texto-legal tbody tr { cursor: auto; }
+.texto-legal tbody tr:hover { background: none; }
+@media (max-width: 600px) { .texto-legal table { min-width: 640px; } }
