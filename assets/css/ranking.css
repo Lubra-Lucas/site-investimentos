@@ -1,0 +1,25 @@
+/* Top do dia (ranking.html). Usa os tokens de style.css. */
+.rk-titulo { margin: 0; font-size: var(--t-2xl); line-height: 1.2; }
+.aviso-rk { margin: var(--s-3) 0 0; padding: var(--s-3); border: 1px solid var(--aviso); border-radius: var(--raio); font-size: 13px; line-height: 1.5; }
+.rk-colunas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); align-items: start; }
+.rk-colunas h2.alta { color: var(--alta); } .rk-colunas h2.baixa { color: var(--baixa-texto); }
+.rk-lista { list-style: none; margin: var(--s-3) 0 0; padding: 0; display: grid; gap: 6px; }
+.rk-linha { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: var(--s-3); padding: var(--s-3); background: var(--bg-elev); border-radius: var(--raio); }
+.rk-pos { color: var(--texto-fraco); font-size: 13px; font-weight: 600; padding-top: 2px; }
+.rk-corpo { min-width: 0; display: grid; gap: 2px; }
+.rk-topo { display: flex; align-items: center; gap: var(--s-2); min-width: 0; }
+.rk-ativo { font-weight: 700; color: var(--texto); text-decoration: none; }
+.rk-ativo:hover { color: var(--acento); text-decoration: underline; }
+.rk-mercado { font-size: 11px; }
+.rk-medio { margin-left: auto; font-weight: 700; }
+.rk-medio.alta { color: var(--alta); } .rk-medio.baixa { color: var(--baixa-texto); }
+.rk-setup { font-size: 14px; overflow-wrap: anywhere; }
+.rk-det { font-size: 13px; }
+.rk-nota { display: flex; align-items: center; gap: var(--s-2); margin-top: 4px; }
+.rk-barra { flex: 1; height: 6px; border-radius: var(--r-pill); background: var(--borda); overflow: hidden; }
+.rk-barra i { display: block; height: 100%; background: var(--acento); border-radius: var(--r-pill); }
+.rk-nota-num { font-size: 12px; color: var(--texto-fraco); min-width: 2ch; text-align: right; }
+.rk-vazio { padding: var(--s-3); }
+@media (max-width: 800px) {
+  .rk-colunas { grid-template-columns: minmax(0, 1fr); }
+}

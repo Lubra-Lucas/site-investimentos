@@ -16,6 +16,12 @@ Também funciona um segredo único `TELEGRAM` com as duas linhas `TELEGRAM_BOT_T
 - Testar sem enviar: `python scripts/telegram_postar.py --simular`.
 - Se falhar, o log do passo mostra a resposta do Telegram (ex.: "chat not found" = ID errado; "not enough rights" = bot não é admin).
 
+## Top do dia (texto, diário)
+Logo depois do post diário, uma mensagem de texto "🏆 Top do dia — sinais com melhor histórico" com o top 3 de compra e o top 3 de venda de `data/ranking.json` (gerado por `scripts/ranking.py`, passo `continue-on-error` do workflow antes do Telegram). Cada linha: ativo · setup · X de Y no lucro · média. No fim, aviso de risco e link para `ranking.html`.
+- Critério: último pregão fechado de cada mercado (BR, US, Cripto), setups de entrada, mínimo de 10 casos, retorno médio positivo, nota = limite inferior de Wilson (95%) da taxa de acerto, um setup por ativo.
+- Não repete a data: `telegram.json` guarda `"ranking": "AAAA-MM-DD"` (a data do ranking publicado). Formatos antigos sem a chave continuam aceitos.
+- Bloco com try/except próprio; o resultado vai em `telegram-status.json` na chave `ranking` (`ok`, `mensagem`). Sem ranking qualificado, não posta.
+
 ## Publicações semanais (texto)
 Além do post diário, duas mensagens de texto por semana (HTML do Telegram, até 4096 caracteres, sem pré-visualização de link). Datas e semanas ISO em UTC.
 - **Resumo da semana**: na sexta, quando `conteudo.py` gera a newsletter (`hoje.json["newsletter"]`), o markdown é convertido em texto com link para `conteudo.html`. Aceita execução até 2 dias depois da sexta. Não repete a semana.
@@ -26,7 +32,8 @@ Além do post diário, duas mensagens de texto por semana (HTML do Telegram, at�
 ```json
 {"ultimo": "2026-11-06",
  "posts": [{"data": "...", "ticker": "...", "rotulo": "...", "setup": "...", "setup_nome": "...", "lado": "compra", "relatado": "2026-W46"}],
- "semanal": {"newsletter": "2026-W45", "resultados": "2026-W45"}}
+ "semanal": {"newsletter": "2026-W45", "resultados": "2026-W45"},
+ "ranking": "2026-11-06"}
 ```
 Segue o mesmo carry-over do post diário: lido do site publicado quando `data/` está vazio e regravado a cada execução (guarda os últimos 200 posts). O formato antigo `{"ultimo": "AAAA-MM-DD"}` continua aceito. O histórico só passa a existir a partir dos posts feitos com esta versão.
 

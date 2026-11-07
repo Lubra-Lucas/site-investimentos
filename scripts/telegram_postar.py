@@ -12,6 +12,9 @@ Sem os segredos, sai sem fazer nada. Não posta a mesma data duas vezes: guarda 
 semanal em data/conteudo/telegram.json, que vai para o site e é lido de volta na
 próxima execução (data/ começa vazio a cada build).
 
+Logo depois do post diário, uma mensagem de texto "Top do dia" (3 de compra e 3 de venda de
+data/ranking.json, gerado por scripts/ranking.py), uma vez por data.
+
 Além do post diário, uma vez por semana ISO (datas em UTC):
   - resumo da semana (newsletter): na sexta, quando conteudo.py gera a newsletter;
   - "Como terminaram os sinais": a partir do sábado.
@@ -56,7 +59,8 @@ def estado_publicado() -> dict:
 
     Aceita o formato antigo {"ultimo": "AAAA-MM-DD"}. Formato atual:
     {"ultimo": data, "posts": [{data, ticker, rotulo, setup, setup_nome, lado, relatado?}],
-     "semanal": {"newsletter": "AAAA-Www", "resultados": "AAAA-Www"}}
+     "semanal": {"newsletter": "AAAA-Www", "resultados": "AAAA-Www"},
+     "ranking": "AAAA-MM-DD"}   # data do último Top do dia publicado
     """
     bruto = ler_json(PASTA / "telegram.json")
     if not bruto:
@@ -71,7 +75,8 @@ def estado_publicado() -> dict:
     semanal = bruto.get("semanal")
     return {"ultimo": bruto.get("ultimo"),
             "posts": [p for p in posts if isinstance(p, dict)] if isinstance(posts, list) else [],
-            "semanal": semanal if isinstance(semanal, dict) else {}}
+            "semanal": semanal if isinstance(semanal, dict) else {},
+            "ranking": bruto.get("ranking") if isinstance(bruto.get("ranking"), str) else None}
 
 
 def gravar_estado(estado: dict) -> None:
@@ -357,6 +362,48 @@ def publicar_diario(token: str, chat: str, simular: bool, hoje: dict | None, est
     return True, f"publicado {principal.get('rotulo')} de {data}"
 
 
+def montar_ranking(rk: dict) -> str | None:
+    """Mensagem do Top do dia (HTML do Telegram): 3 de compra e 3 de venda, ou None se não houver nada."""
+    def bloco(titulo: str, lado: str) -> list[str]:
+        itens = ((rk.get(lado) or {}).get("geral") or [])[:3]
+        if not itens:
+            return []
+        linhas = [f"<b>{titulo}</b>"]
+        for i, x in enumerate(itens, 1):
+            linhas.append(f"{i}. <b>{html.escape(str(x.get('rotulo')))}</b> · {html.escape(str(x.get('setup_nome')))} · "
+                          f"{x.get('ganhos')} de {x.get('casos')} no lucro · média {pct(x.get('medio') or 0)}")
+        return linhas + [""]
+    corpo = bloco("▲ Compra", "compra") + bloco("▼ Venda", "venda")
+    if not corpo:
+        return None
+    data = rk.get("data")
+    cab = "🏆 <b>Top do dia — sinais com melhor histórico</b>" + (f"\n{br(data)}" if data else "")
+    rodape = ("Ranking estatístico do histórico de cada ativo (mínimo de 10 casos, nota pelo limite inferior do "
+              "intervalo de confiança), não é recomendação. Resultado passado não garante resultado futuro; "
+              f"sem custos e impostos.\n<a href=\"{SITE}ranking.html\">Ver o ranking completo</a>")
+    return (cab + "\n\n" + "\n".join(corpo) + "\n" + rodape)[:LIMITE_TEXTO]
+
+
+def publicar_ranking(token: str, chat: str, simular: bool, estado: dict) -> tuple[bool, str]:
+    rk = ler_json(RAIZ / "data" / "ranking.json")
+    if not isinstance(rk, dict) or not rk.get("data"):
+        return True, "sem ranking hoje"
+    if rk["data"] == estado.get("ranking"):
+        return True, f"ranking de {rk['data']} já publicado"
+    texto = montar_ranking(rk)
+    if not texto:
+        return True, "sem ranking hoje"
+    if simular:
+        print(f"[simulação] top do dia ({len(texto)} caracteres):\n{texto}\n")
+        return True, "simulado"
+    r = enviar_texto(token, chat, texto)
+    if not r.get("ok"):
+        return False, f"falhou: {r.get('description')}"
+    estado["ranking"] = rk["data"]
+    gravar_estado(estado)
+    return True, f"publicado ({rk['data']})"
+
+
 def publicar_semanal(token: str, chat: str, simular: bool, forcar: bool, hoje: dict | None,
                      estado: dict, agora: datetime) -> dict:
     """Newsletter (sexta) e 'Como terminaram' (a partir do sábado), uma vez por semana ISO em UTC."""
@@ -437,13 +484,18 @@ def main() -> int:
     except Exception as e:  # nada daqui pode derrubar o build
         ok, msg = False, f"erro inesperado no post diário: {e}"
     try:
+        ok_rk, msg_rk = publicar_ranking(token, chat, simular, estado)
+    except Exception as e:
+        ok_rk, msg_rk = False, f"erro inesperado no top do dia: {e}"
+    print("Telegram top do dia:", msg_rk)
+    try:
         semanal = publicar_semanal(token, chat, simular, forcar, hoje, estado, datetime.now(timezone.utc))
     except Exception as e:
         semanal = {"erro": f"erro inesperado nas publicações semanais: {e}"}
     print("Telegram semanal:", semanal)
     if not simular:
-        status(ok, msg, {"semanal": semanal})
-    return 0 if ok else 1
+        status(ok, msg, {"ranking": {"ok": ok_rk, "mensagem": msg_rk}, "semanal": semanal})
+    return 0 if ok and ok_rk else 1
 
 
 if __name__ == "__main__":
