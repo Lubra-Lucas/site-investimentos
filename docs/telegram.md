@@ -8,7 +8,7 @@ A cada atualização de dados, `scripts/conteudo.py` gera o post do dia e `scrip
    - `TELEGRAM_BOT_TOKEN`: token do BotFather.
    - `TELEGRAM_CHAT_ID`: `@nome_do_canal` (canal público) ou o ID numérico (canal privado, começa com `-100`).
 
-Sem os dois segredos, o passo não faz nada.
+Também funciona um segredo único `TELEGRAM` com as duas linhas `TELEGRAM_BOT_TOKEN=...` e `TELEGRAM_CHAT_ID=...`. Sem eles, o passo não faz nada; o resultado de cada tentativa fica em `data/conteudo/telegram-status.json`.
 
 ## Como funciona
 - Roda no workflow `atualizar.yml`, depois de gerar o conteúdo, com `continue-on-error` (uma falha no Telegram não derruba o site).
