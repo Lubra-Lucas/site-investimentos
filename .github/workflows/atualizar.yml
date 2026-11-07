@@ -51,6 +51,11 @@ jobs:
         continue-on-error: true
         run: python scripts/conteudo.py
 
+      - name: Histórico dos sinais (resultados.json)
+        # Opcional: sem ele a página Histórico dos sinais mostra aviso e o build segue.
+        continue-on-error: true
+        run: python scripts/resultados.py
+
       - name: Publicar o post do dia no Telegram
         # Sem os segredos TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID não faz nada; não posta a mesma data duas vezes.
         continue-on-error: true
