@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conteúdo para redes · Carteira Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script defer src="assets/js/medicao.js"></script>
+  <link rel="preload" as="fetch" crossorigin href="data/radar.json">
+  <style>
+    .cont-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+    .cont-grade[hidden], #cont-leg[hidden], #cont-news[hidden] { display: none; }
+    .cont-img { display: grid; gap: 10px; align-content: start; }
+    .cont-img img { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--borda); background: var(--bg); display: block; }
+    .cont-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .cont-acoes a.botao { text-decoration: none; display: inline-block; }
+    .cont-legenda { width: 100%; box-sizing: border-box; min-height: 320px; resize: vertical; background: var(--bg); color: var(--texto);
+      border: 1px solid var(--borda-controle); border-radius: 8px; padding: 12px; font: 14px/1.55 Inter, "Inter Fallback", sans-serif; }
+    .cont-resumo { display: flex; gap: 8px 18px; flex-wrap: wrap; font-size: 13px; color: var(--texto-fraco); margin-top: 6px; }
+    .cont-resumo b { color: var(--texto); font-weight: 600; }
+    .cont-alta { color: var(--alta); }
+    .cont-baixa { color: var(--baixa-texto); }
+    .cont-troca { display: flex; gap: 6px; flex-wrap: wrap; }
+    .cont-troca button[aria-pressed="true"] { border-color: var(--acento); color: var(--acento); }
+    .cont-ok { color: var(--alta); font-size: 12.5px; min-height: 1.4em; }
+    @media (max-width: 760px) { .cont-grade { grid-template-columns: 1fr; } main { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <header class="topo" id="topo"></header>
+
+  <main>
+    <section class="painel" id="cont-cab">
+      <div class="painel-cab">
+        <div>
+          <h2>Conteúdo do dia para redes sociais</h2>
+          <p class="sub" id="cont-sub">Carregando…</p>
+        </div>
+        <div class="cont-troca" id="cont-troca"></div>
+      </div>
+      <div class="cont-resumo" id="cont-resumo"></div>
+    </section>
+
+    <section class="cont-grade" id="cont-imagens" hidden>
+      <div class="painel cont-img" id="cont-post"></div>
+      <div class="painel cont-img" id="cont-story"></div>
+    </section>
+
+    <section class="painel" id="cont-leg" hidden>
+      <div class="painel-cab">
+        <div><h2>Legenda pronta</h2><p class="sub">Revise, ajuste se quiser e cole na rede social.</p></div>
+        <div class="cont-acoes">
+          <button class="botao primario" id="cont-copiar" type="button">Copiar legenda</button>
+          <span class="cont-ok" id="cont-ok" role="status"></span>
+        </div>
+      </div>
+      <textarea class="cont-legenda" id="cont-texto" readonly aria-label="Legenda do post"></textarea>
+    </section>
+
+    <section class="painel" id="cont-news" hidden>
+      <div class="painel-cab">
+        <div><h2>Newsletter da semana</h2><p class="sub" id="cont-news-sub"></p></div>
+        <div class="cont-acoes" id="cont-news-acoes"></div>
+      </div>
+      <iframe id="cont-news-quadro" title="Prévia da newsletter" style="width:100%;height:560px;border:1px solid var(--borda);border-radius:8px;background:#fff" sandbox></iframe>
+    </section>
+  </main>
+
+  <footer>Conteúdo gerado todo dia por scripts/conteudo.py a partir dos dados do terminal. Estudo estatístico, não é recomendação de investimento.
+    <br><a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Política de privacidade</a></footer>
+
+  <script defer src="assets/js/comum.js"></script>
+  <script defer src="assets/js/conteudo.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+name: Verificar dados publicados
+
+# Baixa o data/radar.json do site no ar e confere se está em dia (scripts/verificar_dados.py).
+# Se estiver atrasado, o job FALHA (o GitHub avisa o dono por e-mail) e abre/atualiza a issue
+# "Dados atrasados". Quando os dados voltam ao normal, a issue é fechada sozinha.
+on:
+  schedule:
+    # 12:00 UTC: depois da rodada das 10:17. 01:30 UTC: depois da rodada das 22:30.
+    - cron: "0 12 * * *"
+    - cron: "30 1 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: verificar-dados
+  cancel-in-progress: false
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      TITULO: Dados atrasados
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Conferir o radar.json publicado
+        id: conferir
+        run: |
+          set +e
+          python scripts/verificar_dados.py --resumo resumo.txt
+          echo "codigo=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Abrir ou atualizar a issue (dados atrasados)
+        if: steps.conferir.outputs.codigo != '0'
+        run: |
+          {
+            cat resumo.txt
+            echo
+            echo "Verificação automática: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "Para investigar, veja o log do workflow \"Atualizar dados e publicar\"."
+          } > corpo.md
+          numero=$(gh issue list --state open --search "\"$TITULO\" in:title" --json number,title \
+            --jq "map(select(.title == \"$TITULO\")) | .[0].number // empty")
+          if [ -n "$numero" ]; then
+            gh issue comment "$numero" --body-file corpo.md
+          else
+            gh issue create --title "$TITULO" --body-file corpo.md
+          fi
+
+      - name: Fechar a issue quando os dados voltam ao normal
+        if: steps.conferir.outputs.codigo == '0'
+        run: |
+          numero=$(gh issue list --state open --search "\"$TITULO\" in:title" --json number,title \
+            --jq "map(select(.title == \"$TITULO\")) | .[0].number // empty")
+          if [ -n "$numero" ]; then
+            gh issue close "$numero" --comment "Dados em dia de novo. Fechada automaticamente."
+          fi
+
+      - name: Falhar se os dados estão atrasados
+        if: steps.conferir.outputs.codigo != '0'
+        run: |
+          cat resumo.txt
+          exit 1
