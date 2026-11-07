@@ -102,6 +102,20 @@ def enviar_foto(token: str, chat: str, imagem: Path, legenda: str) -> dict:
         return {"ok": False, "description": f"HTTP {e.code}: {corpo[:300]}"}
 
 
+def ler_segredos() -> tuple[str, str]:
+    """Token e canal: dos segredos separados ou de um segredo único TELEGRAM com linhas CHAVE=valor."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    for linha in os.environ.get("TELEGRAM", "").splitlines():
+        chave, _, valor = linha.partition("=")
+        chave, valor = chave.strip().upper(), valor.strip().strip('"').strip("'")
+        if chave == "TELEGRAM_BOT_TOKEN" and not token:
+            token = valor
+        elif chave == "TELEGRAM_CHAT_ID" and not chat:
+            chat = valor
+    return token, chat
+
+
 def status(ok: bool, msg: str) -> None:
     """Grava o resultado da última tentativa no site (sem segredos), para diagnóstico."""
     print("Telegram:", msg)
@@ -115,8 +129,7 @@ def status(ok: bool, msg: str) -> None:
 
 def main() -> int:
     simular = "--simular" in sys.argv
-    token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-    chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    token, chat = ler_segredos()
 
     ultimo = ultimo_publicado()
     gravar_ultimo(ultimo)  # mantém o registro no site mesmo quando não posta

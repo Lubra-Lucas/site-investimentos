@@ -62,6 +62,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # também aceita um segredo único TELEGRAM com as linhas TELEGRAM_BOT_TOKEN=... e TELEGRAM_CHAT_ID=...
+          TELEGRAM: ${{ secrets.TELEGRAM }}
         run: python scripts/telegram_postar.py
 
       - name: Montar site
