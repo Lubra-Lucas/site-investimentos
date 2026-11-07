@@ -41,3 +41,6 @@ jobs:
 
       - name: Paridade Python x JS
         run: python scripts/testar_paridade.py
+
+      - name: Verificador de dados (casos embutidos)
+        run: python scripts/verificar_dados.py --testar
