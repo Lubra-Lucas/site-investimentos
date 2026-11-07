@@ -1,0 +1,32 @@
+/* Histórico dos sinais (resultados.html). Usa os tokens de style.css. */
+.aviso-res { margin: var(--s-3) 0 0; padding: var(--s-3); border: 1px solid var(--aviso); border-radius: var(--raio); font-size: 13px; line-height: 1.5; }
+.res-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-3); }
+.res-kpi { display: grid; gap: 2px; padding: var(--s-3); background: var(--bg-elev); border-radius: var(--raio); min-width: 0; }
+.res-kpi-valor { font-size: 22px; font-weight: 700; overflow-wrap: anywhere; }
+.res-kpi-valor.alta { color: var(--alta); } .res-kpi-valor.baixa { color: var(--baixa-texto); }
+.res-sub-tit { margin: var(--s-4) 0 var(--s-2); font-size: 13px; color: var(--texto-fraco); font-weight: 600; }
+.res-rank-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.res-rank-item { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 2px var(--s-3); align-items: baseline; padding: var(--s-2) var(--s-3); background: var(--bg-elev); border-radius: var(--raio); }
+.res-pos { color: var(--texto-fraco); font-size: 12px; }
+.res-rank-nome { min-width: 0; overflow-wrap: anywhere; }
+.res-rank-med { font-weight: 700; }
+.res-rank-det { grid-column: 2 / 4; }
+.res-filtros { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-5); margin-bottom: var(--s-3); }
+.res-filtros .segmento { flex-wrap: wrap; }
+.res-linha { display: grid; grid-template-columns: 52px 88px minmax(0, 1fr) auto; gap: 4px var(--s-3); align-items: center; padding: var(--s-2) 0; border-top: 1px solid var(--borda); font-size: 14px; }
+.res-linha.aberto { background: color-mix(in srgb, var(--acento) 6%, transparent); }
+.res-data { color: var(--texto-fraco); font-size: 13px; }
+.res-ativo { font-weight: 600; color: var(--texto); text-decoration: none; overflow-wrap: anywhere; }
+.res-ativo:hover { color: var(--acento); text-decoration: underline; }
+.res-setup { min-width: 0; overflow-wrap: anywhere; }
+.res-sit { display: flex; align-items: center; justify-content: flex-end; gap: var(--s-2); text-align: right; }
+.res-ret { font-weight: 700; }
+.res-selo { font-size: 11px; white-space: nowrap; }
+.res-mais { display: flex; justify-content: center; margin-top: var(--s-4); }
+.res-mais[hidden], #res-mais[hidden] { display: none; }
+@media (max-width: 700px) {
+  .res-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .res-linha { grid-template-columns: 48px minmax(0, 1fr) auto; }
+  .res-setup { grid-column: 1 / 3; grid-row: 2; font-size: 13px; color: var(--texto-fraco); }
+  .res-sit { grid-column: 3; grid-row: 1 / 3; flex-direction: column; align-items: flex-end; gap: 2px; }
+}

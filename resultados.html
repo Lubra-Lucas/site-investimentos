@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Histórico dos sinais · Carteira Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/resultados.css">
+  <link rel="preload" as="fetch" crossorigin href="data/resultados.json">
+  <script defer src="assets/js/medicao.js"></script>
+</head>
+<body>
+  <header class="topo" id="topo"></header>
+
+  <main>
+    <section class="painel como-ler">
+      <h2>Histórico dos sinais</h2>
+      <p class="sub">
+        Por que confiar nisso? Aqui está tudo o que o terminal apontou nos últimos 60 pregões de cada ativo e como cada
+        sinal terminou, <b>inclusive os que deram prejuízo</b>. Nada foi escolhido a dedo: entram todos os sinais de
+        entrada (compra e venda, gráfico diário) dos ativos líquidos de Brasil, EUA e Cripto.
+      </p>
+      <p class="sub">
+        A conta é a do <a href="backtest.html">Backtest</a>: entra na abertura do pregão seguinte ao sinal e sai no
+        fechamento 10 pregões depois (na venda, ganha quando o preço cai). Sinal que ainda não completou os 10 pregões
+        aparece como <b>em aberto</b>, com o retorno até o último fechamento.
+      </p>
+      <p class="aviso-res" role="note">
+        <b>Resultado passado não garante futuro.</b> Os números não incluem custos nem impostos.
+        São possíveis oportunidades para estudar, não recomendação de investimento.
+      </p>
+    </section>
+
+    <section class="painel" id="res-resumo-painel">
+      <div class="painel-cab"><div><h2>Como terminaram</h2><p class="sub" id="res-resumo-sub"></p></div></div>
+      <div class="res-kpis" id="res-kpis"></div>
+    </section>
+
+    <section class="painel" id="res-rank-painel">
+      <div class="painel-cab">
+        <div>
+          <h2>Ranking do mês</h2>
+          <p class="sub" id="res-rank-sub"></p>
+        </div>
+        <div class="segmento" id="r-mercado">
+          <button data-v="BR" class="ativo">Brasil</button>
+          <button data-v="US">EUA</button>
+          <button data-v="CRIPTO">Cripto</button>
+        </div>
+      </div>
+      <div id="res-rank"></div>
+    </section>
+
+    <section class="painel">
+      <div class="painel-cab"><div><h2>Sinal a sinal</h2><p class="sub" id="res-lista-sub"></p></div></div>
+      <div class="res-filtros">
+        <div class="filtro"><span class="filtro-rotulo">Mercado</span>
+          <div class="segmento" id="f-mercado">
+            <button data-v="" class="ativo">Todos</button><button data-v="BR">Brasil</button><button data-v="US">EUA</button><button data-v="CRIPTO">Cripto</button>
+          </div></div>
+        <div class="filtro"><span class="filtro-rotulo">Lado</span>
+          <div class="segmento" id="f-lado">
+            <button data-v="" class="ativo">Todos</button><button data-v="compra">▲ Compra</button><button data-v="venda">▼ Venda</button>
+          </div></div>
+        <div class="filtro"><span class="filtro-rotulo">Situação</span>
+          <div class="segmento" id="f-situacao">
+            <button data-v="" class="ativo">Todos</button><button data-v="enc">Encerrados</button><button data-v="aberto">Em aberto</button>
+          </div></div>
+        <div class="filtro"><span class="filtro-rotulo">Resultado</span>
+          <div class="segmento" id="f-res">
+            <button data-v="" class="ativo">Todos</button><button data-v="ganho">Ganho</button><button data-v="perda">Prejuízo</button>
+          </div></div>
+      </div>
+      <div class="res-lista" id="res-lista" role="list"></div>
+      <div class="res-mais"><button class="botao" id="res-mais" type="button" hidden>Mostrar mais</button></div>
+    </section>
+  </main>
+
+  <footer>Uso pessoal. Resultado passado não garante futuro; sem custos e impostos; possíveis oportunidades, não recomendação de investimento.<br><a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Política de privacidade</a></footer>
+
+  <script defer src="assets/js/comum.js"></script>
+  <script defer src="assets/js/rastreador.js"></script>
+  <script defer src="assets/js/resultados.js"></script>
+</body>
+</html>
