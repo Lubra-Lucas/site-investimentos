@@ -2386,6 +2386,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .dr-vazio-inicial { padding: 20px; border: 1px dashed var(--borda-forte); border-radius: var(--raio); display: grid; gap: 10px; justify-items: start; }
 .dr-vazio-inicial h3 { margin: 0; font-size: 16px; }
 .dr-vazio-inicial p, .dr-vazio-inicial ol { margin: 0; color: var(--texto-fraco); line-height: 1.6; }
+.dr-vazio-inicial > * { max-width: 100%; min-width: 0; }
+.dr-vazio-inicial { grid-template-columns: minmax(0, 1fr); }
 .dr-vazio-inicial a:not(.botao) { color: var(--acento); }
 .dr-vazio-inicial .botao { text-decoration: none; padding: 9px 14px; }
 
