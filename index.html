@@ -48,7 +48,7 @@
           <p class="selo"><i class="ponto-vivo"></i> <span id="selo-vivo">Atualizado todo dia depois do fechamento</span></p>
           <h1 id="hero-titulo">Pare de comprar no <s>achismo</s>.<br>Compre com <em>estatística</em>.</h1>
           <p class="hero-sub">O Carteira Terminal varre <b data-vivo="ativos">centenas de</b> ativos do Brasil, EUA e cripto todo dia, aponta os que formaram um
-            <b>setup</b> de compra ou de venda e mostra <b>quantas vezes esse mesmo sinal funcionou naquele ativo</b>. A decisão continua sua, só que agora com números.</p>
+            <b>setup</b> de compra ou de venda e mostra <b>quantas vezes esse mesmo sinal funcionou naquele ativo</b>. Você vê <b>quais setups funcionam e quais não</b>, e a decisão continua sua, só que agora com números.</p>
           <div class="hero-acoes">
             <a class="botao botao-primario botao-grande magnetico" href="setups.html">Ver as oportunidades de hoje <span aria-hidden="true">→</span></a>
             <a class="botao botao-fantasma botao-grande" href="#planos">Ver os planos · −10%</a>
@@ -162,6 +162,37 @@
         <p class="carregando">Carregando um sinal de hoje…</p>
       </div>
       <p class="aviso-legal">Exemplos com dados reais, escolhidos automaticamente entre os sinais do dia. Resultado passado não garante resultado futuro.</p>
+    </section>
+
+    <!-- 5b. o filtro: nem todo sinal vale a pena (dados ao vivo de data/resultados.json; some se falhar) -->
+    <section class="secao filtro" id="filtro" aria-labelledby="filtro-titulo" hidden>
+      <p class="sobretitulo">O filtro · ranking do mês</p>
+      <h2 id="filtro-titulo">Nem todo sinal vale a pena. <em>O terminal mostra quais valem.</em></h2>
+      <p class="secao-sub" id="filtro-sub"></p>
+      <div class="filtro-grade">
+        <article class="filtro-bloco vidro" data-tilt>
+          <h3 class="alta">Os 3 que mais funcionaram</h3>
+          <ol class="filtro-lista" id="filtro-melhores"></ol>
+        </article>
+        <article class="filtro-bloco vidro" data-tilt>
+          <h3 class="baixa">Os 2 que menos funcionaram</h3>
+          <ol class="filtro-lista" id="filtro-piores"></ol>
+        </article>
+      </div>
+      <div class="prova-acoes"><a class="botao botao-primario" href="resultados.html">Ver o histórico completo dos sinais →</a></div>
+      <p class="aviso-legal">Resultado passado não garante resultado futuro, sem custos e impostos. Saída 10 pregões depois do sinal. É uma fatia curta de tempo: o ranking muda de um mês para o outro.</p>
+    </section>
+
+    <!-- canal do Telegram (só aparece com URL em assets/js/config.js) -->
+    <section class="secao canal" id="canal" aria-labelledby="canal-titulo" hidden>
+      <div class="canal-cartao vidro">
+        <div>
+          <p class="sobretitulo">Grátis · Telegram</p>
+          <h2 id="canal-titulo">Siga o canal no Telegram</h2>
+          <p class="secao-sub">O sinal do dia e como terminaram os anteriores, grátis.</p>
+        </div>
+        <a class="botao botao-primario botao-grande magnetico" id="canal-botao" href="#" target="_blank" rel="noopener">Abrir o canal <span aria-hidden="true">→</span></a>
+      </div>
     </section>
 
     <!-- 6. recursos -->
@@ -318,7 +349,7 @@
     <p class="rodape-marca">Carteira Terminal</p>
     <p>Ferramenta de estudo. Os setups são filtros técnicos automáticos, não recomendação de investimento. Resultado passado não garante resultado futuro.
       Dados: Yahoo Finance, conferidos com B3 (COTAHIST e cotações), Nasdaq (EUA) e Coinbase (cripto).</p>
-    <p><a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Política de privacidade</a></p>
+    <p><a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Política de privacidade</a><span id="rodape-canal" hidden> · <a href="#" target="_blank" rel="noopener">Canal no Telegram</a></span></p>
   </footer>
 
   <div class="barra-fixa" aria-label="Acesso rápido">
@@ -329,6 +360,7 @@
   <script src="assets/vendor/gsap.min.js"></script>
   <script src="assets/vendor/ScrollTrigger.min.js"></script>
   <script src="assets/vendor/lenis.min.js"></script>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/landing.js"></script>
 </body>
 </html>

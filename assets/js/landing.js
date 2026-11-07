@@ -416,6 +416,55 @@
       onEnter: () => li.classList.add("aceso"), onLeaveBack: () => li.classList.remove("aceso") }));
   })();
 
+  /* ---------- o filtro: ranking do mês de data/resultados.json (some se o arquivo falhar) ---------- */
+  (function filtro() {
+    const sec = $("#filtro");
+    if (!sec) return;
+    buscar("data/resultados.json").then((D) => {
+      const mercado = ["BR", "US", "CRIPTO"].find((m) => D.ranking?.[m]?.itens?.length >= 5);
+      if (!mercado) return;
+      const itens = D.ranking[mercado].itens;
+      const nomes = new Map(D.setups.map(([id, nome, lado]) => [id, { nome, lado }]));
+      const melhores = itens.slice(0, 3), piores = itens.slice(-2);
+      const linha = (x) => {
+        const s = nomes.get(x.setup) ?? { nome: x.setup, lado: "" };
+        return el("li", { class: "filtro-item" },
+          el("span", { class: "filtro-nome" }, el("b", {}, s.nome), el("small", {}, s.lado === "venda" ? "▼ venda" : "▲ compra")),
+          el("span", { class: `filtro-med ${x.medio >= 0 ? "alta" : "baixa"}` }, fmtPct(x.medio)),
+          el("span", { class: "filtro-det" }, `${fmtNum(x.acerto, 0)}% no lucro · ${fmtNum(x.n)} casos`));
+      };
+      $("#filtro-melhores").replaceChildren(...melhores.map(linha));
+      $("#filtro-piores").replaceChildren(...piores.map(linha));
+      const r = D.resumo?.[mercado];
+      const tot = r?.n ? ` Somando todos os sinais, só ${fmtNum(r.acerto, 0)}% terminaram no lucro (${fmtNum(r.n)} sinais, retorno médio ${fmtPct(r.medio)}): o valor está em saber quais setups funcionam.` : "";
+      $("#filtro-sub").textContent = `${NOMES_MERCADO[mercado]}, sinais encerrados de ${fmtData(D.ranking[mercado].desde)} a ${fmtData(D.ranking[mercado].ate)}, em setups com pelo menos ${D.min_ranking} casos.${tot}`;
+      sec.hidden = false;
+      if (anima && window.ScrollTrigger) {
+        const blocos = $$(".filtro-bloco", sec);
+        blocos.forEach((b) => b.classList.add("revelar"));
+        ScrollTrigger.refresh();
+        ScrollTrigger.batch(blocos, { start: "top 90%", once: true,
+          onEnter: (els) => gsap.to(els, { opacity: 1, translate: "0px 0px", duration: 1.1, ease: "expo.out", stagger: 0.12 }) });
+      }
+    }).catch(() => { /* sem o arquivo, a seção continua escondida */ });
+  })();
+
+  /* ---------- canal do Telegram: só aparece com URL em assets/js/config.js ---------- */
+  (function canal() {
+    const url = ((window.CT_CONFIG && window.CT_CONFIG.canalTelegram) || "").trim();
+    if (!/^https:\/\//i.test(url)) return;
+    const clique = () => { window.medir && window.medir("canal-telegram"); };
+    const botao = $("#canal-botao");
+    botao.href = url;
+    botao.addEventListener("click", clique);
+    $("#canal").hidden = false;
+    const rod = $("#rodape-canal");
+    $("a", rod).href = url;
+    $("a", rod).addEventListener("click", clique);
+    rod.hidden = false;
+    if (anima && window.ScrollTrigger) ScrollTrigger.refresh();
+  })();
+
   /* ---------- revelações ao rolar ---------- */
   if (anima) {
     $$(".secao h2, .secao .sobretitulo, .secao-sub, .dor-card, .recurso, .perfil, .lado, .numero, .acordeao details, .prova-cartao, .final-cartao, .plano-cartao")
