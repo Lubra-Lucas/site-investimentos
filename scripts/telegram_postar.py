@@ -373,7 +373,7 @@ def montar_ranking(rk: dict) -> str | None:
             linhas.append(f"{i}. <b>{html.escape(str(x.get('rotulo')))}</b> · {html.escape(str(x.get('setup_nome')))} · "
                           f"{x.get('ganhos')} de {x.get('casos')} no lucro · média {pct(x.get('medio') or 0)}")
         return linhas + [""]
-    corpo = bloco("▲ Compra", "compra") + bloco("▼ Venda", "venda")
+    corpo = bloco("▲ Compra", "compra") + bloco("▼ Venda (lucro = queda do preço)", "venda")
     if not corpo:
         return None
     data = rk.get("data")
