@@ -102,17 +102,41 @@
         // os setups que valem todo dia (grupo Tendência) vão para o fim dos chips
         i.setups.sort((x, y) => ehTendencia(x) - ehTendencia(y) || (pos.get(x) ?? 999) - (pos.get(y) ?? 999));
         i.fortes = i.setups.filter((id) => !ehTendencia(id));
-        const comBt = i.eventos.filter((e) => e.bt);
-        i.melhor = comBt.filter((e) => e.bt[1] != null).sort((x, y) => (y.bt[3] ?? -1e9) - (x.bt[3] ?? -1e9))[0] ?? comBt[0] ?? null;
+        // melhor histórico = maior limite inferior de Wilson (mínimo de 10 casos), desempate pela média; sem nenhum
+        // evento com amostra suficiente, o chip mostra o primeiro com backtest e a ordenação o põe no fim
+        i.nota = null;
+        for (const e of i.eventos) {
+          const h = notaHistorico(e.bt);
+          if (h && (!i.nota || h.nota > i.nota.nota || (h.nota === i.nota.nota && h.medio > i.nota.medio))) i.nota = { ...h, evento: e };
+        }
+        i.melhor = i.nota?.evento ?? i.eventos.find((e) => e.bt) ?? null;
       }
     }
   }
 
   const conta = (i) => (T.semTendencia ? i.fortes.length : i.setups.length);
-  const melhorBt = (i) => (i.melhor?.bt?.[1] != null ? i.melhor.bt[3] ?? -1e9 : -1e9);
+  /** Limite inferior de Wilson (95%) da taxa de acerto, em %: o mesmo critério de Oportunidades e de scripts/ranking.py. */
+  function wilsonInferior(ganhos, n, z = 1.96) {
+    if (n <= 0) return 0;
+    const p = ganhos / n, z2 = z * z;
+    const centro = p + z2 / (2 * n);
+    const margem = z * Math.sqrt(p * (1 - p) / n + z2 / (4 * n * n));
+    return Math.max(0, (centro - margem) / (1 + z2 / n) * 100);
+  }
+  const MIN_CASOS_HIST = 10;
+  /** Histórico de um evento (bt = [casos, acerto %, retorno médio %, vantagem %]); null com menos de 10 casos. */
+  function notaHistorico(bt) {
+    if (!bt || bt[1] == null || bt[0] < MIN_CASOS_HIST) return null;
+    const [n, acerto, medio] = bt;
+    const ganhos = Math.round(acerto / 100 * n);
+    return { n, ganhos, acerto, medio: medio ?? 0, nota: wilsonInferior(ganhos, n) };
+  }
+  // quem não tem histórico confiável vai para o fim
+  const notaDe = (i) => i.nota?.nota ?? -1, mediaDe = (i) => i.nota?.medio ?? -1e9;
+  const porHistorico = (x, y) => notaDe(y) - notaDe(x) || mediaDe(y) - mediaDe(x);
   const ORDENS = {
-    confluencia: (x, y) => conta(y) - conta(x) || melhorBt(y) - melhorBt(x),
-    historico: (x, y) => melhorBt(y) - melhorBt(x) || conta(y) - conta(x),
+    confluencia: (x, y) => conta(y) - conta(x) || porHistorico(x, y),
+    historico: (x, y) => porHistorico(x, y) || conta(y) - conta(x),
   };
 
   /** Os ativos do lado com os filtros (decididos ou não), na ordem escolhida. */
