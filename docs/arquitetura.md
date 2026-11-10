@@ -84,6 +84,8 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
   ("229 ativos para comprar · A favor da tendência › todos os setups"), com Ordenar, "Só com 2+ setups", Baixar e
   ⚙ Exibição (grade 1, 2×2, 3×3, 4×3; tempo do gráfico; condições ou meus indicadores). `radar.html` e `multitela.html`
   redirecionam para cá.
+- **Painel** (`painel.html`, `assets/js/painel.js`, `assets/css/painel.css`; página inicial do terminal): como está o mercado hoje e por onde começar. Blocos independentes (cada um mostra estado vazio se o dado faltar): faixa de mercado (8 tiles de `radar.json`: Ibovespa, S&P 500, Nasdaq 100, dólar, ouro, WTI, Bitcoin e VIX, com sparkline dos últimos 60 fechamentos de `data/ativos/`); termômetro por mercado (tendência `tend_d`, ativos com sinal de compra e de venda no último pregão, IFR < 30 e > 70; mesma conta de sinais de entrada do Guia, excluindo o grupo "Tendência"); mapa de calor (um `<a>` por ativo líquido numa grade CSS, Dia/Mês/Ano, 7 degraus de cor); Top do dia (5 de compra e 5 de venda de `ranking.json`); Minha lista (`MinhaLista` de `eventos.js`) com os setups de hoje; trades em aberto (`Simulacoes` + `avaliarSimulacao`, o mesmo que o Diário usa, sem carregar o gráfico); como andam os sinais (`resultados.json`, `resumo.TODOS`). "Ativos líquidos" = `liquido !== false`; se um mercado não tiver nenhum, usa todos.
+- **Instalar como app e 404**: `manifest.webmanifest` (início em `painel.html`, ícones em `assets/img/`, gerados a partir da marca das três barras) com `<link rel="manifest">`, `theme-color` e `apple-touch-icon` nas páginas do terminal; `404.html` calcula um `<base>` em tempo de execução (o site vive em `/site-investimentos/` no GitHub Pages). O workflow copia `manifest.webmanifest` para `_site`.
 - **Conheça o terminal** (`index.html`, `assets/css/landing.css`, `assets/js/landing.js`): a página inicial do site, uma landing
   page com os sinais e exemplos reais do dia, os perfis, os planos e as perguntas. `conheca.html` só redireciona para ela.
 - **Guia** (`guia.html`, `assets/js/inicio.js`; era o Início): o manual do terminal, para quem já entrou. O texto fixo está no HTML:
@@ -94,7 +96,8 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
   `radar.json`, `tf: "D"`, último pregão fechado de cada mercado; setups de entrada, excluindo o grupo "Tendência", que é estado;
   filtro de mercado e compra/venda em `inicio-v1`; "Ver gráfico" e "Simular trade") e a faixa "Seus trades" (`#inicio-trades`,
   oculta para quem não tem trades; abertos e R do mês, por `Diario` ou, sem ele, `Simulacoes`).
-- **Navegação** (`montarTopo`/`navegacao` em `comum.js`): Guia (`guia.html`) · Oportunidades (`setups.html`) · Diário (`diario.html`) · Mais
+- **Navegação** (`montarTopo`/`navegacao` em `comum.js`): Painel (`painel.html`) · Oportunidades (`setups.html`) · Diário (`diario.html`) · Mais
+  (Guia, Triagem, Backtest, Top do dia, Histórico dos sinais, Carteira, Conteúdo, Conheça o terminal). O logotipo leva ao Painel; a landing continua em "Conheça o terminal". No celular o mesmo `<nav>` vira barra de abas na base da tela (só CSS).
   (Triagem, Backtest, Carteira, Conheça o terminal). O logotipo leva à página inicial (a landing). No celular o mesmo `<nav>` vira barra de abas na base da tela (só CSS).
 - **Simular trade** (`simularTrade(ctx, {grafico})` em `comum.js`): `Diario.registrar` se existir (carregado sob demanda de
   `assets/js/diario-dados.js`), senão `ativo.html?simular=compra|venda&setup=ID&tf=D#TICKER`, que abre um rascunho no gráfico

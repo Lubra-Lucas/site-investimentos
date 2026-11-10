@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <!-- O GitHub Pages serve esta página em qualquer profundidade (/site-investimentos/x/y). O <base> calculado
+       aqui faz os caminhos relativos abaixo (css, ícones, links) funcionarem de qualquer lugar. -->
+  <script>
+    (function () {
+      var m = location.pathname.match(/^\/site-investimentos\//);
+      var b = document.createElement("base");
+      b.href = location.origin + (m ? m[0] : "/");
+      document.head.prepend(b);
+    })();
+  </script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%234c8dff'%3E%3Crect x='3' y='11' width='3.4' height='9' rx='1'/%3E%3Crect x='10.3' y='6' width='3.4' height='14' rx='1'/%3E%3Crect x='17.6' y='3' width='3.4' height='17' rx='1'/%3E%3C/g%3E%3C/svg%3E">
+  <meta name="theme-color" content="#0c1016">
+  <title>Página não encontrada · Carteira Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    .nf-main { flex: 1; display: grid; place-items: center; padding: var(--s-6) var(--s-4); }
+    .nf-caixa { width: min(560px, 100%); text-align: center; display: grid; gap: var(--s-4); justify-items: center; }
+    .nf-marca { width: 48px; height: 48px; fill: var(--acento); }
+    .nf-codigo { margin: 0; font-size: 72px; line-height: 1; font-weight: 700; letter-spacing: -0.04em; color: var(--acento); }
+    .nf-caixa h1 { font-size: var(--t-2xl); line-height: 1.25; }
+    .nf-caixa p { margin: 0; color: var(--texto-fraco); font-size: var(--t-md); line-height: 1.55; }
+    .nf-acoes { display: flex; flex-wrap: wrap; gap: var(--s-3); justify-content: center; margin-top: var(--s-2); }
+    .nf-acoes a { text-decoration: none; display: inline-flex; align-items: center; padding: 0 var(--s-4); min-height: var(--h-lg); font-size: var(--t-md); }
+    .nf-caminho { font-family: var(--mono); font-size: var(--t-sm); color: var(--texto-fraco); word-break: break-all; }
+  </style>
+</head>
+<body>
+  <header class="topo">
+    <a class="marca" href="painel.html" aria-label="Carteira Terminal: ir ao Painel">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="4" height="9" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="11" width="4" height="6" rx="1"/></svg>
+      <span>Carteira <b>Terminal</b></span>
+    </a>
+  </header>
+
+  <main class="nf-main" id="conteudo">
+    <div class="nf-caixa">
+      <svg class="nf-marca" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="3.4" height="9" rx="1"/><rect x="10.3" y="6" width="3.4" height="14" rx="1"/><rect x="17.6" y="3" width="3.4" height="17" rx="1"/></svg>
+      <p class="nf-codigo" aria-hidden="true">404</p>
+      <h1>Página não encontrada</h1>
+      <p>O endereço que você abriu não existe ou mudou de lugar. Volte ao Painel, veja as oportunidades de hoje ou conheça o terminal.</p>
+      <p class="nf-caminho" id="nf-caminho" hidden></p>
+      <div class="nf-acoes">
+        <a class="botao primario" href="painel.html">Ir ao Painel</a>
+        <a class="botao" href="setups.html">Oportunidades</a>
+        <a class="botao" href="index.html">Conheça o terminal</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>Uso pessoal. Resultado passado não garante futuro; sem custos e impostos; possíveis oportunidades, não recomendação de investimento.<br><a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Política de privacidade</a></footer>
+
+  <script>
+    (function () {
+      var c = document.getElementById("nf-caminho");
+      c.textContent = location.pathname;
+      c.hidden = false;
+    })();
+  </script>
+</body>
+</html>

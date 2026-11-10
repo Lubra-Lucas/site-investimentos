@@ -76,7 +76,7 @@ jobs:
         run: |
           mkdir _site
           # todas as páginas da raiz (Carteira, Setups, Ativo, Backtest e os redirecionamentos antigos)
-          cp -r *.html assets data _site/
+          cp -r *.html manifest.webmanifest assets data _site/
 
       - uses: actions/upload-pages-artifact@v3
         with:
