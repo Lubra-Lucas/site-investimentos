@@ -1135,6 +1135,24 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+/** Bloco recolhível "Top do dia" (top 3 de cada lado de data/ranking.json). Opcional: se falhar, fica escondido. */
+async function renderTopDia() {
+  try {
+    const D = await buscarJSON("data/ranking.json");
+    const lados = { compra: D.compra?.geral?.slice(0, 3) ?? [], venda: D.venda?.geral?.slice(0, 3) ?? [] };
+    if (!lados.compra.length && !lados.venda.length) return;
+    for (const [lado, itens] of Object.entries(lados)) {
+      $(`topdia-op-${lado}`).replaceChildren(...(itens.length ? itens.map((x) => el("li", {},
+        el("a", { href: `ativo.html#${encodeURIComponent(x.ticker)}` }, el("b", {}, x.rotulo)),
+        ` ${x.setup_nome} · ${x.ganhos} de ${x.casos} no lucro · `,
+        el("span", { class: x.medio >= 0 ? "alta" : "baixa" }, `média ${fmtPct(x.medio)}`)))
+        : [el("li", { class: "sub" }, `Nenhum sinal de ${lado} passa nos critérios.`)]));
+    }
+    $("topdia-op-resumo").textContent = D.data ? `último pregão fechado: ${fmtData(D.data)}` : "";
+    $("topdia-op").hidden = false;
+  } catch { /* sem o ranking, o bloco continua escondido */ }
+}
+
 async function iniciar() {
   aguardarPagina();
   let C;
@@ -1209,6 +1227,7 @@ async function iniciar() {
   atualizar();
   if (!estado.ticker) { estado.ticker = lista[0]?.ticker ?? R.ativos[0]?.ticker; atualizarURL(); }
   paginaPronta();
+  renderTopDia();
 }
 
 iniciar();

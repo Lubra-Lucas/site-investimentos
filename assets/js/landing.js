@@ -2,7 +2,7 @@
    Carteira Terminal — landing page (index.html, a página inicial do site)
    GSAP + ScrollTrigger (animações no scroll), Lenis (scroll suave), canvas (velas da abertura)
    e JS puro. Técnicas reaproveitadas do site da Garnet: tilt com brilho, faixa que acelera
-   com o scroll, manifesto palavra por palavra, linha das etapas, cursor e botões magnéticos.
+   com o scroll, manifesto palavra por palavra, linha das etapas, botões magnéticos.
    Os números e exemplos vêm dos dados publicados do terminal (data/*.json): nada inventado.
    ========================================================= */
 (() => {
@@ -449,6 +449,32 @@
     }).catch(() => { /* sem o arquivo, a seção continua escondida */ });
   })();
 
+  /* ---------- Top do dia: top 3 de compra e de venda de data/ranking.json (some se o arquivo falhar) ---------- */
+  (function topDoDia() {
+    const sec = $("#topdia");
+    if (!sec) return;
+    buscar("data/ranking.json").then((D) => {
+      const compra = D.compra?.geral?.slice(0, 3) ?? [], venda = D.venda?.geral?.slice(0, 3) ?? [];
+      if (!compra.length && !venda.length) return;
+      const linha = (x) => el("li", { class: "filtro-item" },
+        el("span", { class: "filtro-nome" }, el("b", {}, x.rotulo ?? semSufixo(x.ticker)), el("small", {}, `${NOMES_MERCADO[x.mercado] ?? x.mercado} · ${x.setup_nome}`)),
+        el("span", { class: `filtro-med ${x.medio >= 0 ? "alta" : "baixa"}` }, fmtPct(x.medio)),
+        el("span", { class: "filtro-det" }, `${fmtNum(x.ganhos)} de ${fmtNum(x.casos)} vezes no lucro`));
+      const vazio = (l) => el("li", { class: "carregando" }, `Nenhum sinal de ${l} passa nos critérios hoje.`);
+      $("#topdia-compra").replaceChildren(...(compra.length ? compra.map(linha) : [vazio("compra")]));
+      $("#topdia-venda").replaceChildren(...(venda.length ? venda.map(linha) : [vazio("venda")]));
+      $("#topdia-sub").textContent = `Sinais do último pregão fechado${D.data ? ` (${fmtData(D.data)})` : ""}, com pelo menos ${D.min_casos} casos no histórico do ativo. À direita, o retorno médio dos casos anteriores, saindo 10 pregões depois.`;
+      sec.hidden = false;
+      if (anima && window.ScrollTrigger) {
+        const blocos = $$(".filtro-bloco", sec);
+        blocos.forEach((b) => b.classList.add("revelar"));
+        ScrollTrigger.refresh();
+        ScrollTrigger.batch(blocos, { start: "top 90%", once: true,
+          onEnter: (els) => gsap.to(els, { opacity: 1, translate: "0px 0px", duration: 1.1, ease: "expo.out", stagger: 0.12 }) });
+      }
+    }).catch(() => { /* sem o arquivo, a seção continua escondida */ });
+  })();
+
   /* ---------- canal do Telegram: só aparece com URL em assets/js/config.js ---------- */
   (function canal() {
     const url = ((window.CT_CONFIG && window.CT_CONFIG.canalTelegram) || "").trim();
@@ -566,7 +592,7 @@
     atualizar();
   })();
 
-  /* ---------- cursor personalizado + botões magnéticos ---------- */
+  /* ---------- botões magnéticos ---------- */
   function magneticos(raiz = document) {
     if (!mouseFino || !anima) return;
     $$(".magnetico", raiz).forEach((m) => {
@@ -583,18 +609,4 @@
     });
   }
   magneticos();
-  if (mouseFino && anima) {
-    const cur = $(".cursor"), ponto = $(".cursor__ponto"), anel = $(".cursor__anel");
-    const px = gsap.quickTo(ponto, "x", { duration: 0.08 }), py = gsap.quickTo(ponto, "y", { duration: 0.08 });
-    const ax = gsap.quickTo(anel, "x", { duration: 0.45, ease: "power3" }), ay = gsap.quickTo(anel, "y", { duration: 0.45, ease: "power3" });
-    let moveu = false;
-    addEventListener("pointermove", (e) => {
-      if (e.pointerType === "touch") return;
-      if (!moveu) { moveu = true; gsap.set([ponto, anel], { x: e.clientX, y: e.clientY }); document.body.classList.add("com-cursor"); gsap.set(cur, { opacity: 1 }); }
-      px(e.clientX); py(e.clientY); ax(e.clientX); ay(e.clientY);
-      cur.classList.toggle("no-link", !!e.target.closest?.("a, button, summary"));
-    }, { passive: true });
-    document.addEventListener("pointerleave", () => { if (moveu) gsap.to(cur, { opacity: 0, duration: 0.2 }); });
-    document.addEventListener("pointerenter", () => { if (moveu) gsap.to(cur, { opacity: 1, duration: 0.2 }); });
-  } else $(".cursor").remove();
 })();
