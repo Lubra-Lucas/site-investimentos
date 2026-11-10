@@ -161,29 +161,32 @@
     <section class="secao dentro" id="por-dentro" aria-labelledby="dentro-titulo">
       <p class="sobretitulo">Por dentro do terminal</p>
       <h2 id="dentro-titulo">O produto de verdade, <em>sem maquete</em>.</h2>
-      <p class="secao-sub">Quatro telas do terminal, como ele aparece para quem usa. Escolha uma:</p>
+      <p class="secao-sub">Cinco telas do terminal, como ele aparece para quem usa. Escolha uma:</p>
       <div class="dentro-abas" id="dentro-abas" role="tablist" aria-label="Telas do terminal">
-        <button type="button" role="tab" id="dentro-aba-0" aria-controls="dentro-painel" aria-selected="true">Oportunidades</button>
-        <button type="button" role="tab" id="dentro-aba-1" aria-controls="dentro-painel" aria-selected="false" tabindex="-1">Página do ativo</button>
-        <button type="button" role="tab" id="dentro-aba-2" aria-controls="dentro-painel" aria-selected="false" tabindex="-1">Top do dia</button>
-        <button type="button" role="tab" id="dentro-aba-3" aria-controls="dentro-painel" aria-selected="false" tabindex="-1">Backtest</button>
+        <button type="button" role="tab" id="dentro-aba-0" aria-controls="dentro-painel" aria-selected="true">Painel</button>
+        <button type="button" role="tab" id="dentro-aba-1" aria-controls="dentro-painel" aria-selected="false" tabindex="-1">Oportunidades</button>
+        <button type="button" role="tab" id="dentro-aba-2" aria-controls="dentro-painel" aria-selected="false" tabindex="-1">Página do ativo</button>
+        <button type="button" role="tab" id="dentro-aba-3" aria-controls="dentro-painel" aria-selected="false" tabindex="-1">Top do dia</button>
+        <button type="button" role="tab" id="dentro-aba-4" aria-controls="dentro-painel" aria-selected="false" tabindex="-1">Backtest</button>
       </div>
       <div class="dentro-janela vidro" id="dentro-painel" role="tabpanel" aria-labelledby="dentro-aba-0">
-        <div class="janela-barra" aria-hidden="true"><i></i><i></i><i></i><span id="dentro-url">carteira-terminal · oportunidades</span></div>
+        <div class="janela-barra" aria-hidden="true"><i></i><i></i><i></i><span id="dentro-url">carteira-terminal · painel</span></div>
         <div class="dentro-telas">
-          <img src="assets/img/landing/terminal-setups.webp" width="1600" height="1000" loading="lazy" decoding="async" data-tela="0"
+          <img src="assets/img/landing/terminal-painel.webp" width="1600" height="1000" loading="lazy" decoding="async" data-tela="0"
+            alt="Painel do terminal: índices do Brasil e do mundo com minigráfico, termômetro do mercado com a parcela de ativos em alta e em baixa, e o Top do dia com os sinais de melhor histórico.">
+          <img src="assets/img/landing/terminal-setups.webp" width="1600" height="1000" loading="lazy" decoding="async" data-tela="1" hidden
             alt="Tela Oportunidades do terminal: filtros à esquerda para escolher comprar ou vender, o mercado e o tipo de oportunidade, e à direita cartões de ativos com gráfico de velas e os setups que apareceram hoje.">
-          <img src="assets/img/landing/terminal-ativo.webp" width="1600" height="1000" loading="lazy" decoding="async" data-tela="1" hidden
+          <img src="assets/img/landing/terminal-ativo.webp" width="1600" height="1000" loading="lazy" decoding="async" data-tela="2" hidden
             alt="Página de um ativo (PETR4) no terminal: preço e variação, gráfico de velas com médias e a lista de setups recentes, cada um com a taxa de acerto e o número de casos anteriores.">
-          <img src="assets/img/landing/terminal-ranking.webp" width="1600" height="1000" loading="lazy" decoding="async" data-tela="2" hidden
+          <img src="assets/img/landing/terminal-ranking.webp" width="1600" height="1000" loading="lazy" decoding="async" data-tela="3" hidden
             alt="Tela Top do dia: duas listas, uma de compra e outra de venda, com os sinais de hoje que têm o melhor histórico, mostrando quantas vezes o setup deu lucro naquele ativo.">
-          <img src="assets/img/landing/terminal-backtest.webp" width="1600" height="1000" loading="lazy" decoding="async" data-tela="3" hidden
+          <img src="assets/img/landing/terminal-backtest.webp" width="1600" height="1000" loading="lazy" decoding="async" data-tela="4" hidden
             alt="Tela Backtest: tabela com cada setup, o número de casos em 6 anos, a taxa de acerto, o retorno médio e a vantagem sobre entrar num dia qualquer, ao lado da lista de ativos onde o setup escolhido funcionou melhor.">
         </div>
       </div>
       <p class="dentro-legenda" id="dentro-legenda" aria-live="polite"></p>
       <p class="dentro-dica">Deslize a imagem para os lados para ver a tela inteira.</p>
-      <div class="prova-acoes"><a class="botao botao-primario" id="dentro-link" href="setups.html">Abrir esta tela no terminal →</a></div>
+      <div class="prova-acoes"><a class="botao botao-primario" id="dentro-link" href="painel.html">Abrir esta tela no terminal →</a></div>
       <p class="aviso-legal">Capturas reais do terminal publicado; os números mudam todo dia. Resultado passado não garante resultado futuro. Não é recomendação de investimento.</p>
     </section>
 

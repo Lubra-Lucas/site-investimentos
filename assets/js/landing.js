@@ -429,6 +429,7 @@
     const abas = $$("#dentro-abas [role=tab]"), telas = $$(".dentro-telas img"), painel = $("#dentro-painel");
     if (!abas.length) return;
     const TELAS = [
+      { url: "carteira-terminal · painel", href: "painel.html", legenda: "Painel: como está o mercado hoje, em uma tela. Índices, quantos ativos estão em alta ou em baixa, o mapa de calor e os sinais com melhor histórico." },
       { url: "carteira-terminal · oportunidades", href: "setups.html", legenda: "Oportunidades: escolha comprar ou vender, o mercado e o tipo de oportunidade, e veja os ativos que formaram um setup hoje, cada um no gráfico." },
       { url: "carteira-terminal · ativo", href: "ativo.html#PETR4.SA", legenda: "Página do ativo: gráfico completo e os setups recentes, cada um com quantas vezes aquele sinal deu lucro naquele ativo." },
       { url: "carteira-terminal · top do dia", href: "ranking.html", legenda: "Top do dia: os sinais de hoje com o melhor histórico, de compra e de venda, ordenados pela confiabilidade dos casos anteriores." },
