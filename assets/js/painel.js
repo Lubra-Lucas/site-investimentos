@@ -115,7 +115,7 @@ function tile([tk, nome]) {
   return el("a", { class: "pn-tile", href: urlAtivo(tk),
     title: `${a.nome ?? nome}${p.parcial ? " · pregão em andamento" : ""}. Abrir a página do ativo.` },
     el("span", { class: "pn-tile-nome" }, nome),
-    el("span", { class: "pn-tile-valor mono" }, fmtMoeda(p.ultimo, a.moeda)),
+    el("span", { class: "pn-tile-valor mono" }, tk === "USDBRL=X" ? `R$ ${fmtNum(p.ultimo, 2)}` : fmtMoeda(p.ultimo, a.moeda)),
     el("span", { class: "pn-tile-vars" },
       el("span", { class: `mono ${cor(p.var_pct)}` }, el("small", {}, "dia "), fmtPct(p.var_pct)),
       el("span", { class: `mono ${cor(a.var_mes_pct)}` }, el("small", {}, "mês "), fmtPct(a.var_mes_pct))),
