@@ -549,6 +549,25 @@
     return email;
   }
 
+  function convitesCanal(aviso, plano) {
+    const nome = NOME_PLANO[plano] || plano;
+    const url = ((window.CT_CONFIG && window.CT_CONFIG.canalTelegram) || "").trim();
+    const temCanal = /^https:\/\//i.test(url);
+    const botao = temCanal
+      ? el("a", { class: "botao botao-primario", href: url, target: "_blank", rel: "noopener" }, "Seguir o canal no Telegram")
+      : el("a", { class: "botao botao-primario", href: "setups.html" }, "Ver as oportunidades de hoje →");
+    if (temCanal) botao.addEventListener("click", () => { window.medir && window.medir("canal-telegram-plano-" + plano); });
+    aviso.replaceChildren(el("div", { class: "espera-form" },
+      el("p", { class: "espera-titulo" }, `Plano ${nome}: as assinaturas abrem em breve`),
+      el("p", { class: "espera-texto" }, temCanal
+        ? "Quem segue o canal fica sabendo primeiro, com o preço de fundador. Enquanto isso, o terminal e o canal estão liberados de graça."
+        : "Enquanto isso, o terminal está liberado de graça."),
+      botao,
+      temCanal ? el("p", { class: "espera-link" }, "Ou explore agora: ", el("a", { href: "setups.html" }, "ver as oportunidades de hoje →")) : null));
+    window.medir && window.medir("plano-em-breve-" + plano);
+    return botao;
+  }
+
   $$("[data-plano]").forEach((b) => b.addEventListener("click", (e) => {
     const plano = b.dataset.plano;
     const link = PAGAMENTO[plano];
@@ -562,7 +581,8 @@
     }
     const aviso = $("#planos-aviso");
     aviso.classList.add("com-form");
-    const campo = formularioEspera(aviso, plano);
+    // sem e-mail configurado, não coletamos contato (ficaria só no navegador): convida para o canal
+    const campo = CONTATO_EMAIL ? formularioEspera(aviso, plano) : convitesCanal(aviso, plano);
     aviso.hidden = false;
     if (anima) gsap.fromTo(aviso, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4 });
     aviso.scrollIntoView({ block: "center", behavior: reduzido ? "auto" : "smooth" });
