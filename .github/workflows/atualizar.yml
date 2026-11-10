@@ -84,3 +84,6 @@ jobs:
 
       - id: deploy
         uses: actions/deploy-pages@v4
+        with:
+          # o GitHub Pages às vezes demora para sincronizar; o padrão (10 min) já estourou
+          timeout: 1800000
