@@ -162,6 +162,7 @@
       el("header", { class: "tri-cab" },
         el("div", { class: "tri-id" },
           el("b", { class: "mono tri-ticker" }, semSufixo(i.ticker)),
+          Favoritos.botao(i.ticker, "fav-grande"),
           el("span", { class: "tri-nome" }, a.nome),
           el("span", { class: "tag" }, NOMES_MERCADO[a.mercado] ?? a.mercado),
           window.selosBandeja?.(i.ticker)),
@@ -625,6 +626,7 @@
     try {
       [R] = await Promise.all([carregarRadar(), carregarCatalogoSetups().catch(() => null)]);
     } catch (e) { montarTopo("triagem"); return erroDados(e); }
+    Favoritos.definirAtivos(R.ativos);
     montarTopo("triagem", R);
     porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
     for (const e of R.sinais ?? []) {
@@ -639,7 +641,7 @@
     limparAntigas();
     montarItens();
 
-    $("lugar-aviso").replaceWith(avisoFormacao(R));
+    $("lugar-aviso").replaceWith(Favoritos.avisoDados(R));
     $("tri-sessoes").textContent = `Último pregão fechado: ${[...sessao].filter(([m]) => NOMES_MERCADO[m])
       .map(([m, d]) => `${NOMES_MERCADO[m]} ${fmtData(d, true)}`).join(" · ")}`;
     document.querySelector(".tri-lados").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) mudarLado(b.dataset.lado); });

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%234c8dff'%3E%3Crect x='3' y='11' width='3.4' height='9' rx='1'/%3E%3Crect x='10.3' y='6' width='3.4' height='14' rx='1'/%3E%3Crect x='17.6' y='3' width='3.4' height='17' rx='1'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0c1016">
+  <link rel="apple-touch-icon" href="assets/img/icone-180.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel · Carteira Terminal</title>
+  <meta name="description" content="Como está o mercado hoje: índices, dólar, ouro e bitcoin, ativos em alta e em baixa, mapa de calor, sinais do dia e o que acompanhar.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/painel.css">
+  <link rel="preload" as="fetch" crossorigin href="data/radar.json">
+  <link rel="preload" as="fetch" crossorigin href="data/setups.json">
+  <script defer src="assets/js/medicao.js"></script>
+</head>
+<body>
+  <header class="topo" id="topo"></header>
+
+  <main class="painel-pagina">
+    <header class="pn-cab">
+      <div>
+        <p class="pn-data" id="pn-data"></p>
+        <h1 class="pn-titulo">Painel</h1>
+        <p class="pn-resumo" id="pn-resumo"></p>
+      </div>
+      <div id="pn-formacao"></div>
+    </header>
+
+    <section class="painel pn-faixa" aria-labelledby="pn-h-faixa">
+      <h2 class="so-leitor" id="pn-h-faixa">Faixa de mercado</h2>
+      <div class="pn-tiles" id="pn-tiles"></div>
+    </section>
+
+    <div class="pn-grade">
+      <section class="painel pn-termometro" aria-labelledby="pn-h-termo">
+        <div class="painel-cab">
+          <div><h2 id="pn-h-termo">Termômetro do mercado</h2>
+            <p class="sub">Ativos líquidos de cada mercado, no gráfico diário.</p></div>
+        </div>
+        <div id="pn-termo"></div>
+      </section>
+
+      <section class="painel pn-top" aria-labelledby="pn-h-top">
+        <div class="painel-cab">
+          <div><h2 id="pn-h-top">Top do dia</h2>
+            <p class="sub" id="pn-top-sub">Sinais de hoje com melhor histórico.</p></div>
+          <a class="pn-link" href="ranking.html">Ver ranking completo →</a>
+        </div>
+        <div id="pn-top"></div>
+      </section>
+    </div>
+
+    <section class="painel pn-mapa" aria-labelledby="pn-h-mapa">
+      <div class="painel-cab">
+        <div><h2 id="pn-h-mapa">Mapa de calor</h2>
+          <p class="sub" id="pn-mapa-sub"></p></div>
+        <div class="segmento" id="pn-mapa-periodo" aria-label="Período da variação">
+          <button type="button" data-v="dia" class="ativo">Dia</button>
+          <button type="button" data-v="mes">Mês</button>
+          <button type="button" data-v="ano">Ano</button>
+        </div>
+      </div>
+      <div id="pn-mapa"></div>
+      <div class="pn-legenda" id="pn-legenda" aria-hidden="true"></div>
+    </section>
+
+    <div class="pn-grade pn-grade3">
+      <section class="painel" aria-labelledby="pn-h-lista">
+        <div class="painel-cab">
+          <div><h2 id="pn-h-lista">Minha lista</h2>
+            <p class="sub" id="pn-lista-sub">Último preço e setups de hoje.</p></div>
+          <a class="pn-link" href="carteira.html">Editar lista →</a>
+        </div>
+        <div id="pn-lista"></div>
+      </section>
+
+      <section class="painel" aria-labelledby="pn-h-trades">
+        <div class="painel-cab">
+          <div><h2 id="pn-h-trades">Meus trades em aberto</h2>
+            <p class="sub" id="pn-trades-sub"></p></div>
+          <a class="pn-link" href="diario.html">Abrir o Diário →</a>
+        </div>
+        <div id="pn-trades"></div>
+      </section>
+
+      <section class="painel" aria-labelledby="pn-h-sinais">
+        <div class="painel-cab">
+          <div><h2 id="pn-h-sinais">Como andam os sinais</h2>
+            <p class="sub" id="pn-sinais-sub"></p></div>
+          <a class="pn-link" href="resultados.html">Ver o histórico →</a>
+        </div>
+        <div id="pn-sinais"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer>Uso pessoal. Resultado passado não garante futuro; sem custos e impostos; possíveis oportunidades, não recomendação de investimento.<br><a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Política de privacidade</a></footer>
+
+  <script defer src="assets/js/config.js"></script>
+  <script defer src="assets/js/comum.js"></script>
+  <script defer src="assets/js/simulador.js"></script>
+  <script defer src="assets/js/eventos.js"></script>
+  <script defer src="assets/js/painel.js"></script>
+</body>
+</html>

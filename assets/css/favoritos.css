@@ -1,0 +1,67 @@
+/* Favoritos (assets/js/favoritos.js), histórico em evidência nos cards e avisos de dados.
+ * Carregado depois de style.css em Oportunidades, Ativo e Triagem. */
+
+/* ---------- estrela ☆/★ ---------- */
+.fav-estrela {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  min-width: var(--h-sm); height: var(--h-sm); padding: 0 4px; border: 0; border-radius: var(--r-sm);
+  background: none; color: var(--texto-fraco); font: 700 17px/1 var(--mono); cursor: pointer;
+  transition: color 0.15s, transform 0.15s var(--mola, ease);
+}
+.fav-estrela:hover { color: var(--aviso); background: var(--bg-elev); }
+.fav-estrela:focus-visible { outline: var(--foco); outline-offset: var(--foco-offset); }
+.fav-estrela[aria-pressed="true"] { color: var(--aviso); }
+.fav-estrela:active { transform: scale(0.85); }
+.celula > header > .fav-estrela { align-self: center; margin-right: -2px; }
+/* cabeçalho do ativo e da triagem: um pouco maior */
+.fav-estrela.fav-grande { font-size: 22px; min-width: var(--h-md); height: var(--h-md); }
+@media (pointer: coarse) {
+  .fav-estrela { min-width: 36px; height: 36px; font-size: 20px; }
+}
+
+/* cards de ativos da minha lista: destaque sutil */
+.celula.na-lista { background-image: linear-gradient(to bottom, rgba(227, 162, 59, 0.09), transparent 56px); }
+.celula.na-lista:not(.confluencia):not(.selecionado) { border-color: rgba(227, 162, 59, 0.4); }
+
+/* "Só da minha lista" */
+.op-filtro.so-lista input:disabled { cursor: not-allowed; }
+.op-filtro.so-lista:has(input:disabled) { cursor: not-allowed; opacity: 0.75; }
+.op-filtro.so-lista .fav-estrela-mini { color: var(--aviso); }
+
+/* ---------- histórico em evidência: linha própria logo abaixo do nome e do preço ---------- */
+.celula > .celula-hist {
+  display: flex; align-items: baseline; gap: 6px; min-width: 0; margin-top: 3px;
+  font-size: var(--t-sm); line-height: 1.35; color: var(--texto); cursor: help;
+}
+.celula-hist .hist-rot { flex: none; color: var(--texto-fraco); }
+.celula-hist .hist-num { flex: none; white-space: nowrap; font-weight: 600; }
+.celula-hist .hist-num .alta { color: var(--alta); }
+.celula-hist .hist-num .baixa { color: var(--baixa-texto); }
+.celula-hist .hist-num .neutro { color: var(--texto); }
+.celula-hist .hist-setup { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto-fraco); }
+.celula-hist.sem { color: var(--texto-fraco); font-size: var(--t-xs); cursor: help; }
+.encaixar .celula > .celula-hist { grid-row: 2; }
+/* com a linha nova, o grid do card ganha uma linha: histórico (2), setups (3), gráfico (4), contexto (5), simulações (6) */
+.encaixar .celula { grid-template-rows: auto auto auto minmax(0, 1fr) auto auto; }
+.encaixar .celula > .celula-setups, .encaixar .celula > .valores-regra { grid-row: 3; }
+.encaixar .celula > .mini-grafico { grid-row: 4; }
+.encaixar .celula > .contexto-decisao { grid-row: 5; }
+.encaixar .celula > .sim-celula { grid-row: 6; }
+.encaixar .celula > .legenda-extras { grid-row: 4; }
+.encaixar .celula > .contexto-painel { grid-row: 4 / -1; }
+@media (max-width: 600px) {
+  .celula > .celula-hist { flex-wrap: wrap; row-gap: 0; }
+  .celula-hist .hist-setup { flex: 1 1 100%; white-space: normal; }
+}
+
+/* ---------- aviso de dados: discreto, sem caixa amarela ---------- */
+.aviso-dados { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: var(--t-sm); color: var(--texto-fraco); line-height: 1.4; }
+.aviso-dados-item { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.aviso-dados-ponto { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--aviso); }
+.aviso-dados-atualizar { font-weight: 600; text-decoration: underline; min-height: var(--h-sm); }
+.op-filtros .aviso-dados { flex: 1 1 260px; min-width: 0; }
+.cab-ativo > .aviso-dados { flex: 1 0 100%; }
+.tri-filtros .aviso-dados { flex: 1 1 100%; }
+
+/* ---------- cabeçalho do ativo ---------- */
+.cab-ativo-nome .fav-estrela { align-self: center; }

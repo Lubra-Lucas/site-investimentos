@@ -45,15 +45,15 @@
     },
     {
       alvo: () => {
-        // o selo de histórico pode ficar fora da área visível da fileira de chips (que rola): nesse caso aponta a fileira inteira
-        const selo = Array.from(document.querySelectorAll(".celula .hist")).find((h) => {
+        // a linha "Histórico: 40 de 49 no lucro..." (ou, em versões antigas, o selo .hist); se nenhuma cabe inteira no card, aponta a fileira de chips
+        const linha = Array.from(document.querySelectorAll(".celula .celula-hist:not(.sem), .celula .hist")).find((h) => {
           const r = h.getBoundingClientRect(), c = h.closest(".celula")?.getBoundingClientRect();
           return visivel(h) && c && r.left >= c.left && r.right <= c.right && r.top >= c.top && r.bottom <= c.bottom;
         });
-        return selo ?? primeiroVisivel(".celula .celula-setups");
+        return linha ?? primeiroVisivel(".celula .celula-hist", ".celula .celula-setups");
       },
       titulo: "Quantas vezes funcionou",
-      texto: () => "No card, os selos dizem qual sinal apareceu e, no histórico, quantas vezes ele já deu certo nesse ativo nos últimos 6 anos. Passe o mouse (ou toque) no selo para ver os detalhes. É um retrato do passado, não uma promessa.",
+      texto: () => "Logo abaixo do nome, a linha Histórico diz em quantas vezes o melhor sinal deste card já terminou no lucro nesse ativo, nos últimos 6 anos. Passe o mouse (ou toque) nela para ver os detalhes. Os chips abaixo mostram os setups que apareceram. É um retrato do passado, não uma promessa.",
     },
     {
       alvo: () => primeiroVisivel(".celula .botao-simular-card"),

@@ -1,0 +1,17 @@
+{
+  "name": "Carteira Terminal",
+  "short_name": "Terminal",
+  "description": "Terminal de estudo para investidores: oportunidades de compra e venda, simulação de trades e diário.",
+  "lang": "pt-BR",
+  "start_url": "painel.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c1016",
+  "theme_color": "#0c1016",
+  "icons": [
+    { "src": "assets/img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

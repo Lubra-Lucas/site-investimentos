@@ -705,6 +705,12 @@ document.addEventListener("keydown", (e) => {
 
 /** Guia rápido de cada página (botão "?" do topo). */
 const AJUDA = {
+  painel: ["Painel", [
+    "A visão do dia em uma tela: como estão os principais índices, moedas e o bitcoin, quantos ativos estão em alta ou em baixa em cada mercado e onde estão os sinais de hoje.",
+    "O mapa de calor tem um quadrado por ativo líquido, agrupado por mercado: verde subiu, vermelho caiu. Troque entre Dia, Mês e Ano e clique num quadrado para abrir o ativo.",
+    "Top do dia, Minha lista e Meus trades mostram por onde começar. A lista e os trades ficam salvos neste navegador.",
+    "Os sinais são filtros técnicos automáticos, não recomendação de investimento.",
+  ]],
   inicio: ["Início", [
     "O terminal serve a um ciclo só: encontrar uma boa oportunidade de compra ou venda, simular o trade (entrada, stop e alvo) e registrar no Diário para aprender com o resultado.",
     "A página mostra, para cada tipo de investidor (iniciante, longo prazo, trader, quem quer disciplina), como o terminal ajuda. Em \"Veja ao vivo\" estão os ativos com mais setups apontando no último pregão fechado: filtre por mercado e por compra ou venda e clique em Simular trade para treinar a entrada.",
@@ -775,7 +781,7 @@ const ATALHOS = [
 function montarTopo(pagina, dados) {
   const topo = document.getElementById("topo");
   const v = dados?.verificacao;
-  const marca = el("a", { class: "marca", href: "index.html", "aria-label": "Carteira Terminal: conheça o terminal" });
+  const marca = el("a", { class: "marca", href: "painel.html", "aria-label": "Carteira Terminal: ir ao Painel" });
   marca.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="4" height="9" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="11" width="4" height="6" rx="1"/></svg><span>Carteira <b>Terminal</b></span>';
 
   // status dos dados: data do último pregão e, no detalhe, a verificação
@@ -823,14 +829,15 @@ function montarTopo(pagina, dados) {
 
 /** Páginas do menu. Três destinos principais (o ciclo: achar → simular → registrar) e o resto em "Mais". */
 const NAV_PRINCIPAL = [
-  { id: "inicio", href: "guia.html", rot: "Guia", dica: "Como usar o terminal e para quem cada recurso é indicado",
-    icone: "M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 5v16M8 7h7M8 11h7" },
+  { id: "painel", href: "painel.html", rot: "Painel", dica: "Como está o mercado hoje e por onde começar",
+    icone: "M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z" },
   { id: "setups", href: "setups.html", rot: "Oportunidades", dica: "Os setups que se formaram: ativos em bom momento de compra ou de venda",
     icone: "M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 100 8 4 4 0 000-8z" },
   { id: "diario", href: "diario.html", rot: "Diário", dica: "Seus trades simulados, resultado em R e estatísticas",
     icone: "M6 3h12a1 1 0 011 1v16a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1zM9 8h6M9 12h6M9 16h3" },
 ];
 const NAV_MAIS = [
+  { id: "inicio", href: "guia.html", rot: "Guia", dica: "Como usar o terminal e para quem cada recurso é indicado" },
   { id: "triagem", href: "triagem.html", rot: "Triagem", dica: "Passe os sinais do dia, um a um, como num baralho" },
   { id: "backtest", href: "backtest.html", rot: "Backtest", dica: "Como cada setup se saiu nos últimos 6 anos" },
   { id: "ranking", href: "ranking.html", rot: "Top do dia", dica: "Os sinais de hoje com melhor histórico de acerto, para compra e venda" },
@@ -867,7 +874,7 @@ function navegacao(pagina) {
         el("b", {}, x.rot), el("span", { class: "sub" }, x.dica)))));
   const ponto = "M5 12h.01M12 12h.01M19 12h.01";
   const botao = el("button", { type: "button", class: `nav-mais-botao ${noMais ? "ativo" : ""}`, "aria-expanded": "false", "aria-controls": "nav-mais-lista",
-    title: "Triagem, Backtest e Carteira" }, iconeSvg(ponto), el("span", { class: "nav-rotulo" }, "Mais"), el("i", { class: "nav-seta", "aria-hidden": "true" }, "▾"));
+    title: "Guia, Triagem, Backtest, Carteira e mais" }, iconeSvg(ponto), el("span", { class: "nav-rotulo" }, "Mais"), el("i", { class: "nav-seta", "aria-hidden": "true" }, "▾"));
   const caixa = el("div", { class: "nav-mais" }, botao, lista);
   const abrir = (aberto, focar = false) => {
     lista.hidden = !aberto;

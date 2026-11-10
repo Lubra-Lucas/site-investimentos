@@ -49,7 +49,15 @@
     const alvo = $(a.getAttribute("href"));
     if (!alvo) return;
     e.preventDefault();
-    if (lenis) lenis.scrollTo(alvo, { offset: -70, duration: 1.4 });
+    if (lenis) {
+      // Seções que carregam dados ao se aproximar mudam a altura da página durante a rolagem:
+      // ao chegar, confere a posição e corrige (até 3 vezes) para não parar antes do destino.
+      const ir = (tentativa) => lenis.scrollTo(alvo, { offset: -70, duration: tentativa ? 0.6 : 1.4,
+        onComplete: () => {
+          if (tentativa < 3 && Math.abs(alvo.getBoundingClientRect().top - 70) > 24) setTimeout(() => ir(tentativa + 1), 120);
+        } });
+      ir(0);
+    }
     else alvo.scrollIntoView({ behavior: reduzido ? "auto" : "smooth" });
     if (a.classList.contains("pular")) alvo.focus?.({ preventScroll: true });
   }));
@@ -416,28 +424,65 @@
       onEnter: () => li.classList.add("aceso"), onLeaveBack: () => li.classList.remove("aceso") }));
   })();
 
-  /* ---------- o filtro: ranking do mês de data/resultados.json (some se o arquivo falhar) ---------- */
+  /* ---------- por dentro do terminal: abas com capturas reais ---------- */
+  (function dentro() {
+    const abas = $$("#dentro-abas [role=tab]"), telas = $$(".dentro-telas img"), painel = $("#dentro-painel");
+    if (!abas.length) return;
+    const TELAS = [
+      { url: "carteira-terminal · oportunidades", href: "setups.html", legenda: "Oportunidades: escolha comprar ou vender, o mercado e o tipo de oportunidade, e veja os ativos que formaram um setup hoje, cada um no gráfico." },
+      { url: "carteira-terminal · ativo", href: "ativo.html#PETR4.SA", legenda: "Página do ativo: gráfico completo e os setups recentes, cada um com quantas vezes aquele sinal deu lucro naquele ativo." },
+      { url: "carteira-terminal · top do dia", href: "ranking.html", legenda: "Top do dia: os sinais de hoje com o melhor histórico, de compra e de venda, ordenados pela confiabilidade dos casos anteriores." },
+      { url: "carteira-terminal · backtest", href: "backtest.html", legenda: "Backtest: como cada setup se saiu em 6 anos, por mercado e prazo, comparado com entrar num dia qualquer." },
+    ];
+    const mostrar = (i, foco) => {
+      abas.forEach((b, j) => { b.setAttribute("aria-selected", String(i === j)); b.tabIndex = i === j ? 0 : -1; });
+      telas.forEach((im, j) => { im.hidden = i !== j; });
+      painel.setAttribute("aria-labelledby", abas[i].id);
+      $("#dentro-url").textContent = TELAS[i].url;
+      $("#dentro-legenda").textContent = TELAS[i].legenda;
+      $("#dentro-link").href = TELAS[i].href;
+      if (foco) abas[i].focus();
+      if (anima && !foco) gsap.fromTo(telas[i], { opacity: 0.3 }, { opacity: 1, duration: 0.5, ease: "power2.out" });
+    };
+    abas.forEach((b, i) => {
+      b.addEventListener("click", () => mostrar(i));
+      b.addEventListener("keydown", (e) => {
+        const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (d) { e.preventDefault(); mostrar((i + d + abas.length) % abas.length, true); }
+        else if (e.key === "Home") { e.preventDefault(); mostrar(0, true); }
+        else if (e.key === "End") { e.preventDefault(); mostrar(abas.length - 1, true); }
+      });
+    });
+    mostrar(0);
+  })();
+
+  /* ---------- o filtro: 6 anos de data/backtest.json, Brasil no diário (some se o arquivo falhar) ---------- */
   (function filtro() {
     const sec = $("#filtro");
     if (!sec) return;
-    buscar("data/resultados.json").then((D) => {
-      const mercado = ["BR", "US", "CRIPTO"].find((m) => D.ranking?.[m]?.itens?.length >= 5);
-      if (!mercado) return;
-      const itens = D.ranking[mercado].itens;
-      const nomes = new Map(D.setups.map(([id, nome, lado]) => [id, { nome, lado }]));
-      const melhores = itens.slice(0, 3), piores = itens.slice(-2);
-      const linha = (x) => {
-        const s = nomes.get(x.setup) ?? { nome: x.setup, lado: "" };
-        return el("li", { class: "filtro-item" },
-          el("span", { class: "filtro-nome" }, el("b", {}, s.nome), el("small", {}, s.lado === "venda" ? "▼ venda" : "▲ compra")),
-          el("span", { class: `filtro-med ${x.medio >= 0 ? "alta" : "baixa"}` }, fmtPct(x.medio)),
-          el("span", { class: "filtro-det" }, `${fmtNum(x.acerto, 0)}% no lucro · ${fmtNum(x.n)} casos`));
-      };
-      $("#filtro-melhores").replaceChildren(...melhores.map(linha));
-      $("#filtro-piores").replaceChildren(...piores.map(linha));
-      const r = D.resumo?.[mercado];
-      const tot = r?.n ? ` Somando todos os sinais, só ${fmtNum(r.acerto, 0)}% terminaram no lucro (${fmtNum(r.n)} sinais, retorno médio ${fmtPct(r.medio)}): o valor está em saber quais setups funcionam.` : "";
-      $("#filtro-sub").textContent = `${NOMES_MERCADO[mercado]}, sinais encerrados de ${fmtData(D.ranking[mercado].desde)} a ${fmtData(D.ranking[mercado].ate)}, em setups com pelo menos ${D.min_ranking} casos.${tot}`;
+    const MIN_CASOS = 100;  // abaixo disso a média oscila demais para entrar no ranking
+    const carregar = () => Promise.all([buscar("data/backtest.json"), buscar("data/setups.json")]).then(([B, C]) => {
+      const lista = B.mercados?.BR?.D;
+      const H = String(B.principal?.D ?? 10);
+      if (!Array.isArray(lista)) return;
+      // como a página Backtest: só setups de compra ou venda do catálogo (neutros e "maiores quedas/altas" não têm backtest);
+      // aqui fora o grupo "Tendência", que é um estado do ativo e não um ponto de entrada
+      const cat = new Map(C.grupos.filter((g) => g.nome !== "Tendência")
+        .flatMap((g) => g.itens.filter((x) => x.vies === "compra" || x.vies === "venda").map((x) => [x.id, x])));
+      const linhas = lista.filter((x) => cat.has(x.setup) && x.h?.[H]?.n >= MIN_CASOS && x.h[H].vantagem != null)
+        .map((x) => ({ ...x.h[H], setup: cat.get(x.setup) }))
+        .sort((a, b) => b.vantagem - a.vantagem || b.n - a.n);
+      if (linhas.length < 6) return;
+      const total = linhas.reduce((t, x) => t + x.n, 0);
+      const linha = (x) => el("li", { class: "filtro-item" },
+        el("span", { class: "filtro-nome" }, el("b", {}, x.setup.nome), el("small", {}, x.setup.vies === "venda" ? "▼ venda" : "▲ compra")),
+        el("span", { class: `filtro-med ${x.vantagem >= 0 ? "alta" : "baixa"}` }, fmtPct(x.vantagem), el("small", {}, "vantagem")),
+        el("span", { class: "filtro-det" }, `${fmtNum(x.n)} casos · ${fmtNum(x.acerto, 0)}% no lucro · médio ${fmtPct(x.medio)}`));
+      $("#filtro-melhores").replaceChildren(...linhas.slice(0, 3).map(linha));
+      $("#filtro-piores").replaceChildren(...linhas.slice(-2).reverse().map(linha));
+      $("#filtro-sub").textContent = `Brasil, sinal diário, saída ${H} pregões depois: em 6 anos de histórico, ${fmtNum(Math.round(total / 1000))} mil casos analisados em ${linhas.length} setups (com pelo menos ${MIN_CASOS} casos cada). Abaixo, os que mais e os que menos acrescentaram.`;
+      const base = B.base?.BR?.D?.[H];
+      if (base != null) $("#filtro-base").textContent = `No Brasil, comprar num dia qualquer e sair ${H} pregões depois rendeu ${fmtPct(base)} em média.`;
       sec.hidden = false;
       if (anima && window.ScrollTrigger) {
         const blocos = $$(".filtro-bloco", sec);
@@ -447,6 +492,11 @@
           onEnter: (els) => gsap.to(els, { opacity: 1, translate: "0px 0px", duration: 1.1, ease: "expo.out", stagger: 0.12 }) });
       }
     }).catch(() => { /* sem o arquivo, a seção continua escondida */ });
+    // o backtest é um arquivo grande: só é baixado quando a seção "ao vivo" (logo acima) se aproxima da tela
+    const gatilho = $("#prova");
+    if (!("IntersectionObserver" in window) || !gatilho) { carregar(); return; }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); carregar(); } }, { rootMargin: "900px 0px" });
+    io.observe(gatilho);
   })();
 
   /* ---------- Top do dia: top 3 de compra e de venda de data/ranking.json (some se o arquivo falhar) ---------- */
@@ -497,6 +547,24 @@
       .forEach((n) => n.classList.add("revelar"));
     ScrollTrigger.batch(".revelar", { start: "top 88%", once: true,
       onEnter: (els) => gsap.to(els, { opacity: 1, translate: "0px 0px", duration: 1.1, ease: "expo.out", stagger: 0.08 }) });
+    // Rede de segurança: num salto (âncora, "Ver os planos", End) o ScrollTrigger pode não disparar
+    // e a seção ficaria invisível. Tudo o que estiver na tela e ainda escondido é revelado aqui.
+    let agendado = false;
+    const revelarVisiveis = () => {
+      agendado = false;
+      const pendentes = $$(".revelar:not([data-revelado])").filter((n) => {
+        const r = n.getBoundingClientRect();
+        return r.bottom > 0 && r.top < innerHeight;
+      });
+      if (!pendentes.length) return;
+      pendentes.forEach((n) => { n.dataset.revelado = "1"; });
+      gsap.to(pendentes, { opacity: 1, translate: "0px 0px", duration: 0.9, ease: "expo.out", stagger: 0.05, overwrite: "auto" });
+    };
+    const agendar = () => { if (!agendado) { agendado = true; setTimeout(revelarVisiveis, 180); } };
+    addEventListener("scroll", agendar, { passive: true });
+    addEventListener("resize", agendar);
+    addEventListener("load", agendar);
+    setInterval(agendar, 1200);
     gsap.from(".hero h1, .hero-sub, .hero-acoes, .hero-garantias, .selo", { y: 40, opacity: 0, duration: 1.2, ease: "expo.out", stagger: 0.08 });
     gsap.from(".hero-terminal", { y: 60, opacity: 0, rotateX: 8, duration: 1.4, ease: "expo.out", delay: 0.25 });
   }
@@ -555,12 +623,12 @@
     const temCanal = /^https:\/\//i.test(url);
     const botao = temCanal
       ? el("a", { class: "botao botao-primario", href: url, target: "_blank", rel: "noopener" }, "Seguir o canal no Telegram")
-      : el("a", { class: "botao botao-primario", href: "setups.html" }, "Ver as oportunidades de hoje →");
+      : el("a", { class: "botao botao-primario", href: "painel.html" }, "Abrir o terminal →");
     if (temCanal) botao.addEventListener("click", () => { window.medir && window.medir("canal-telegram-plano-" + plano); });
     aviso.replaceChildren(el("div", { class: "espera-form" },
       el("p", { class: "espera-titulo" }, `Plano ${nome}: as assinaturas abrem em breve`),
       el("p", { class: "espera-texto" }, temCanal
-        ? "Quem segue o canal fica sabendo primeiro, com o preço de fundador. Enquanto isso, o terminal e o canal estão liberados de graça."
+        ? "Quem segue o canal fica sabendo primeiro, com o preço de lançamento. Enquanto isso, o terminal e o canal estão liberados de graça."
         : "Enquanto isso, o terminal está liberado de graça."),
       botao,
       temCanal ? el("p", { class: "espera-link" }, "Ou explore agora: ", el("a", { href: "setups.html" }, "ver as oportunidades de hoje →")) : null));
@@ -604,8 +672,9 @@
   (function barraFixa() {
     const b = $(".barra-fixa");
     const atualizar = () => {
-      const hero = $(".hero").getBoundingClientRect(), final = $(".final").getBoundingClientRect();
-      b.classList.toggle("visivel", hero.bottom < 0 && final.top > innerHeight);
+      const hero = $(".hero").getBoundingClientRect(), final = $(".final").getBoundingClientRect(), planos = $("#planos").getBoundingClientRect();
+      const nosPlanos = planos.top < innerHeight && planos.bottom > 0;  // nos planos a barra cobriria os cartões
+      b.classList.toggle("visivel", hero.bottom < 0 && final.top > innerHeight && !nosPlanos);
     };
     addEventListener("scroll", atualizar, { passive: true });
     addEventListener("resize", atualizar);

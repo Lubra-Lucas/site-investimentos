@@ -1,0 +1,27 @@
+/* Diário: modo de exemplo (faixa fixa e botões do estado vazio). Só entra em diario.html. */
+
+.dr-faixa-exemplo {
+  position: sticky; top: var(--topo-h, 56px); z-index: 9;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap;
+  margin: 0 0 4px; padding: 10px 14px;
+  background: color-mix(in srgb, var(--aviso) 16%, var(--bg-painel));
+  border: 1px solid color-mix(in srgb, var(--aviso) 60%, transparent);
+  border-left-width: 4px; border-radius: var(--raio);
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.6);
+}
+.dr-faixa-exemplo[hidden] { display: none; }
+.dr-faixa-texto { flex: 1 1 320px; min-width: 0; font-size: 13px; line-height: 1.5; color: var(--texto-fraco); }
+.dr-faixa-texto b { display: block; color: var(--texto); font-size: 14px; font-weight: 600; }
+.dr-faixa-exemplo .botao { flex: none; }
+
+.dr-vazio-acoes { display: flex; flex-wrap: wrap; gap: 8px; max-width: 100%; }
+.dr-vazio-nota { margin: 0; font-size: 12px; }
+
+@media (max-width: 600px) {
+  .dr-faixa-exemplo { padding: 8px 12px; flex-wrap: nowrap; }
+  .dr-faixa-texto { flex: 1 1 auto; }
+  .dr-faixa-texto b { font-size: 13px; }
+  .dr-faixa-detalhe { display: none; }
+  .dr-faixa-exemplo .botao { padding: 6px 10px; }
+  .dr-vazio-acoes .botao { width: 100%; }
+}

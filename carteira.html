@@ -2,6 +2,9 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0c1016">
+  <link rel="apple-touch-icon" href="assets/img/icone-180.png">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%234c8dff'%3E%3Crect x='3' y='11' width='3.4' height='9' rx='1'/%3E%3Crect x='10.3' y='6' width='3.4' height='14' rx='1'/%3E%3Crect x='17.6' y='3' width='3.4' height='17' rx='1'/%3E%3C/g%3E%3C/svg%3E">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Carteira · Carteira Terminal</title>
@@ -9,9 +12,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/carteira.css">
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preload" as="fetch" crossorigin href="data/radar.json">
-  <link rel="preload" as="fetch" crossorigin href="data/resumo.json">
   <link rel="preload" as="fetch" crossorigin href="data/setups.json">
   <script defer src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
   <script defer src="assets/js/medicao.js"></script>
@@ -20,18 +23,40 @@
   <header class="topo" id="topo"></header>
 
   <main class="pagina-carteira">
-    <section class="kpis" id="kpis"></section>
+    <div class="cart-faixa" id="faixa-exemplo" role="status" hidden>
+      <div><b>Você está vendo uma carteira de exemplo</b><span> Estas posições são inventadas. Elas somem quando você adicionar a sua primeira posição.</span></div>
+      <button class="botao" id="exemplo-remover" type="button">Remover exemplo</button>
+    </div>
 
-    <section class="painel">
+    <section class="kpis" id="kpis" hidden></section>
+
+    <section class="painel" aria-labelledby="posicoes-titulo">
       <div class="painel-cab">
         <div>
-          <h2>Posições</h2>
-          <p class="sub">Valores convertidos para BRL pelo câmbio do dia. Clique em um ativo para abrir a página dele.</p>
+          <h1 id="posicoes-titulo" class="cart-h1">Minha carteira</h1>
+          <p class="sub">Registre suas posições para ver patrimônio, resultado por ativo e os setups que aparecem neles. Valores em R$ (dólar convertido pelo câmbio do dia).</p>
         </div>
-        <div class="alocacao" id="alocacao"></div>
+        <div class="controles">
+          <button class="botao primario" id="cart-adicionar" type="button">Adicionar posição</button>
+          <button class="botao" id="cart-capital" type="button" hidden>Capital</button>
+          <button class="botao" id="cart-exportar" type="button" hidden title="Baixa um arquivo JSON com suas posições">Exportar</button>
+          <label class="botao" title="Carrega um arquivo exportado antes">Importar<input type="file" accept="application/json,.json" id="cart-importar" hidden></label>
+        </div>
       </div>
-      <div class="tabela-wrap"><table id="tabela-posicoes"></table></div>
-      <div id="grafico-patrimonio"></div>
+      <div class="alocacao" id="alocacao"></div>
+
+      <div class="cart-vazio" id="posicoes-vazio" hidden>
+        <h2>Sua carteira ainda está vazia</h2>
+        <p>Aqui você registra o que tem (ativo, quantidade e preço médio) e o terminal calcula o patrimônio, o resultado de cada posição e mostra os setups recentes dos seus ativos.</p>
+        <div class="cart-vazio-acoes">
+          <button class="botao primario" id="vazio-adicionar" type="button">Adicionar posição</button>
+          <button class="botao" id="vazio-exemplo" type="button">Ver com exemplo</button>
+          <label class="botao">Importar backup<input type="file" accept="application/json,.json" id="vazio-importar" hidden></label>
+        </div>
+      </div>
+
+      <div class="tabela-wrap" id="posicoes-wrap"><table id="tabela-posicoes"></table></div>
+      <p class="sub cart-nota">Sua carteira fica salva só neste navegador. Use Exportar de vez em quando para guardar um backup ou levar para outro aparelho.</p>
     </section>
 
     <section class="grade grade-carteira">
@@ -111,7 +136,7 @@
       <div class="painel-cab">
         <div>
           <h2>Ativos acompanhados</h2>
-          <p class="sub">Os ativos da configuração da carteira. IFR acima de 70 está esticado para cima; abaixo de 30, para baixo.</p>
+          <p class="sub">Uma seleção de ativos grandes do terminal, para você ter referência. IFR acima de 70 está esticado para cima; abaixo de 30, para baixo.</p>
         </div>
       </div>
       <div class="tabela-wrap"><table id="tabela-acompanhados"></table></div>
