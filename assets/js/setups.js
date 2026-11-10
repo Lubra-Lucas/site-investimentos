@@ -8,6 +8,7 @@ const estado = Object.assign({
   mercado: "", tf: "D", periodo: 1, lado: "compra", estilo: "tendencia", setup: "todos",
   so2: false, ordem: "confluencia", grade: "2", tfGrafico: "D", camadas: "condicoes",
   pagina: 0, verVazios: false, modo: "simples", soAtualizados: true, editando: false, minhas: null,
+  soLista: false, ordemEscolhida: undefined,
 }, guardar.ler("setups-v1", {}));
 estado.ticker = null;  // o ativo aberto vem do endereço (#PETR4.SA), não fica salvo
 delete estado.visao;   // a antiga visão "lista + gráfico" saiu: só a grade
@@ -24,6 +25,7 @@ let R, F, porTicker;
 let SETUPS = [], SETUP = new Map(), NEUTROS = [], EVENTOS = [], eventosLocais = false;
 let P = { eventos: [], ultima: new Map(), porSetup: new Map() };  // eventos do período escolhido
 let lista = [];        // resultado filtrado e ordenado
+let antesDaLista = []; // o resultado antes de "Só da minha lista" (para a contagem do filtro)
 const abertos = [];    // gráficos da grade
 const graficoPorTk = new Map();  // ticker -> gráfico do card (para a foto do trade no Diário)
 const $ = (id) => document.getElementById(id);
@@ -178,12 +180,41 @@ function agrupar(eventos, ids) {
 }
 
 const fotoAtual = (tk) => (F ? atual(F.ativos[tk]?.[estado.tf]) : null);
-/** Melhor vantagem histórica entre os eventos do foco (só quando há casos suficientes). */
-const melhorBt = (i) => Math.max(-1e9, ...i.eventos.filter((e) => i.foco.has(e.setup) && e.bt?.[1] != null).map((e) => e.bt[3] ?? -1e9));
+/** Limite inferior do intervalo de Wilson (95%) da taxa de acerto, em %: o mesmo critério de scripts/ranking.py.
+ *  Penaliza amostra pequena (9 de 10 não ganha de 60 de 80). */
+function wilsonInferior(ganhos, n, z = 1.96) {
+  if (n <= 0) return 0;
+  const p = ganhos / n, z2 = z * z;
+  const centro = p + z2 / (2 * n);
+  const margem = z * Math.sqrt(p * (1 - p) / n + z2 / (4 * n * n));
+  return Math.max(0, (centro - margem) / (1 + z2 / n) * 100);
+}
+const MIN_CASOS_HIST = 10;  // abaixo disso o histórico não entra na ordenação nem no destaque do card
+
+/** O histórico de um evento (bt = [casos, acerto %, retorno médio %, vantagem %]), ou null se tiver poucos casos. */
+function notaHistorico(bt) {
+  if (!bt || bt[1] == null || bt[0] < MIN_CASOS_HIST) return null;
+  const [n, acerto, medio] = bt;
+  const ganhos = Math.round(acerto / 100 * n);
+  return { n, ganhos, acerto, medio: medio ?? 0, nota: wilsonInferior(ganhos, n) };
+}
+
+/** O melhor histórico do card: entre os eventos do foco, o de maior nota de Wilson (desempate pela média). */
+function melhorHistorico(i) {
+  let m = null;
+  for (const e of i.eventos) {
+    if (!i.foco.has(e.setup)) continue;
+    const h = notaHistorico(e.bt);
+    if (h && (!m || h.nota > m.nota || (h.nota === m.nota && h.medio > m.medio))) m = { ...h, evento: e };
+  }
+  return m;
+}
 
 const ORDENS = {
   confluencia: ["Mais setups juntos", (i) => -i.setups.size],
-  historico: ["Melhor histórico", (i) => -melhorBt(i)],
+  historico: ["Melhor histórico", (i) => { const h = melhorHistorico(i); return h ? [0, -h.nota, -h.medio] : [1, 0, 0]; },
+    "Ordena pela confiança do histórico: o limite inferior (Wilson 95%) da taxa de acerto do melhor setup do card neste ativo, " +
+    "com no mínimo 10 casos. Em empate, vale a maior média. Penaliza amostra pequena: 5 de 5 não ganha de 40 de 49."],
   recente: ["Mais recente", () => 0],
   var_mes: ["Maior alta no mês", (i, a) => -(a.var_mes_pct ?? -1e9)],
   var_mes_baixa: ["Maior queda no mês", (i, a) => a.var_mes_pct ?? 1e9],
@@ -195,6 +226,15 @@ const ORDENS = {
   volume: ["Maior volume relativo", (i, a, s) => -(s?.vr ?? 0)],
   nome: ["Nome", (i, a) => semSufixo(a.ticker)],
 };
+
+/** Ordem padrão (enquanto a pessoa não escolheu uma): "Melhor histórico" no modo Simples (quem não é trader quer ver
+ *  primeiro o que mais funcionou naquele ativo) e "Mais setups juntos" no Trader. Uma escolha salva é respeitada: quem já
+ *  tinha outra ordem salva antes desta opção existir continua com ela. */
+function ordemPadrao(inicio = false) {
+  if (inicio && estado.ordemEscolhida === undefined) estado.ordemEscolhida = estado.ordem !== "confluencia";
+  if (estado.ordemEscolhida) return;
+  estado.ordem = simples() ? "historico" : "confluencia";
+}
 
 function listar() {
   const conf = agrupar(P.eventos, idsRamo());
@@ -214,6 +254,9 @@ function listar() {
     itens = [...conf.values()].filter((i) => [...i.setups].some((id) => foco.has(id))).map((i) => ({ ...i, foco }));
   }
   if (estado.so2) itens = itens.filter((i) => i.setups.size >= 2);
+  // "Só da minha lista": a contagem do rótulo é sobre o resultado já filtrado pelos outros critérios
+  antesDaLista = itens;
+  if (estado.soLista && Favoritos.quantos()) itens = itens.filter((i) => Favoritos.tem(i.ticker));
   // quantos deste resultado têm o preço atrasado (fora da lista com o filtro ligado; com a etiqueta ⚠ com ele desligado)
   const ramo = idsRamo();
   P.desatualizados = new Set(ehMinhas() ? [] : [...agrupar(estado.soAtualizados ? P.atrasados : [], ramo).values()]
@@ -221,7 +264,8 @@ function listar() {
   if (!estado.soAtualizados) for (const i of itens) if (!atualizado(porTicker.get(i.ticker))) P.desatualizados.add(i.ticker);
   const chave = (ORDENS[estado.ordem] ?? ORDENS.confluencia)[1];
   const nota = new Map(itens.map((i) => [i.ticker, chave(i, porTicker.get(i.ticker), fotoAtual(i.ticker))]));
-  const cmp = (p, q) => (typeof p === "string" ? p.localeCompare(q) : p - q);
+  const cmp = (p, q) => (typeof p === "string" ? p.localeCompare(q)
+    : Array.isArray(p) ? (p.map((v, k) => v - q[k]).find((d) => d) ?? 0) : p - q);
   return itens.sort((x, y) => (ehMinhas() ? x.k - y.k : 0) || cmp(nota.get(x.ticker), nota.get(y.ticker))
     || (y.ultima ?? "").localeCompare(x.ultima ?? "") || x.ticker.localeCompare(y.ticker));
 }
@@ -307,7 +351,7 @@ function linhaSetups(i, compacta) {
     x ? nomeCurto(x) : id, " ", el("span", { class: "data" }, fmtData(evs[0].data)));
   });
   const ev = eventoFoco(i);
-  const selo = ev ? seloHistorico(ev.bt, tfSelo) : null;
+  const selo = ev && !compacta ? seloHistorico(ev.bt, tfSelo) : null;  // no card, o histórico tem linha própria (linhaHistorico)
   const n = i.setups.size;
   const destaque = n >= 2 ? el("span", { class: "chip destaque" }, `${n} setups`) : null;
   if (ehMinhas()) {
@@ -319,6 +363,29 @@ function linhaSetups(i, compacta) {
         chips.length ? el("div", { class: "chips" }, el("span", { class: "chip ctx" }, "também:"), chips) : null);
   }
   return el("div", { class: `chips ${compacta ? "celula-setups" : ""}` }, destaque, chips, selo);
+}
+
+/** Linha de destaque do card: quantas vezes o melhor setup do card funcionou neste ativo (o mesmo critério da
+ *  ordenação "Melhor histórico"). Nas minhas regras não há histórico por candidato: sem linha. */
+const pct1 = (v) => `${v > 0 ? "+" : ""}${fmtNum(v, 1)}%`;
+function linhaHistorico(i) {
+  if (ehMinhas()) return null;
+  const h = melhorHistorico(i);
+  const prazo = estado.tf === "W" ? "8 semanas" : "10 pregões";
+  if (!h) {
+    return el("p", { class: "celula-hist sem",
+      title: "Este ativo teve menos de 10 casos deste sinal nos últimos 6 anos: pouco para tirar conclusão." }, "Histórico: sem histórico suficiente neste ativo");
+  }
+  const x = SETUP.get(h.evento.setup);
+  const classe = h.medio > 0 ? "alta" : h.medio < 0 ? "baixa" : "neutro";
+  const titulo = `Nos últimos 6 anos, o sinal “${x?.nome ?? h.evento.setup}” apareceu ${h.n} vezes neste ativo. ` +
+    `Entrando na abertura seguinte e saindo ${prazo} depois, ${h.ganhos} terminaram no lucro (${fmtNum(h.acerto, 0)}%), ` +
+    `com retorno médio de ${pct1(h.medio)} por operação, sem custos nem impostos. É o melhor histórico entre os setups deste card. ` +
+    "Resultado passado não garante resultado futuro.";
+  return el("p", { class: "celula-hist", title: titulo },
+    el("span", { class: "hist-rot" }, "Histórico:"),
+    el("span", { class: "hist-num" }, `${h.ganhos} de ${h.n} no lucro (${fmtNum(h.acerto, 0)}%) · média `, el("span", { class: classe }, pct1(h.medio))),
+    x ? el("span", { class: "hist-setup" }, `· ${nomeCurto(x)}`) : null);
 }
 
 /** A favor / cuidado / informações do ativo para o lado da lista (mesma conta da antiga Multitela). */
@@ -410,8 +477,9 @@ function celula(i) {
   const k = kDoItem(i);
   const sob = estado.camadas === "condicoes" && F ? sobreposicaoDasRegras(regrasDoItem(i), F.ativos[a.ticker]?.[estado.tf], estado.tf, F, k) : null;
   const ctx = blocoContexto(a) ?? {};
-  const cel = el("article", { class: `celula ${i.setups.size >= 2 ? "confluencia" : ""}`, "data-tk": i.ticker },
+  const cel = el("article", { class: `celula ${i.setups.size >= 2 ? "confluencia" : ""} ${Favoritos.tem(i.ticker) ? "na-lista" : ""}`, "data-tk": i.ticker },
     el("header", {},
+      Favoritos.botao(i.ticker),
       el("div", { class: "celula-nome", title: "Abrir o gráfico em tela cheia (Esc ou ✕ para sair)",
         onclick: () => (document.fullscreenElement ? document.exitFullscreen() : cel.requestFullscreen?.()) },
       el("b", { class: "mono" }, semSufixo(a.ticker)), " ", el("span", { class: "cartao-nome" }, a.nome)),
@@ -424,6 +492,7 @@ function celula(i) {
           onclick: (e) => { e.stopPropagation(); simularTrade(ctxSimular(a.ticker), { grafico: graficoPorTk.get(a.ticker) }); } },
         el("span", { "aria-hidden": "true" }, "⊕"), el("span", { class: "rotulo-simular" }, " Simular")),
         window.Arrastar?.menu(a.ticker))),
+    linhaHistorico(i),
     linhaSetups(i, true),
     corpo,
     sob ? el("div", { class: "legenda-extras" }, legendaSobreposicao(sob).map((x) =>
@@ -471,6 +540,7 @@ function renderGrade() {
   const pagina = lista.slice(estado.pagina * n, (estado.pagina + 1) * n);
   grade.dataset.grade = estado.grade;
   const vazio = ehMinhas() ? (F ? "Nenhum ativo atende a todas as regras no período. Tente afrouxar alguma condição." : "Não consegui carregar os indicadores das regras.")
+    : estado.soLista && Favoritos.quantos() ? "Nenhum ativo da sua lista tem este sinal agora. Desmarque “Só da minha lista” para ver todos os ativos."
     : estado.so2 ? "Nenhum ativo com 2+ setups no período. Desmarque a opção ou aumente o período."
       : estado.soAtualizados && P.desatualizados.size
         ? `Nenhum ativo com o preço atualizado aqui: ${P.desatualizados.size} ${P.desatualizados.size === 1 ? "está" : "estão"} com o último pregão incompleto na fonte. ` +
@@ -684,7 +754,7 @@ function renderResumo() {
 
 /** Uma busca guarda os filtros (o que procurar e quando); a exibição (grade, gráfico) fica de fora. */
 const BUSCAS = "buscas-v1";
-const CAMPOS_BUSCA = ["lado", "estilo", "setup", "mercado", "tf", "periodo", "so2", "ordem"];
+const CAMPOS_BUSCA = ["lado", "estilo", "setup", "mercado", "tf", "periodo", "so2", "soLista", "ordem"];
 const buscas = () => guardar.ler(BUSCAS, []);
 const SUGESTOES = [
   { nome: "Comprar ações que estão subindo", dica: "A favor da tendência: o jeito mais comum de comprar", f: { lado: "compra", estilo: "tendencia", setup: "todos", so2: false } },
@@ -699,7 +769,8 @@ const buscaAtiva = (f) => Object.entries(f).every(([k, v]) => (k === "modelo" ? 
   && (f.setup !== "minhas" || ehMinhas());
 
 function aplicarBusca(f) {
-  Object.assign(estado, Object.fromEntries(Object.entries(f).filter(([k]) => CAMPOS_BUSCA.includes(k))));
+  // buscas antigas não têm "soLista": voltam a mostrar todos os ativos
+  Object.assign(estado, { soLista: false }, Object.fromEntries(Object.entries(f).filter(([k]) => CAMPOS_BUSCA.includes(k))));
   if (!["todos", "minhas"].includes(estado.setup) && !SETUP.has(estado.setup)) estado.setup = "todos";
   if (ehMinhas()) {
     const s = salvos().find((x) => `u:${x.id}` === f.modelo);
@@ -717,7 +788,7 @@ function nomeDaBusca() {
   const qual = ehMinhas() ? regraSalva()?.nome ?? "Meu setup" : x ? nomeCurto(x)
     : `${estado.lado === "compra" ? "Compras" : "Vendas"} ${estado.estilo === "tendencia" ? "a favor" : "contra"} da tendência`;
   const mercado = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro" }[estado.mercado];
-  return [qual, mercado, estado.so2 ? "2+ setups" : null, estado.tf === "W" ? "semanal" : null].filter(Boolean).join(" · ");
+  return [qual, mercado, estado.so2 ? "2+ setups" : null, estado.soLista ? "minha lista" : null, estado.tf === "W" ? "semanal" : null].filter(Boolean).join(" · ");
 }
 
 function salvarBusca() {
@@ -761,6 +832,7 @@ function sincronizarControles() {
     });
   $("f-periodo").value = String(estado.periodo);
   $("f-so2").checked = estado.so2;
+  $("f-solista").checked = estado.soLista;
 }
 
 // ------------------------------------------------------------- folha de filtros (celular e tablet)
@@ -926,6 +998,18 @@ function ligarRegras() {
 
 // ------------------------------------------------------------- barra do resultado
 
+/** "Só da minha lista (n)": n = ativos do resultado atual que estão na lista. Sem lista, a opção fica desabilitada. */
+function renderSoLista() {
+  const vazia = !Favoritos.quantos();
+  if (vazia) estado.soLista = false;
+  const n = antesDaLista.filter((i) => Favoritos.tem(i.ticker)).length;
+  $("f-solista").checked = estado.soLista;
+  $("f-solista").disabled = vazia;
+  $("rot-solista").textContent = vazia || estado.soLista ? "Só da minha lista" : `Só da minha lista (${n})`;
+  $("caixa-solista").title = vazia ? "Sua lista está vazia: marque a ☆ de um ativo para acompanhá-lo e filtrar só por eles"
+    : "Mostra só os ativos que estão na sua lista (a mesma da Carteira): marque a ☆ nos cards para montá-la";
+}
+
 function renderBarra() {
   const rot = estado.tf === "D" ? "pregão" : "semana";
   for (const o of $("f-periodo").options) {
@@ -937,13 +1021,15 @@ function renderBarra() {
   $("rot-so2").textContent = estado.so2 ? rotSo2 : `${rotSo2} (${so2})`;
   $("f-so2").checked = estado.so2;
   $("caixa-so2").hidden = ehMinhas();
+  renderSoLista();
   const nDes = P.desatualizados?.size ?? 0;
   $("f-atualizados").checked = estado.soAtualizados;
   $("rot-atualizados").textContent = !nDes ? "Só com preço atualizado"
     : estado.soAtualizados ? `Só com preço atualizado (${nDes} ${nDes === 1 ? "oculto" : "ocultos"})` : `Só com preço atualizado (${nDes} ${nDes === 1 ? "atrasado" : "atrasados"})`;
   // sem nenhum atrasado e o filtro ligado, a opção é só ruído
   $("caixa-atualizados").hidden = !nDes && estado.soAtualizados;
-  $("f-ordem").replaceChildren(...Object.entries(ORDENS).map(([k, [r]]) => el("option", { value: k, selected: k === estado.ordem ? true : null }, r)));
+  $("f-ordem").replaceChildren(...Object.entries(ORDENS).map(([k, [r, , dica]]) => el("option", { value: k, title: dica ?? null, selected: k === estado.ordem ? true : null }, r)));
+  $("f-ordem").title = ORDENS[estado.ordem]?.[2] ?? "";
   $("f-indicadores").hidden = estado.camadas === "condicoes";
   renderResumo();
   renderBuscas();
@@ -1127,11 +1213,24 @@ function acharTicker(txt) {
   return [t, `${t}.SA`, t.replace(".", "-"), `${t}-USD`, porRotulo.get(t)].find((x) => x && porTicker.has(x)) ?? null;
 }
 
+// Atalhos (listados no "?" do topo): ← → ou j k mudam de página da grade; f põe o card sob o mouse (ou com o foco) na minha lista.
+// "/" (buscar ativo) já é do topo (comum.js). Nada disso vale com o foco num campo ou com uma janela aberta.
+function janelaAberta() {
+  return !!document.querySelector('[aria-modal="true"], dialog[open], .ajuda:not([hidden]), .tour-balao') ||
+    document.body.classList.contains("op-nav-aberta") || document.documentElement.classList.contains("comparar-aberto");
+}
 document.addEventListener("keydown", (e) => {
-  if (e.altKey || e.ctrlKey || e.metaKey || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
-  if (!e.shiftKey && !document.fullscreenElement && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+  const foco = document.activeElement;
+  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.repeat || foco?.isContentEditable ||
+    /INPUT|SELECT|TEXTAREA/.test(foco?.tagName) || janelaAberta()) return;
+  if (!document.fullscreenElement && ["ArrowRight", "ArrowLeft", "j", "k"].includes(e.key)) {
     e.preventDefault();
-    irParaPagina(estado.pagina + (e.key === "ArrowRight" ? 1 : -1));
+    irParaPagina(estado.pagina + (e.key === "ArrowRight" || e.key === "j" ? 1 : -1));
+  } else if (e.key === "f") {
+    const cel = document.querySelector(".celula:hover") ?? foco?.closest?.(".celula") ?? (estado.grade === "1" ? document.querySelector(".celula") : null);
+    if (!cel?.dataset.tk) return;
+    e.preventDefault();
+    Favoritos.alternar(cel.dataset.tk);
   }
 });
 
@@ -1159,8 +1258,12 @@ async function iniciar() {
   try { [R, C] = await Promise.all([carregarRadar(), carregarCatalogo()]); } catch (e) { montarTopo("setups"); return erroDados(e); }
   try { F = await carregarRastreador(); } catch {}
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
+  Favoritos.definirAtivos(R.ativos);
   calcularEsperada();
   montarTopo("setups", R);
+  Favoritos.ajudaAtalhos([[["/"], "buscar um ativo"], [["j", "k"], "página seguinte e anterior da grade (← → também, nesta página)"],
+    [["f"], "põe na minha lista o card sob o mouse"]],
+  ["☆ no card põe o ativo na sua lista (a mesma da Carteira); “Só da minha lista” filtra por eles. Cada card traz em destaque quantas vezes o melhor setup dele já funcionou naquele ativo."]);
   SETUPS = C.grupos.flatMap((g) => g.itens.map((x) => ({ ...x, grupo: g.nome })));
   SETUP = new Map(SETUPS.map((x) => [x.id, x]));
   NEUTROS = SETUPS.filter((x) => x.vies === "neutro");
@@ -1170,6 +1273,7 @@ async function iniciar() {
   // estado salvo que deixou de existir
   if (!["todos", "minhas"].includes(estado.setup) && !SETUP.has(estado.setup)) estado.setup = "todos";
   if (!ORDENS[estado.ordem]) estado.ordem = "confluencia";
+  ordemPadrao(true);
   if (!["D", "W"].includes(estado.tf)) estado.tf = "D";
   // endereço: ?setup=pb-mm20 escolhe o setup, #PETR4.SA o ativo
   const q = new URLSearchParams(location.search);
@@ -1181,7 +1285,7 @@ async function iniciar() {
   const doHash = location.hash.length > 1 ? acharTicker(location.hash.slice(1)) : null;
   if (doHash) estado.ticker = doHash;
 
-  $("lugar-aviso").replaceWith(avisoFormacao(R));
+  $("lugar-aviso").replaceWith(Favoritos.avisoDados(R));
   $("f-indicadores").replaceChildren(atalhosIndicadores({ comSinais: true, comIFR: false }));
 
   const ligar = (id, chave, conv, depois) =>
@@ -1190,6 +1294,7 @@ async function iniciar() {
   segmento("f-lado", ({ v }) => escolherRamo(v, estado.estilo));
   segmento("f-modo", ({ v }) => {
     estado.modo = v;
+    ordemPadrao();
     // o modo simples não tem a lista de setups: volta para todos os do tipo escolhido
     if (simples() && estado.setup !== "todos") estado.setup = "todos";
     sincronizarControles();
@@ -1213,7 +1318,10 @@ async function iniciar() {
   ligar("f-camadas", "camadas", String, () => { salvar(); renderBarra(); renderGrade(); });
   $("f-atualizados").addEventListener("change", (e) => { estado.soAtualizados = e.target.checked; mudou(); });
   $("f-so2").addEventListener("change", (e) => { estado.so2 = e.target.checked; estado.pagina = 0; salvar(); atualizar(); });
-  $("f-ordem").addEventListener("change", (e) => { estado.ordem = e.target.value; estado.pagina = 0; salvar(); atualizar(); });
+  $("f-ordem").addEventListener("change", (e) => { estado.ordem = e.target.value; estado.ordemEscolhida = true; estado.pagina = 0; salvar(); atualizar(); });
+  $("f-solista").addEventListener("change", (e) => { estado.soLista = e.target.checked; estado.pagina = 0; salvar(); atualizar(); });
+  // a estrela mudou (aqui ou em outra aba): os cards e a contagem acompanham; o card não some sozinho com o filtro ligado
+  document.addEventListener("favoritos", () => { renderSoLista(); if (!Favoritos.quantos() && estado.soLista) { estado.soLista = false; salvar(); atualizar(); } });
   ligarRegras();
   ligarBaixar();
   ligarNav();

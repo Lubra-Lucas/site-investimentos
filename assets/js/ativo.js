@@ -90,7 +90,7 @@ function renderCabecalho(a) {
   document.getElementById("cab-ativo-id").dataset.tk = a.ticker;  // arrastar.js: segurar o cabeçalho leva o ativo
   document.getElementById("cab-ativo-id").replaceChildren(
     el("div", { class: "cab-ativo-nome" },
-      el("h1", { class: "mono" }, semSufixo(a.ticker)), el("span", {}, a.nome), el("span", { class: "tag" }, a.mercado), selosBandeja(a.ticker)),
+      el("h1", { class: "mono" }, semSufixo(a.ticker)), Favoritos.botao(a.ticker, "fav-grande"), el("span", {}, a.nome), el("span", { class: "tag" }, a.mercado), selosBandeja(a.ticker)),
     el("div", { class: "cab-ativo-preco" },
       p.parcial ? el("span", { class: "ponto-formacao", title: `Pregão de ${fmtData(a.parcial.data)} em andamento` }, "● ") : null,
       el("b", { class: "mono" }, fmtMoeda(p.ultimo, a.moeda)), " ",
@@ -403,8 +403,9 @@ async function iniciar() {
   const catalogo = carregarCatalogoSetups().catch(() => null);  // em paralelo com o radar, não depois dele
   try { R = await carregarRadar(); } catch (e) { montarTopo("ativo"); return erroDados(e); }
   porTicker = new Map(R.ativos.map((a) => [a.ticker, a]));
+  Favoritos.definirAtivos(R.ativos);
   montarTopo("ativo", R);
-  document.querySelector(".cab-ativo").append(avisoFormacao(R));
+  document.querySelector(".cab-ativo").append(Favoritos.avisoDados(R));
   await catalogo;
   painel = painelGrafico(document.getElementById("painel-grafico"), { simular: true });
   prepararCondicoes();

@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/favoritos.css">
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preload" as="fetch" crossorigin href="data/radar.json">
   <link rel="preload" as="fetch" crossorigin href="data/setups.json">
@@ -149,6 +150,9 @@
         <label class="opcao op-filtro" id="caixa-so2" title="Ativos com 2 ou mais setups deste ramo ao mesmo tempo: sinais que se confirmam">
           <input type="checkbox" id="f-so2"> <span id="rot-so2">Só com 2+ setups</span>
         </label>
+        <label class="opcao op-filtro so-lista" id="caixa-solista" title="Mostra só os ativos que estão na sua lista">
+          <input type="checkbox" id="f-solista"> <span id="rot-solista">Só da minha lista</span>
+        </label>
         <label class="opcao op-filtro" id="caixa-atualizados" title="Esconde os ativos cujo último pregão ainda não chegou completo da fonte: o preço e os sinais deles são de um pregão anterior">
           <input type="checkbox" id="f-atualizados"> <span id="rot-atualizados">Só com preço atualizado</span>
         </label>
@@ -206,6 +210,7 @@
 
   <script defer src="assets/js/config.js"></script>
   <script defer src="assets/js/comum.js"></script>
+  <script defer src="assets/js/favoritos.js"></script>
   <script defer src="assets/js/desenhos.js"></script>
   <script defer src="assets/js/simulador.js"></script>
   <script defer src="assets/js/rastreador.js"></script>
