@@ -72,11 +72,17 @@ jobs:
           TELEGRAM: ${{ secrets.TELEGRAM }}
         run: python scripts/telegram_postar.py
 
+      - name: Páginas públicas por ativo (ativos/, sitemap.xml, robots.txt)
+        # Opcional: páginas estáticas para o Google; sem elas o site segue igual.
+        continue-on-error: true
+        run: python scripts/paginas_ativos.py
+
       - name: Montar site
         run: |
           mkdir _site
           # todas as páginas da raiz (Carteira, Setups, Ativo, Backtest e os redirecionamentos antigos)
           cp -r *.html manifest.webmanifest assets data _site/
+          cp -r ativos sitemap.xml robots.txt _site/ || true
 
       - uses: actions/upload-pages-artifact@v3
         with:

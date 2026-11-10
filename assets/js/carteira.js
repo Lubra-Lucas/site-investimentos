@@ -95,12 +95,13 @@ function tabela(id, colunas, linhas, vazio) {
     t.replaceChildren(el("tbody", {}, el("tr", { class: "sem-clique" }, el("td", { class: "vazio", colspan: colunas.length }, vazio))));
     return;
   }
+  t.classList.add("tab-cartoes");  // no celular, cada linha vira um cartão (carteira.css)
   t.replaceChildren(
     el("thead", {}, el("tr", {}, colunas.map((c) => el("th", { class: c.num ? "num" : "" }, c.rotulo)))),
     el("tbody", {}, linhas.map((l) =>
       el("tr", { "data-tk": l.ticker, onclick: (e) => { if (porTicker.has(l.ticker) && !e.target.closest("a, button")) abrirAtivo(l.ticker); } },
         colunas.map((c) => {
-          const td = el("td", { class: [c.num ? "num" : "", c.classe ? c.classe(l) : ""].join(" ") });
+          const td = el("td", { class: [c.num ? "num" : "", c.cheia ? "cheia" : "", c.classe ? c.classe(l) : ""].join(" "), "data-rotulo": c.rotulo });
           const v = c.valor(l);
           td.append(v instanceof Node ? v : document.createTextNode(v));
           return td;
@@ -310,7 +311,7 @@ function renderPosicoes(c) {
     el("button", { type: "button", class: "botao-link", "aria-label": `Editar ${semSufixo(l.ticker)}`, onclick: () => abrirFormulario(l.pos) }, "Editar"),
     el("button", { class: "botao-remover", title: `Remover ${semSufixo(l.ticker)}`, "aria-label": `Remover ${semSufixo(l.ticker)}`, onclick: () => removerPosicao(l) }, "×")));
   tabela("tabela-posicoes", [
-    { rotulo: "Ativo", valor: celTicker },
+    { rotulo: "Ativo", cheia: true, valor: celTicker },
     { rotulo: "Mercado", valor: (l) => el("span", { class: "tag" }, l.mercado) },
     { rotulo: "Qtd", num: true, valor: (l) => fmtNum(l.quantidade, Number.isInteger(l.quantidade) ? 0 : l.quantidade < 1 ? 4 : 2) },
     { rotulo: "Preço médio", num: true, valor: (l) => fmtMoeda(l.preco_medio, l.moeda) },
@@ -319,8 +320,8 @@ function renderPosicoes(c) {
     { rotulo: "Resultado", num: true, valor: (l) => fmtBRL.format(l.resultado_brl), classe: (l) => cor(l.resultado_brl) },
     { rotulo: "%", num: true, valor: (l) => fmtPct(l.resultado_pct), classe: (l) => cor(l.resultado_pct) },
     { rotulo: "Peso", num: true, valor: (l) => `${fmtNum(l.peso_pct, 1)}%` },
-    { rotulo: "Setups", valor: (l) => chipsRecentes(l.ticker) },
-    { rotulo: "", valor: acoes },
+    { rotulo: "Setups", cheia: true, valor: (l) => chipsRecentes(l.ticker) },
+    { rotulo: "", cheia: true, valor: acoes },
   ], c.posicoes, "");
 
   const nomes = { BR: "Brasil", US: "EUA", CRIPTO: "Cripto", MACRO: "Macro", CAIXA: "Caixa" };
@@ -409,13 +410,13 @@ function renderLista() {
     onclick: () => { MinhaLista.gravar(MinhaLista.ler().filter((x) => x !== l.rot)); renderLista(); renderSetups(); } }, "×");
   const ou = (l, f) => (l.ausente ? "" : f(l));
   tabela("tabela-lista", [
-    { rotulo: "Ativo", valor: celTicker },
-    { rotulo: "Último", num: true, valor: (l) => ou(l, (x) => precoComFormacao(x, "celula-preco")) },
+    { rotulo: "Ativo", cheia: true, valor: celTicker },
+    { rotulo: "Último", num: true, cheia: true, valor: (l) => ou(l, (x) => precoComFormacao(x, "celula-preco")) },
     { rotulo: "Mês", num: true, valor: (l) => ou(l, (x) => fmtPct(x.var_mes_pct)), classe: (l) => cor(l.var_mes_pct) },
     { rotulo: "Ano", num: true, valor: (l) => ou(l, (x) => fmtPct(x.var_ano_pct)), classe: (l) => cor(l.var_ano_pct) },
-    { rotulo: "Tendência (D · S)", valor: (l) => ou(l, tendencia) },
-    { rotulo: "Setups recentes", valor: (l) => ou(l, (x) => chipsRecentes(x.ticker)) },
-    { rotulo: "", valor: remover },
+    { rotulo: "Tendência (D · S)", cheia: true, valor: (l) => ou(l, tendencia) },
+    { rotulo: "Setups recentes", cheia: true, valor: (l) => ou(l, (x) => chipsRecentes(x.ticker)) },
+    { rotulo: "", cheia: true, valor: remover },
   ], linhas, "Sua lista está vazia. Digite um ticker acima e clique em Adicionar.");
 }
 
@@ -441,18 +442,18 @@ function renderAcompanhados() {
   const linhas = R.ativos.filter((a) => a.carteira);
   const ifrCls = (x) => (x == null ? "" : x < 30 ? "alta" : x > 70 ? "baixa" : "");
   tabela("tabela-acompanhados", [
-    { rotulo: "Ativo", valor: celTicker },
+    { rotulo: "Ativo", cheia: true, valor: celTicker },
     { rotulo: "Mercado", valor: (l) => el("span", { class: "tag" }, l.mercado) },
     { rotulo: "Último", num: true, valor: (l) => fmtMoeda(l.ultimo, l.moeda) },
     { rotulo: "Dia", num: true, valor: (l) => fmtPct(l.var_dia_pct), classe: (l) => cor(l.var_dia_pct) },
     { rotulo: "Mês", num: true, valor: (l) => fmtPct(l.var_mes_pct), classe: (l) => cor(l.var_mes_pct) },
     { rotulo: "Ano", num: true, valor: (l) => fmtPct(l.var_ano_pct), classe: (l) => cor(l.var_ano_pct) },
-    { rotulo: "Tendência (diário · semanal)", valor: tendencia },
+    { rotulo: "Tendência (diário · semanal)", cheia: true, valor: tendencia },
     { rotulo: "IFR D", num: true, valor: (l) => fmtNum(l.ifr_d, 0), classe: (l) => ifrCls(l.ifr_d) },
     { rotulo: "IFR S", num: true, valor: (l) => fmtNum(l.ifr_s, 0), classe: (l) => ifrCls(l.ifr_s) },
     { rotulo: "IFR M", num: true, valor: (l) => fmtNum(l.ifr_m, 0), classe: (l) => ifrCls(l.ifr_m) },
     { rotulo: "Da máx. 52s", num: true, valor: (l) => fmtPct(l.dist_max52_pct), classe: (l) => cor(l.dist_max52_pct) },
-    { rotulo: "Setups", valor: (l) => chipsRecentes(l.ticker) },
+    { rotulo: "Setups", cheia: true, valor: (l) => chipsRecentes(l.ticker) },
     { rotulo: "Dados", valor: (l) => seloVerificacao(l) },
   ], linhas, "Nenhum ativo acompanhado.");
 }

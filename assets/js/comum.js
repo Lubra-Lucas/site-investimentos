@@ -821,7 +821,8 @@ function montarTopo(pagina, dados) {
     marca,
     navegacao(pagina),
     buscaTopo(dados?.ativos ?? []),
-    el("div", { class: "topo-info" }, status, dolar, botaoAjuda, painelAjuda),
+    el("div", { class: "topo-info" }, status, dolar, botaoAjuda, painelAjuda,
+      window.Conta?.ativa ? window.Conta.botaoTopo() : null), // login (conta.js): só existe com o Supabase configurado
   );
 }
 

@@ -61,3 +61,32 @@
   .pagina-carteira .painel-cab .controles { width: 100%; }
   .pagina-carteira .painel-cab .controles .botao { flex: 1 1 auto; text-align: center; }
 }
+
+/* celular: cada linha das tabelas vira um cartão (o JS põe data-rotulo em cada célula) */
+@media (max-width: 700px) {
+  .pagina-carteira .tabela-wrap:has(.tab-cartoes) { overflow: visible; border: 0; background: none; }
+  .tab-cartoes, .tab-cartoes tbody { display: block; width: 100%; }
+  .tab-cartoes thead { display: none; }
+  .tab-cartoes tr {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; padding: 12px; margin: 0 0 10px;
+    background: var(--bg-elev); border: 1px solid var(--borda); border-radius: var(--raio);
+  }
+  .tab-cartoes tr.sem-clique { display: block; }
+  .tab-cartoes td { display: block; min-width: 0; padding: 0; border: 0; white-space: normal; text-align: left; }
+  .tab-cartoes td.num { text-align: left; }
+  .tab-cartoes td.cheia { grid-column: 1 / -1; }
+  .tab-cartoes td[data-rotulo]:not([data-rotulo=""]):not(:first-child)::before {
+    content: attr(data-rotulo); display: block; margin-bottom: 2px; font: 11px Inter, "Inter Fallback", sans-serif;
+    color: var(--texto-fraco); text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .tab-cartoes td .chips-linha { min-width: 0; max-width: none; }
+  .tab-cartoes tr { position: relative; }
+  .tab-cartoes td:last-child:has(.cart-linha-acoes, .botao-remover) { position: absolute; top: 6px; right: 6px; display: flex; }
+  .tab-cartoes tr:has(td:last-child .botao-remover) td:first-child { padding-right: 44px; }
+  .tab-cartoes tr:has(.cart-linha-acoes) td:first-child { padding-right: 150px; }
+  .tab-cartoes .botao-remover { min-width: 40px; min-height: 40px; }
+  .tab-cartoes .cart-linha-acoes { gap: 8px; }
+  .tab-cartoes .cart-linha-acoes .botao-link { min-width: 72px; min-height: 40px; border: 1px solid var(--borda-forte); border-radius: 6px; text-decoration: none; color: var(--texto); }
+  .tab-cartoes td:empty, .tab-cartoes td[data-rotulo="Mercado"] { display: none; }
+  .tab-cartoes td.vazio { padding: 16px 4px; text-align: center; }
+}
