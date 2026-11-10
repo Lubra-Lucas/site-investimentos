@@ -2,6 +2,24 @@
 
 Documento de planejamento. Nada disso está implementado. O fundador cria as contas (Supabase e checkout); o código vem depois, seguindo as etapas abaixo. Valores de preço e taxa são aproximados e variam: onde estiver "conferir", confirme no site do fornecedor antes de decidir.
 
+## Como ligar (10 minutos)
+
+O código do login já está no site, desligado. Enquanto `supabaseUrl` e `supabaseAnonKey` estiverem vazios em `assets/js/config.js`, nada muda para o visitante (nenhum botão, nenhum script externo). Peças: `assets/js/conta.js` (módulo `Conta`), `entrar.html` + `assets/js/entrar.js` + `assets/css/conta.css` (página de entrar e "Minha conta"), `supabase/schema.sql` (banco) e `supabase/functions/webhook-pagamento/` (rascunho, não implantado).
+
+1. **Criar o projeto**: em supabase.com, "New project" (região São Paulo). Guarde a senha do banco.
+2. **Criar as tabelas**: SQL Editor → New query → cole todo o `supabase/schema.sql` → Run. Cria `assinaturas` (cada pessoa só lê a própria linha; ninguém escreve pelo navegador), `dados_usuario` (futura sincronização de carteira, diário e favoritos), `eventos_pagamento` e as funções `tem_plano` e `usuario_por_email`.
+3. **URL do site**: Authentication → URL Configuration. Site URL = `https://lubra-lucas.github.io/site-investimentos/`. Em Redirect URLs, adicione `https://lubra-lucas.github.io/site-investimentos/entrar.html` (e `http://localhost:8000/entrar.html` para testar no seu computador).
+4. **E-mail**: Authentication → Providers → Email ligado (link mágico, "Confirm email" pode ficar ligado). Para produção, configure um SMTP próprio em Authentication → SMTP: o e-mail padrão do Supabase tem limite baixo por hora.
+5. **Google (opcional)**: crie a credencial OAuth no Google Cloud, cole Client ID e Secret em Authentication → Providers → Google, copie a URL de callback do Supabase para o Google. Depois ponha `loginGoogle: true` no `config.js`.
+6. **Colar as chaves**: Project Settings → API. Copie "Project URL" e a chave **anon / publishable** para `supabaseUrl` e `supabaseAnonKey` em `assets/js/config.js`. Essa chave é pública por desenho; a segurança vem do RLS. A `service_role` **nunca** entra no código.
+7. **Testar**: abra `entrar.html`, peça o link com o seu e-mail, clique no e-mail e confira "Minha conta" (plano "Gratuito"). Para ver o plano mudar, insira uma linha de teste em `assinaturas` (Table Editor) com o seu `user_id` e `plano = 'pro'`, `status = 'ativa'`. O botão "Entrar" aparece no topo de todas as páginas do terminal e, logado, vira um menu com a sua conta.
+
+**O que ainda falta depois disso**
+- **Proteger os dados premium**: hoje tudo em `data/*.json` continua público (seção 1). Falta o bucket privado `premium`, o upload pelo pipeline e o front passar a pedir URL assinada conforme `Conta.plano()`.
+- **Checkout e webhook**: criar a conta no provedor, os planos, implantar `webhook-pagamento` (hoje rascunho: conferir nomes de evento e campos do Asaas na documentação) e preencher os links em `landing.js`.
+- **Sincronização**: `Conta.salvarDado(chave, valor)` e `Conta.lerDado(chave)` existem, mas não estão ligados a nada. Chaves de localStorage candidatas: `carteira-usuario-v1` (carteira), `multitela` (favoritos), `plano-v1` e `plano-config-v1` (plano de trade), `notas-v1`, `desenhos-v1` e `simulacoes-v1` (trades do diário, definida em `simulador.js`).
+- Casar o e-mail da compra com o e-mail do login (seção 2.3) e avisar isso na tela de checkout.
+
 ## 1. O ponto crítico: o site é público
 
 Hoje o site é estático no GitHub Pages e **todos os arquivos de `data/*.json` são públicos** (qualquer pessoa abre `https://lubra-lucas.github.io/site-investimentos/data/radar.json`). O repositório também é público, então o histórico do Git expõe os mesmos dados.
