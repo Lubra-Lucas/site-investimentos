@@ -344,6 +344,7 @@ window.Arrastar = (() => {
       P ? (noPlano && typeof P.abrir === "function" ? item("☰", "Abrir o plano de amanhã", () => P.abrir(), "já está nele")
         : item("☰", "Plano de amanhã", () => executar("plano", tk))) : null,
       N ? item("✎", "Anotar", () => executar("notas", tk), typeof etiqueta === "string" ? etiqueta : null) : null,
+      typeof window.compartilharAtivo === "function" ? item("⇧", "Compartilhar sinal", () => window.compartilharAtivo(tk), "imagem para redes") : null,
       naPagina("ativo.html") ? null : item("↗", "Abrir o ativo", () => executar("ativo", tk)));
     caixa.addEventListener("click", (e) => e.stopPropagation());
     caixa.addEventListener("keydown", (e) => {

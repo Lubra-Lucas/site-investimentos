@@ -103,11 +103,25 @@ function renderCabecalho(a) {
     el("button", { type: "button", class: "botao primario botao-simular-ativo", id: "simular-trade",
       title: "Simular um trade neste ativo: arraste entrada, stop e alvo no gráfico e acompanhe o resultado em R no Diário",
       onclick: () => simularNoGrafico(a.ticker) }, "⊕ Simular trade"),
+    window.Compartilhar ? Compartilhar.botao(() => dadosCompartilhar(a), { texto: "Compartilhar", titulo: "Compartilhar o sinal deste ativo: gera uma imagem com o histórico para WhatsApp e redes" }) : null,
     Plano.botao(() => ctxBandeja(a)), Notas.botao(() => ctxBandeja(a)),
     el("a", { class: "botao", href: `setups.html#${encodeURIComponent(a.ticker)}`, title: "Abrir este ativo na página de oportunidades (grade de setups)" }, "Ver nas oportunidades →"),
     el("a", { class: "botao", href: "carteira.html", title: "Posições, minha lista e plano de amanhã" }, "Carteira"),
     window.Arrastar?.menu(a.ticker));
 }
+
+/** O sinal a compartilhar: entre os do último pregão, o de melhor histórico; sem sinal hoje, o mais recente (com a data dele). */
+function dadosCompartilhar(a) {
+  const ev = eventosDoAtivo(R, a.ticker);
+  const entrada = (e) => (e.lado === "compra" || e.lado === "venda") && SETUP_POR_ID.get(e.setup)?.grupo !== GRUPO_ESTADO;
+  const doDia = ev.filter((e) => e.tf === "D" && e.data === a.data);
+  const e = Compartilhar.melhorEvento(doDia.filter(entrada)) ?? doDia.find(entrada) ?? Compartilhar.melhorEvento(doDia) ?? doDia[0]
+    ?? Compartilhar.melhorEvento(ev.filter((x) => x.data === ev[0]?.data && entrada(x))) ?? ev.find(entrada) ?? ev[0];
+  const d = Compartilhar.deEvento(a, e, e ? nomeSetup(e.setup) : null);
+  if (!e) Object.assign(d, { setupNome: "Nenhum setup recente neste ativo", semSinal: true });
+  return d;
+}
+window.compartilharAtivo = () => { const a = porTicker?.get(ficha.ticker); if (a) Compartilhar.sinal(dadosCompartilhar(a)); };
 
 /** O ativo aberto no formato do plano e das anotações: lado e setup dos eventos mais recentes, tempo do gráfico. */
 function ctxBandeja(a) {
