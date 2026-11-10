@@ -368,7 +368,53 @@ function vazioInicial() {
       el("li", {}, "Abra ", el("a", { href: "setups.html" }, "Setups"), " e escolha um ativo com sinal."),
       el("li", {}, "Clique em ", el("b", {}, "Simular trade"), ": entrada, stop e alvo já vêm sugeridos, e o gráfico é fotografado."),
       el("li", {}, "O terminal acompanha: quando bater no alvo ou no stop, o R do trade cai no dia certo do calendário.")),
-    el("a", { class: "botao primario", href: "setups.html" }, "Encontre uma oportunidade e clique em Simular trade →"));
+    el("div", { class: "dr-vazio-acoes" },
+      el("a", { class: "botao primario", href: "setups.html" }, "Encontre uma oportunidade e clique em Simular trade →"),
+      el("button", { type: "button", class: "botao", id: "dr-ver-exemplo", onclick: verExemplo }, "Ver com dados de exemplo")),
+    el("p", { class: "sub dr-vazio-nota" }, "O exemplo mostra o diário preenchido, com trades inventados. Ele some sozinho quando você salvar seu primeiro trade."));
+}
+
+// ------------------------------------------------------------- dados de exemplo
+
+const temExemplo = () => TA.length > 0 && TA.every((t) => t.exemplo);
+
+function marcarPeriodo(v) {
+  estado.periodo = v;
+  $("dr-periodo").querySelectorAll("button").forEach((x) => { x.classList.toggle("ativo", x.dataset.v === v); x.setAttribute("aria-pressed", String(x.dataset.v === v)); });
+}
+
+async function verExemplo() {
+  const b = $("dr-ver-exemplo");
+  if (b) b.disabled = true;
+  const ok = await Diario.carregarExemplo();
+  if (b) b.disabled = false;
+  if (!ok) return;
+  marcarPeriodo("tudo");  // o mês de hoje pode ter poucos trades; o exemplo abre no período inteiro
+  estado.mes = hoje().slice(0, 7);
+  estado.dia = null;
+  recarregar();
+}
+
+function limparExemplo() {
+  Diario.limparExemplo();
+  marcarPeriodo("mes");
+  estado.dia = null;
+  $("dr-dia").hidden = true;
+  recarregar();
+}
+
+/** Faixa fixa no alto da página enquanto o exemplo está carregado. */
+function renderFaixaExemplo() {
+  const f = $("dr-faixa-exemplo");
+  const ligado = temExemplo();
+  f.hidden = !ligado;
+  document.body.classList.toggle("dr-com-exemplo", ligado);
+  if (!ligado) { f.replaceChildren(); return; }
+  f.replaceChildren(
+    el("div", { class: "dr-faixa-texto" },
+      el("b", {}, "Você está vendo dados de exemplo"),
+      el("span", { class: "dr-faixa-detalhe" }, "Estes trades são inventados, só para mostrar como o diário fica. Eles somem quando você salvar um trade seu.")),
+    el("button", { type: "button", class: "botao", onclick: limparExemplo }, "Limpar exemplo"));
 }
 
 function renderLista() {
@@ -596,7 +642,7 @@ const numBR = (v, casas = 2) => (v == null || !Number.isFinite(v) ? "" : v.toFix
 
 /** Uma linha por trade. Datas dd/mm/aaaa, decimais com vírgula, separador ";" e BOM: o Excel em português abre direto. */
 function linhasCSV() {
-  return [...TA].sort((a, b) => refData(a).localeCompare(refData(b)) || a.id.localeCompare(b.id)).map((t) => {
+  return TA.filter((t) => !t.exemplo).sort((a, b) => refData(a).localeCompare(refData(b)) || a.id.localeCompare(b.id)).map((t) => {
     const av = t.av ?? {};
     return {
       "ID": t.id, "Ativo": semSufixo(t.ticker), "Mercado": t.mercado, "Lado": t.lado === "compra" ? "Compra" : "Venda",
@@ -666,6 +712,7 @@ async function importarJSON(arquivo) {
 function renderTudo() {
   IDX = indexar();
   const naGrade = document.activeElement?.closest?.("#dr-calendario") ? document.activeElement.dataset?.dia : null;
+  renderFaixaExemplo();
   renderResumo();
   renderCalendario();
   if (naGrade) document.querySelector(`#dr-calendario [data-dia="${naGrade}"]`)?.focus();
@@ -718,6 +765,9 @@ async function iniciar() {
   montarTopo("diario", R);
   await carregarCatalogoSetups().catch(() => null);
   ligar();
+  const medirTopo = () => document.documentElement.style.setProperty("--topo-h", `${$("topo").offsetHeight}px`);
+  medirTopo();
+  window.addEventListener("resize", medirTopo);
   TA = await Diario.avaliarTodos();
   renderTudo();
   paginaPronta();

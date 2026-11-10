@@ -107,3 +107,17 @@ editor abre em modo rascunho. Com `abrirEditor: false` (uso programático) o tra
   "Editar no diário", exclusão com desfazer e textos de ajuda sobre R.
 - Backup JSON: `{formato: "diario-trading", versao: 1, trades, fotos: [{id, trade, tipo, criada, dataUrl}]}` (aceita também a lista simples antiga).
 - Data do resultado no calendário = `saiu`; trades arquivados continuam no calendário e nas estatísticas, só saem da lista padrão.
+
+## Modo de exemplo (Diário)
+
+No estado vazio, "Ver com dados de exemplo" carrega 25 trades inventados (22 encerrados, 2 em aberto, 1 aguardando entrada; 4 estratégias; últimos ~2,5 meses) para o calendário, os KPIs e as estatísticas aparecerem preenchidos.
+
+- **Armazenamento separado**: localStorage `diario-exemplo-v1` (lista de trades). Nunca vão para `simulacoes-v1`. Cada trade de exemplo tem `exemplo: true`, id `ex-NN` e `exemplo_resultado` (`{estado, entrou, saiu, resultado_pct, resultado_r}` fixo): `Diario.avaliar` devolve esse resultado sem consultar candles, por isso o exemplo é sempre igual (só as datas acompanham o dia de hoje; sem `Math.random`). Os ativos vêm de `R.ativos` (PETR4, VALE3, ITUB4, WEGE3, BBAS3, AAPL, NVDA, MSFT, BTC, AMZN; se faltar algum, completa com os primeiros da lista).
+- **API**: `Diario.trades()` continua devolvendo **só trades reais** (é o que Guia, plano, ativo e backup leem; assim o exemplo nunca aparece como "em aberto" em outras telas). `Diario.todos()` = reais, ou o exemplo se não houver nenhum real (usado por `avaliarTodos()` e pela página do Diário). Também: `carregarExemplo()` (só com o diário vazio), `limparExemplo()`, `temExemplo()`, `ehExemplo(trade)`.
+- **Nunca mistura**: ao salvar um trade real (o evento `simulacoes` dispara em qualquer página que carregue `diario-dados.js`, e também há o evento `storage` entre abas) o exemplo é apagado, junto com fotos anexadas a ele; o "Salvar trade" avisa "Os dados de exemplo foram removidos". Importar um backup também limpa o exemplo. Se, ao carregar, existirem reais e exemplo, o exemplo é descartado.
+- **Interface**: faixa fixa "Você está vendo dados de exemplo" com "Limpar exemplo" (`assets/css/diario-exemplo.css`; a altura do topo vem de `--topo-h`). CSV e backup JSON ignoram o exemplo. Editar/excluir um trade de exemplo funciona (grava só no armazenamento do exemplo).
+- Regras do diário mantidas: o rascunho de "Simular" não grava nada até "Salvar trade"; estados e `FECHADOS` iguais (`concluida`/`ehAtiva` do simulador não são alteradas).
+
+## Carteira (carteira.html)
+
+A carteira é do visitante, editável no navegador; `config/carteira.json` (do dono do repositório) não é mais lida. Chaves: `carteira-usuario-v1` (`{v, capital, posicoes: [{id, ticker, quantidade, preco_medio, data?}]}`) e `carteira-exemplo-v1` (mesmo formato, só enquanto o exemplo está carregado). Valores com o último preço de `radar.json` e `usdbrl` do dia (o custo em US$ também usa o câmbio do dia). Caixa = capital − investido (capital opcional). Backup: JSON `{formato: "carteira-terminal", versao: 1, capital, posicoes}`. Adicionar a primeira posição real remove o exemplo; "Setups nos meus ativos" usa as posições novas.

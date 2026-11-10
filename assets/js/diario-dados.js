@@ -128,14 +128,36 @@
   }
   const candlesDe = async (t) => carregarCandles((await ativoDe(t.ticker))?.arquivo ?? t.ticker);
 
-  const trades = () => Simulacoes.todas();
+  const trades = () => Simulacoes.todas();  // só os trades REAIS (nunca o exemplo): quem lê trades de outra página usa esta
+  // trades de exemplo (modo "Ver com dados de exemplo"): guardados à parte, em outra chave, e nunca em `simulacoes-v1`
+  const CHAVE_EXEMPLO = "diario-exemplo-v1";
+  const exemplos = () => { const l = guardar.ler(CHAVE_EXEMPLO, []); return Array.isArray(l) ? l : []; };
+  const gravarExemplos = (l) => {
+    if (l.length) guardar.gravar(CHAVE_EXEMPLO, l);
+    else try { localStorage.removeItem(CHAVE_EXEMPLO); } catch {}
+  };
+  /** Só há exemplo enquanto o diário não tem nenhum trade real. */
+  const temExemplo = () => exemplos().length > 0 && !trades().length;
+  const ehExemplo = (t) => !!t?.exemplo;
+  /** O que o Diário mostra: os trades reais; se não houver nenhum, os de exemplo (se carregados). */
+  const todos = () => { const r = trades(); return r.length ? r : exemplos(); };
+  const salvarQualquer = (t) => {
+    if (t.exemplo) gravarExemplos([...exemplos().filter((x) => x.id !== t.id), t]);
+    else Simulacoes.salvar(t);
+  };
   // rascunhos: trades abertos por "Simular" que ainda não foram salvos. Vivem só na memória (id -> trade) até "Salvar trade";
   // `trade(id)` e `gravar(id, patch)` enxergam o rascunho, mas `trades()` (a lista do diário) e o localStorage não.
   const rascunhos = new Map();
-  const trade = (id) => rascunhos.get(id) ?? Simulacoes.todas().find((t) => t.id === id) ?? null;
+  const trade = (id) => rascunhos.get(id) ?? Simulacoes.todas().find((t) => t.id === id) ?? exemplos().find((t) => t.id === id) ?? null;
 
   /** Reavalia o trade com os candles diários (honra a saída manual). Acrescenta `fechado`, `dias` e `ultima`. */
   async function avaliar(t) {
+    if (t.exemplo && t.exemplo_resultado) {  // exemplo: o resultado já vem pronto (não depende dos candles do dia)
+      const av = { ...t.exemplo_resultado };
+      av.fechado = FECHADOS.has(av.estado);
+      if (av.entrou && av.saiu) av.dias = Math.max(0, diasEntre(av.entrou, av.saiu));
+      return av;
+    }
     let d;
     try { d = await candlesDe(t); } catch { d = null; }
     if (!d?.candles?.length) return { estado: "sem_dados", fechado: false };
@@ -148,7 +170,7 @@
   }
 
   /** Todos os trades já avaliados: [{...trade, av}]. */
-  async function avaliarTodos(lista = trades()) {
+  async function avaliarTodos(lista = todos()) {
     return Promise.all(lista.map(async (t) => ({ ...t, av: await avaliar(t).catch(() => ({ estado: "sem_dados", fechado: false })) })));
   }
 
@@ -162,7 +184,7 @@
     }
     const novo = { ...t, ...patch };
     for (const k of Object.keys(patch)) if (patch[k] === undefined) delete novo[k];
-    Simulacoes.salvar(novo);
+    salvarQualquer(novo);
     avisar();
     return novo;
   }
@@ -361,12 +383,13 @@
   function excluir(id) {
     const copia = trade(id);
     if (!copia) return;
-    Simulacoes.remover(id);
+    const remover = () => (copia.exemplo ? gravarExemplos(exemplos().filter((x) => x.id !== id)) : Simulacoes.remover(id));
+    remover();
     avisar();
     let desfeito = false;
     aviso(`Trade de ${semSufixo(copia.ticker)} excluído.`, {
       rot: "Desfazer",
-      fazer: () => { desfeito = true; Simulacoes.salvar(copia); avisar(); },
+      fazer: () => { desfeito = true; salvarQualquer(copia); avisar(); },
     });
     // as fotos só somem depois do tempo de desfazer
     setTimeout(() => { if (!desfeito && !trade(id)) (copia.fotos ?? []).forEach(fotoApagar); }, 5200);
@@ -756,10 +779,11 @@
       rascunhos.delete(id);
       e.rascunho = false;
       e.fotoEntrada = false;  // a foto sai agora, não ao fechar
+      const eraExemplo = exemplos().length > 0;
       Simulacoes.salvar(t);
       if (e.sim) { e.sim.rascunho = e.sim.rascunhoFixo = null; e.sim.editando = id; }
-      avisar();
-      aviso("Trade salvo no Diário");
+      avisar();  // o evento "simulacoes" também limpa o exemplo (ver abaixo)
+      aviso(eraExemplo ? "Trade salvo no Diário. Os dados de exemplo foram removidos." : "Trade salvo no Diário");
       confirmaDescarte.hidden = true;
       e.tipoDefinido = false;
       modoTela();
@@ -941,11 +965,96 @@
     caixa.focus();
   }
 
+  // ---------------------------------------------------------- dados de exemplo
+
+  /** Remove os trades de exemplo (e as fotos que alguém tenha anexado a eles). */
+  function limparExemplo() {
+    const l = exemplos();
+    if (!l.length) return false;
+    gravarExemplos([]);
+    l.flatMap((t) => t.fotos ?? []).forEach(fotoApagar);
+    avisar();
+    return true;
+  }
+  // um trade real foi salvo (nesta ou em outra página): o exemplo some, nunca convive com dados reais
+  document.addEventListener("simulacoes", () => { if (exemplos().length && trades().length) limparExemplo(); });
+  window.addEventListener("storage", (e) => { if (e.key === Simulacoes.chave && exemplos().length && trades().length) limparExemplo(); });
+  if (exemplos().length && trades().length) gravarExemplos([]);
+
+  /**
+   * [índice do ativo, lado, estratégia, dias desde a saída (hoje = 0), duração em dias, resultado em R, tipo]
+   * tipo: "alvo" (+2R), "stop" (-1R), "manual" (saída antes do alvo/stop), "aberta" (em aberto, R parcial) ou "aguardando".
+   * Tudo fixo: o exemplo é o mesmo toda vez que é carregado (só as datas acompanham o dia de hoje).
+   */
+  const ROTEIRO_EXEMPLO = [
+    [0, "compra", 0, 72, 5, 2, "alvo"], [4, "compra", 1, 69, 8, -1, "stop"], [1, "compra", 0, 66, 4, 2, "alvo"],
+    [5, "compra", 1, 62, 6, 2, "alvo"], [2, "compra", 2, 59, 3, -1, "stop"], [8, "compra", 3, 55, 14, 2, "alvo"],
+    [3, "venda", 2, 52, 5, -1, "stop"], [6, "compra", 0, 48, 6, 0.6, "manual"], [7, "compra", 0, 45, 4, 2, "alvo"],
+    [9, "compra", 1, 41, 7, -1, "stop"], [0, "compra", 2, 38, 3, 1.3, "manual"], [5, "compra", 3, 34, 12, 2, "alvo"],
+    [1, "venda", 2, 31, 5, 2, "alvo"], [4, "compra", 0, 27, 5, -1, "stop"], [2, "compra", 1, 24, 6, 2, "alvo"],
+    [8, "compra", 1, 20, 4, -1, "stop"], [6, "compra", 3, 16, 10, -1, "stop"], [3, "compra", 0, 12, 4, -0.4, "manual"],
+    [7, "compra", 2, 9, 3, 2, "alvo"], [0, "compra", 0, 6, 5, 2, "alvo"], [9, "compra", 1, 3, 3, -1, "stop"],
+    [1, "compra", 0, 1, 4, 1.1, "manual"],
+    [4, "compra", 0, 0, 5, 0.7, "aberta"], [2, "compra", 3, 0, 9, 1.2, "aberta"], [0, "compra", 1, 0, 0, 0, "aguardando"],
+  ];
+  const ESTRATEGIAS_EXEMPLO = [
+    { nome: "Pullback MME 9", setup: "pb-mme9", tf: "D", risco: 3.5, tese: "Tendência de alta e o preço voltou na média curta: entrada no candle de retomada." },
+    { nome: "Rompimento 20 candles", setup: "romp-max", tf: "D", risco: 4.5, tese: "Rompeu a máxima de 20 candles com volume acima da média." },
+    { nome: "Reversão IFR", setup: "ifr-sv", tf: "D", risco: 5, tese: "IFR esticado e preço longe da média: aposta numa devolução curta." },
+    { nome: "Tendência semanal", setup: "tend-alta", tf: "W", risco: 6, tese: "Tendência semanal de alta; stop abaixo do fundo anterior, trade de dias." },
+  ];
+  const ATIVOS_EXEMPLO = ["PETR4.SA", "VALE3.SA", "ITUB4.SA", "WEGE3.SA", "BBAS3.SA", "AAPL", "NVDA", "MSFT", "BTC-USD", "AMZN"];
+  const ETIQ_EXEMPLO = [["seguiu o plano"], ["seguiu o plano"], ["FOMO"], ["entrou cedo"], ["saiu cedo"], ["seguiu o plano"]];
+
+  /** Gera os trades de exemplo (~25, últimos ~2,5 meses) com ativos que existem nos dados. */
+  async function gerarExemplo() {
+    await ativoDe(ATIVOS_EXEMPLO[0]);
+    const lista = ATIVOS_EXEMPLO.map((tk) => porTk.get(tk)).filter(Boolean);
+    for (const a of RAD.ativos) { if (lista.length >= ATIVOS_EXEMPLO.length) break; if (!lista.includes(a)) lista.push(a); }
+    const uteis = (d) => { const x = new Date(`${d}T12:00:00Z`); while ([0, 6].includes(x.getUTCDay())) x.setUTCDate(x.getUTCDate() - 1); return x.toISOString().slice(0, 10); };
+    const somar = (d, n) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+    const arred = (v, ref) => +v.toFixed(ref >= 100 ? 2 : ref >= 1 ? 3 : 6);
+    const h = hoje();
+    return ROTEIRO_EXEMPLO.map(([ia, lado, ie, atras, dur, r, tipo], i) => {
+      const a = lista[ia % lista.length], E = ESTRATEGIAS_EXEMPLO[ie];
+      const sinal = lado === "compra" ? 1 : -1;
+      const entrada = arred(a.ultimo * (1 + (((i * 37) % 11) - 5) / 400), a.ultimo);  // ±1,25% do último preço, sempre igual
+      const risco = E.risco + ((i * 13) % 5) / 10;                                   // risco em % da entrada
+      const stop = arred(entrada * (1 - sinal * risco / 100), a.ultimo);
+      const alvo = arred(entrada * (1 + sinal * 2 * risco / 100), a.ultimo);
+      const saiu = uteis(somar(h, -atras));
+      const aberto = tipo === "aberta" || tipo === "aguardando";
+      const entrou = uteis(somar(aberto ? h : saiu, -dur));
+      const aguardando = tipo === "aguardando";
+      const t = {
+        id: `ex-${String(i + 1).padStart(2, "0")}`, exemplo: true,
+        ticker: a.ticker, mercado: a.mercado, moeda: a.moeda, lado, entrada, stop, alvo,
+        capital: capitalPadrao(a, entrada), criada: aguardando ? uteis(somar(h, -1)) : entrou, preco_criacao: aguardando ? a.ultimo : entrada,
+        setup: lado === "venda" && E.setup === "ifr-sv" ? "ifr-sc" : E.setup, tf: E.tf, estrategia: E.nome, origem: "manual", fotos: [],
+        tese: E.tese, etiquetas: ETIQ_EXEMPLO[i % ETIQ_EXEMPLO.length], nota: 3 + (i % 3),
+      };
+      if (tipo === "manual") t.saida_manual = { data: saiu, preco: arred(entrada * (1 + sinal * r * risco / 100), a.ultimo) };
+      if (!aberto) t.revisao = r > 0 ? "Executei como planejado." : "Stop respeitado; o setup simplesmente não funcionou desta vez.";
+      t.exemplo_resultado = aguardando ? { estado: "aguardando" }
+        : { estado: tipo, entrou, ...(aberto ? {} : { saiu }), resultado_pct: r * risco, resultado_r: r };
+      return t;
+    });
+  }
+
+  /** "Ver com dados de exemplo". Só com o diário vazio; devolve true se carregou. */
+  async function carregarExemplo() {
+    if (trades().length) { aviso("Você já tem trades no diário: o exemplo só aparece com o diário vazio."); return false; }
+    try { gravarExemplos(await gerarExemplo()); } catch { aviso("Não consegui montar o exemplo agora."); return false; }
+    avisar();
+    return true;
+  }
+
   // ---------------------------------------------------------- API
 
   window.Diario = {
     FECHADOS, SEM_ESTRATEGIA, ETIQUETAS_SUGERIDAS,
-    trades, trade, avaliar, avaliarTodos, registrar, abrir, fechar: fecharEditor,
+    trades, todos, temExemplo, ehExemplo, carregarExemplo, limparExemplo,
+    trade, avaliar, avaliarTodos, registrar, abrir, fechar: fecharEditor,
     preencher, atualizar: gravar, excluir,
     salvarFoto, fotos, removerFoto, fotografar, capturar, reduzir,
     // usados pela página do diário (backup)
