@@ -147,7 +147,19 @@ def melhor_setup(c) -> dict | None:
 def escolher(ctx, dados: Path, n_max=3) -> list[dict]:
     """Principal (preferência: Brasil) e alternativas de outros mercados, já com candles e casos carregados."""
     por_mercado = defaultdict(list)
+    # Sem contradição com o Top do dia: pula o ativo que está no top 10 geral do lado oposto.
+    # Calculado aqui pelas mesmas regras de scripts/ranking.py (não depende da ordem dos passos nem de ranking.json).
+    topo = {"compra": set(), "venda": set()}
+    try:
+        import ranking
+        topo = ranking.top_geral(ctx)
+    except Exception as e:
+        print(f"conteudo: sem checagem do Top do dia ({e!r})", file=sys.stderr)
+    oposto = {"compra": "venda", "venda": "compra"}
     for c in candidatos(ctx):
+        if c["ativo"]["ticker"] in topo.get(oposto.get(c["lado"]), ()):
+            print(f"conteudo: {c['ativo']['ticker']} fora do post ({c['lado']}) por estar no Top do dia do lado oposto")
+            continue
         s = melhor_setup(c)
         if s:
             por_mercado[c["ativo"]["mercado"]].append({**c, "s": s})

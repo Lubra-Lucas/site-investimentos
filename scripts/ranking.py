@@ -61,14 +61,8 @@ def estrutura_vazia() -> dict:
             "venda": {"geral": [], "mercado": {m: [] for m in MERCADOS}}}
 
 
-def montar(dados: Path) -> dict:
-    out = estrutura_vazia()
-    R, S = C.ler(dados / "radar.json"), C.ler(dados / "setups.json")
-    if not R or not S:
-        return out
-    R["sinais"] = C.descompactar_sinais(R.get("sinais", []))
-    ctx = C.montar_contexto(R, S)
-    out["sessao"] = {m: d for m, d in ctx["sessao"].items() if m in MERCADOS}
+def classificar(ctx: dict) -> dict:
+    """Listas completas e ordenadas por lado ("compra"/"venda"), já com a regra de qualificação."""
     itens = {"compra": [], "venda": []}
     for c in C.candidatos(ctx):
         a = c["ativo"]
@@ -89,8 +83,25 @@ def montar(dados: Path) -> dict:
             "mercado": a["mercado"], "data": s["data"], "setup": s["setup"], "setup_nome": C.nome_setup(ctx, s["setup"]),
             "casos": s["bt"][0], "ganhos": ganhos, "acerto": s["bt"][1], "medio": s["bt"][2],
             "nota": round(nota, 1), "outros": len(c["setups"]) - 1})
-    for lado, lista in itens.items():
+    for lista in itens.values():
         lista.sort(key=lambda x: (-x["nota"], -x["medio"], x["ticker"]))
+    return itens
+
+
+def top_geral(ctx: dict) -> dict:
+    """Tickers do top 10 geral de cada lado. O conteudo.py usa para não postar o oposto do que está no Top do dia."""
+    return {lado: {x["ticker"] for x in lista[:TOP]} for lado, lista in classificar(ctx).items()}
+
+
+def montar(dados: Path) -> dict:
+    out = estrutura_vazia()
+    R, S = C.ler(dados / "radar.json"), C.ler(dados / "setups.json")
+    if not R or not S:
+        return out
+    R["sinais"] = C.descompactar_sinais(R.get("sinais", []))
+    ctx = C.montar_contexto(R, S)
+    out["sessao"] = {m: d for m, d in ctx["sessao"].items() if m in MERCADOS}
+    for lado, lista in classificar(ctx).items():
         out[lado] = {"geral": lista[:TOP],
                      "mercado": {m: [x for x in lista if x["mercado"] == m][:TOP] for m in MERCADOS}}
     datas = [x["data"] for lado in ("compra", "venda") for x in out[lado]["geral"]]
