@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Carteira Terminal · Compre com estatística, não no achismo</title>
   <meta name="description" content="O Carteira Terminal varre centenas de ativos do Brasil, EUA e cripto todo dia, aponta os que formaram um setup de compra ou venda e mostra quantas vezes esse mesmo sinal funcionou naquele ativo. Planos a partir de R$ 180 por mês no lançamento, com 10% de desconto.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%234c8dff'%3E%3Crect x='3' y='11' width='3.4' height='9' rx='1'/%3E%3Crect x='10.3' y='6' width='3.4' height='14' rx='1'/%3E%3Crect x='17.6' y='3' width='3.4' height='17' rx='1'/%3E%3C/g%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -15,7 +16,6 @@
 </head>
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
-  <div class="cursor" aria-hidden="true"><i class="cursor__ponto"></i><i class="cursor__anel"></i></div>
 
   <div class="anuncio" role="note">
     <span><i class="ponto-vivo"></i> <b>Lançamento: 10% de desconto</b><span class="anuncio-extra"> nos planos</span></span>
@@ -181,6 +181,25 @@
       </div>
       <div class="prova-acoes"><a class="botao botao-primario" href="resultados.html">Ver o histórico completo dos sinais →</a></div>
       <p class="aviso-legal">Resultado passado não garante resultado futuro, sem custos e impostos. Saída 10 pregões depois do sinal. É uma fatia curta de tempo: o ranking muda de um mês para o outro.</p>
+    </section>
+
+    <!-- 5c. Top do dia (dados ao vivo de data/ranking.json; some se falhar) -->
+    <section class="secao topdia" id="topdia" aria-labelledby="topdia-titulo" hidden>
+      <p class="sobretitulo">Top do dia · ao vivo</p>
+      <h2 id="topdia-titulo">Os sinais de hoje com <em>melhor histórico</em>.</h2>
+      <p class="secao-sub" id="topdia-sub"></p>
+      <div class="filtro-grade topdia-grade">
+        <article class="filtro-bloco vidro" data-tilt>
+          <h3 class="alta">▲ Top 3 de compra</h3>
+          <ol class="filtro-lista" id="topdia-compra"></ol>
+        </article>
+        <article class="filtro-bloco vidro" data-tilt>
+          <h3 class="baixa">▼ Top 3 de venda</h3>
+          <ol class="filtro-lista" id="topdia-venda"></ol>
+        </article>
+      </div>
+      <div class="prova-acoes"><a class="botao botao-primario" href="ranking.html">Ver o Top 10 completo →</a></div>
+      <p class="aviso-legal">Ordenado pela confiabilidade do histórico (limite inferior de Wilson, 95%, com mínimo de casos). Resultado passado não garante resultado futuro, sem custos e impostos. Não é recomendação de investimento.</p>
     </section>
 
     <!-- canal do Telegram (só aparece com URL em assets/js/config.js) -->

@@ -22,6 +22,9 @@ Logo depois do post diário, uma mensagem de texto "🏆 Top do dia — sinais c
 - Não repete a data: `telegram.json` guarda `"ranking": "AAAA-MM-DD"` (a data do ranking publicado). Formatos antigos sem a chave continuam aceitos.
 - Bloco com try/except próprio; o resultado vai em `telegram-status.json` na chave `ranking` (`ok`, `mensagem`). Sem ranking qualificado, não posta.
 
+## Post do dia sem contradição com o Top do dia
+O post principal e as alternativas (`escolher` em `scripts/conteudo.py`) pulam o ativo que está no top 10 geral do lado **oposto** do Top do dia: não sai "compra" de quem está no top de venda, nem "venda" de quem está no top de compra. A checagem usa `ranking.top_geral`, que reaproveita as regras de `scripts/ranking.py` (mesma nota de Wilson, mínimo de casos e retorno médio positivo), então não depende da ordem dos passos nem de `ranking.json`. Os pulados aparecem no log (`fora do post ... Top do dia do lado oposto`). Se o cálculo falhar, nada é filtrado e o comportamento é o de antes.
+
 ## Publicações semanais (texto)
 Além do post diário, duas mensagens de texto por semana (HTML do Telegram, até 4096 caracteres, sem pré-visualização de link). Datas e semanas ISO em UTC.
 - **Resumo da semana**: na sexta, quando `conteudo.py` gera a newsletter (`hoje.json["newsletter"]`), o markdown é convertido em texto com link para `conteudo.html`. Aceita execução até 2 dias depois da sexta. Não repete a semana.
