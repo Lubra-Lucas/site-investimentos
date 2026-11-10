@@ -320,6 +320,18 @@ function ctxSimular(tk) {
   return { ...c, ticker: tk, lado, tf: c.tf ?? estado.tf, origem: "setups" };
 }
 
+/** Para compartilhar.js: os dados do cartão do card (melhor histórico entre os setups do card, o mesmo da linha "Histórico:"). */
+function dadosCompartilhar(i) {
+  const a = porTicker.get(i.ticker);
+  if (!a || !window.Compartilhar) return null;
+  if (ehMinhas()) return { ticker: a.ticker, rotulo: a.rotulo, nome: a.nome, mercado: a.mercado, lado: minhas().vies, setupNome: "Meus critérios",
+    data: i.data, preco: a.ultimo, moeda: a.moeda, arquivo: a.arquivo ?? a.ticker };
+  const e = melhorHistorico(i)?.evento ?? eventoFoco(i);
+  return Compartilhar.deEvento(a, e, SETUP.get(e?.setup)?.nome ?? e?.setup);
+}
+/** Para arrastar.js (item "Compartilhar sinal" do menu ⋯). */
+window.compartilharAtivo = (tk) => { const i = lista.find((x) => x.ticker === tk); if (i) Compartilhar.sinal(dadosCompartilhar(i)); };
+
 const dataFoco = (i) => (!i ? null : ehMinhas() ? i.data : eventoFoco(i)?.data) || null;
 
 // ------------------------------------------------------------- pedaços do ativo
@@ -486,6 +498,7 @@ function celula(i) {
       precoComFormacao(a, "celula-preco"),
       atualizado(a) ? null : el("span", { class: "chip preco-atrasado", title: motivoAtraso(a) }, `⚠ preço de ${fmtData(a.data)}`),
       el("div", { class: "celula-acoes" }, selosBandeja(a.ticker), ctx.dica, botaoTelaCheia(() => cel), linkAtivo(a.ticker),
+        window.Compartilhar ? Compartilhar.botao(() => dadosCompartilhar(i), { titulo: `Compartilhar o sinal de ${semSufixo(a.ticker)}: gera uma imagem com o histórico` }) : null,
         el("button", { type: "button", class: "botao-simular-card", "data-simular": a.ticker,
           title: `Simular um trade em ${semSufixo(a.ticker)}: entrada, stop e alvo, com o setup deste card`,
           "aria-label": `Simular trade em ${semSufixo(a.ticker)}`,
