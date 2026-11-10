@@ -1274,7 +1274,8 @@ html .op-exibir-menu .segmento button:last-child { border-radius: 0 6px 6px 0; }
   #op-salvar.ativo::before { content: "★"; }
   .op-exibir { display: none; }
   .op-filtros { gap: 6px 10px; }
-  .op-filtros .op-filtro:has(#f-ordem) { display: none; }
+  .op-filtros .op-filtro:has(#f-ordem) { flex: 1 1 100%; display: flex; }
+  .op-filtros .op-filtro #f-ordem { flex: 1; min-width: 0; min-height: 40px; }
   .op-filtros .aviso-formacao { flex-basis: 100%; }
   .op-filtros .formacao-item { white-space: normal; }
 }
@@ -2632,3 +2633,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* Backtest: a tabela de setups cabe no painel em 1440 px sem cortar "Pior / melhor" */
 .tabela-bt :is(th, td).num { padding-left: 8px; padding-right: 8px; }
 .tabela-bt td.num:last-child, .tabela-bt th.num:last-child { white-space: normal; min-width: 76px; line-height: 1.35; }
+
+/* acabamento no celular: alvos de toque de pelo menos 40px de altura nos controles que ficavam com 24 a 36 */
+@media (max-width: 600px) {
+  .dr-filtros :is(select, input) { min-height: 40px; }
+  .paginacao-topo button, .botao-seta, .botao-personalizar, .botao-link.aviso-dados-atualizar { min-height: 40px; min-width: 40px; }
+  .botao-seta { width: 40px; height: 40px; }
+  .tri-lados button { min-height: 40px; }
+  .tri-tfs button { min-height: 40px; min-width: 36px; }
+  :root .fav-estrela { min-width: 40px; height: 40px; }
+  .op-dica-grafico .botao-link, .op-dica-grafico .botao-remover { min-height: 40px; min-width: 40px; }
+  .paginacao button { min-height: 40px; min-width: 40px; }
+  .tour-rever { min-height: 40px; }
+  .notas-filtros button { min-height: 40px; }
+  .contexto-mais summary, .retidos summary, .plano-anteriores summary, .tri-anteriores summary, .topdia-op summary { min-height: 40px; display: flex; align-items: center; padding-block: 0; }
+  .pn-link { display: inline-flex; align-items: center; min-height: 40px; padding-top: 0; }
+  .res-ativo { display: inline-block; padding-block: 10px; }
+  main .res-kpi-valor { font-size: 19px; }
+  main .res-sit { max-width: 112px; }
+  main .res-ret.sub { white-space: normal; font-size: 11px; line-height: 1.3; text-align: right; }
+}
