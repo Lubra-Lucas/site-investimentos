@@ -51,9 +51,9 @@
         <label class="opcao" title="Tendência de alta/baixa, alta forte e afins valem todo dia enquanto a tendência dura: com esta opção eles não bastam para pôr o ativo no baralho (continuam aparecendo como chips)">
           <input type="checkbox" id="f-tendencia"> <span>Ignorar os de tendência</span>
         </label>
-        <label class="ordem-multi">Ordem <select id="f-ordem">
+        <label class="ordem-multi" title="Mais setups juntos, ou melhor histórico: limite inferior de Wilson (95%) da taxa de acerto, mínimo de 10 casos">Ordem <select id="f-ordem">
           <option value="confluencia">Mais setups juntos</option>
-          <option value="historico">Melhor histórico</option>
+          <option value="historico" title="Ordena pela confiança do histórico: o limite inferior (Wilson 95%) da taxa de acerto do melhor setup do ativo, com no mínimo 10 casos. Em empate, vale a maior média. Penaliza amostra pequena.">Melhor histórico</option>
         </select></label>
         <span class="sub tri-sessoes" id="tri-sessoes"></span>
         <span id="lugar-aviso"></span>
