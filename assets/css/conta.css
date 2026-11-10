@@ -1,0 +1,91 @@
+/* Login e "Minha conta" (entrar.html) e o botão de conta no topo. Usa os tokens de style.css. */
+main.pagina-conta { display: block; max-width: 560px; margin: 0 auto; padding: 32px 16px 56px; }
+.conta-cartao { background: var(--bg-painel); border: 1px solid var(--borda); border-radius: var(--r-lg); padding: 24px; }
+.conta-cartao + .conta-cartao { margin-top: 16px; }
+.pagina-conta h1 { font-size: 24px; line-height: 1.25; margin: 0 0 6px; }
+.pagina-conta h2 { font-size: 16px; margin: 0 0 10px; }
+.pagina-conta p { margin: 0 0 12px; line-height: 1.55; }
+.pagina-conta .conta-sub { color: var(--texto-fraco); font-size: 14px; }
+.pagina-conta a { color: var(--acento); }
+.pagina-conta a.conta-btn.primario { color: #06101f; }
+.conta-carregando { color: var(--texto-fraco); text-align: center; padding: 48px 0; }
+
+.conta-form label { display: block; font-size: 13px; font-weight: 600; margin: 16px 0 6px; }
+.conta-form input[type="email"] {
+  width: 100%; min-height: var(--h-lg); padding: 0 12px; border: 1px solid var(--borda-controle); border-radius: var(--r-md);
+  background: var(--bg); color: var(--texto); font: 400 16px Inter, "Inter Fallback", sans-serif;
+}
+.conta-form input[type="email"]:focus-visible { outline: var(--foco); outline-offset: 1px; border-color: var(--acento); }
+.conta-form input[aria-invalid="true"] { border-color: var(--baixa); }
+.conta-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: var(--h-lg);
+  padding: 0 16px; border-radius: var(--r-md); border: 1px solid var(--borda-controle); background: transparent;
+  color: var(--texto); font: 600 14px Inter, "Inter Fallback", sans-serif; cursor: pointer; text-decoration: none;
+}
+.conta-btn:hover { border-color: var(--acento); }
+.conta-btn:disabled { opacity: 0.6; cursor: progress; }
+.conta-btn:focus-visible { outline: var(--foco); outline-offset: var(--foco-offset); }
+.conta-btn.primario { background: var(--acento); border-color: var(--acento); color: #06101f; margin-top: 14px; }
+.conta-btn.primario:hover { filter: brightness(1.1); }
+.conta-btn.pequeno { width: auto; min-height: var(--h-md); font-weight: 500; }
+.conta-ou { display: flex; align-items: center; gap: 12px; color: var(--texto-fraco); font-size: 12px; margin: 18px 0; }
+.conta-ou::before, .conta-ou::after { content: ""; flex: 1; border-top: 1px solid var(--borda); }
+.conta-aviso { border: 1px solid var(--borda-forte); border-left-width: 4px; border-radius: var(--r-md); padding: 10px 12px; margin: 0 0 16px; font-size: 14px; background: var(--bg-elev); }
+.conta-aviso.erro { border-left-color: var(--baixa); }
+.conta-aviso.ok { border-left-color: var(--alta); }
+.conta-aviso p { margin: 0; }
+.conta-enviado { text-align: center; }
+.conta-enviado .grande { font-size: 36px; line-height: 1; margin-bottom: 10px; }
+.conta-enviado b { overflow-wrap: anywhere; }
+.conta-acoes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+.conta-leitura { margin-top: 20px; font-size: 12px; color: var(--texto-fraco); }
+
+.conta-linha { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--borda); font-size: 14px; flex-wrap: wrap; }
+.conta-linha span:first-child { color: var(--texto-fraco); }
+.conta-linha b { overflow-wrap: anywhere; text-align: right; }
+.conta-planos { display: grid; gap: 10px; margin-top: 8px; }
+.conta-plano { border: 1px solid var(--borda); border-radius: var(--r-md); padding: 12px 14px; font-size: 13.5px; }
+.conta-plano.atual { border-color: var(--acento); background: color-mix(in srgb, var(--acento) 9%, var(--bg-painel)); }
+.conta-plano h3 { font-size: 14px; margin: 0 0 4px; display: flex; gap: 8px; align-items: center; }
+.conta-plano .etiqueta { font-size: 11px; font-weight: 600; color: var(--acento); border: 1px solid var(--acento); border-radius: var(--r-pill); padding: 0 8px; }
+.conta-plano p { margin: 0; color: var(--texto-fraco); }
+.conta-sair { margin-top: 18px; }
+
+/* botão no topo */
+.conta-topo { position: relative; display: flex; align-items: center; }
+.conta-entrar {
+  display: inline-flex; align-items: center; min-height: var(--h-md); padding: 0 14px; border: 1px solid var(--acento); border-radius: var(--r-pill);
+  color: var(--acento); text-decoration: none; font: 600 13px Inter, "Inter Fallback", sans-serif;
+}
+.conta-entrar:hover { background: color-mix(in srgb, var(--acento) 14%, transparent); }
+.conta-menu-botao {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--h-md); padding: 0 10px 0 4px; border: 1px solid var(--borda-controle);
+  border-radius: var(--r-pill); background: transparent; color: var(--texto); font: 500 12.5px Inter, "Inter Fallback", sans-serif; cursor: pointer;
+}
+.conta-menu-botao:hover { border-color: var(--acento); }
+.conta-inicial { width: 24px; height: 24px; border-radius: 50%; background: var(--acento); color: #06101f; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.conta-topo.carregando .conta-inicial { background: var(--borda-forte); color: var(--texto-fraco); }
+.conta-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); min-width: 210px; z-index: 40; background: var(--bg-elev);
+  border: 1px solid var(--borda-forte); border-radius: var(--r-md); padding: 6px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.conta-menu[hidden] { display: none; }
+.conta-menu-email { margin: 0; padding: 6px 10px 8px; font-size: 12px; color: var(--texto-fraco); overflow-wrap: anywhere; border-bottom: 1px solid var(--borda); margin-bottom: 4px; }
+.conta-menu a, .conta-menu button {
+  display: flex; align-items: center; width: 100%; min-height: 40px; padding: 0 10px; border: 0; border-radius: var(--r-sm); background: transparent;
+  color: var(--texto); font: 500 14px Inter, "Inter Fallback", sans-serif; text-align: left; text-decoration: none; cursor: pointer;
+}
+.conta-menu a:hover, .conta-menu button:hover, .conta-menu a:focus-visible, .conta-menu button:focus-visible { background: rgba(76, 141, 255, 0.14); outline: none; }
+.conta-entrar:focus-visible, .conta-menu-botao:focus-visible { outline: var(--foco); outline-offset: var(--foco-offset); }
+
+@media (max-width: 600px) {
+  main.pagina-conta { padding: 20px 16px 24px; }
+  .conta-cartao { padding: 18px; }
+  .conta-nome { display: none; }
+  .conta-menu-botao { padding: 0; width: 44px; height: 44px; justify-content: center; }
+  .conta-inicial { width: 30px; height: 30px; font-size: 14px; }
+  .conta-entrar { min-height: 44px; padding: 0 14px; }
+  .conta-menu { position: fixed; right: 16px; top: 62px; }
+  /* sem espaço para a data do pregão ao lado do botão de conta: ela continua no tooltip e no cabeçalho de cada página */
+  .topo-info:has(.conta-topo) .status-dados { display: none; }
+}
