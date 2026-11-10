@@ -2628,3 +2628,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* ---------- Cartão do canal do Telegram (aparece só com URL em config.js) ---------- */
 .canal-cartao { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-color: var(--acento); background: linear-gradient(135deg, rgba(76, 141, 255, 0.12), var(--bg-painel) 70%); }
 .canal-cartao h2 { margin: 0; }
+
+/* Backtest: a tabela de setups cabe no painel em 1440 px sem cortar "Pior / melhor" */
+.tabela-bt :is(th, td).num { padding-left: 8px; padding-right: 8px; }
+.tabela-bt td.num:last-child, .tabela-bt th.num:last-child { white-space: normal; min-width: 76px; line-height: 1.35; }

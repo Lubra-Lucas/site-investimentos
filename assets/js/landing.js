@@ -49,7 +49,15 @@
     const alvo = $(a.getAttribute("href"));
     if (!alvo) return;
     e.preventDefault();
-    if (lenis) lenis.scrollTo(alvo, { offset: -70, duration: 1.4 });
+    if (lenis) {
+      // Seções que carregam dados ao se aproximar mudam a altura da página durante a rolagem:
+      // ao chegar, confere a posição e corrige (até 3 vezes) para não parar antes do destino.
+      const ir = (tentativa) => lenis.scrollTo(alvo, { offset: -70, duration: tentativa ? 0.6 : 1.4,
+        onComplete: () => {
+          if (tentativa < 3 && Math.abs(alvo.getBoundingClientRect().top - 70) > 24) setTimeout(() => ir(tentativa + 1), 120);
+        } });
+      ir(0);
+    }
     else alvo.scrollIntoView({ behavior: reduzido ? "auto" : "smooth" });
     if (a.classList.contains("pular")) alvo.focus?.({ preventScroll: true });
   }));
@@ -539,6 +547,24 @@
       .forEach((n) => n.classList.add("revelar"));
     ScrollTrigger.batch(".revelar", { start: "top 88%", once: true,
       onEnter: (els) => gsap.to(els, { opacity: 1, translate: "0px 0px", duration: 1.1, ease: "expo.out", stagger: 0.08 }) });
+    // Rede de segurança: num salto (âncora, "Ver os planos", End) o ScrollTrigger pode não disparar
+    // e a seção ficaria invisível. Tudo o que estiver na tela e ainda escondido é revelado aqui.
+    let agendado = false;
+    const revelarVisiveis = () => {
+      agendado = false;
+      const pendentes = $$(".revelar:not([data-revelado])").filter((n) => {
+        const r = n.getBoundingClientRect();
+        return r.bottom > 0 && r.top < innerHeight;
+      });
+      if (!pendentes.length) return;
+      pendentes.forEach((n) => { n.dataset.revelado = "1"; });
+      gsap.to(pendentes, { opacity: 1, translate: "0px 0px", duration: 0.9, ease: "expo.out", stagger: 0.05, overwrite: "auto" });
+    };
+    const agendar = () => { if (!agendado) { agendado = true; setTimeout(revelarVisiveis, 180); } };
+    addEventListener("scroll", agendar, { passive: true });
+    addEventListener("resize", agendar);
+    addEventListener("load", agendar);
+    setInterval(agendar, 1200);
     gsap.from(".hero h1, .hero-sub, .hero-acoes, .hero-garantias, .selo", { y: 40, opacity: 0, duration: 1.2, ease: "expo.out", stagger: 0.08 });
     gsap.from(".hero-terminal", { y: 60, opacity: 0, rotateX: 8, duration: 1.4, ease: "expo.out", delay: 0.25 });
   }
