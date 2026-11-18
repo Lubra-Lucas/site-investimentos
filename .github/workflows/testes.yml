@@ -44,3 +44,8 @@ jobs:
 
       - name: Verificador de dados (casos embutidos)
         run: python scripts/verificar_dados.py --testar
+
+      - name: Criativos do Telegram (imagens de exemplo e simulação dos 3 posts)
+        run: |
+          python scripts/criativos.py --amostras "$RUNNER_TEMP/criativos"
+          python scripts/telegram_postar.py --simular --agora 2026-11-18T13:00
