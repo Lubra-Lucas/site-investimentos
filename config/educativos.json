@@ -1,0 +1,317 @@
+{
+  "sobre": "Posts educativos do canal do Telegram (scripts/criativos.py desenha, scripts/telegram_postar.py publica um por dia, em ordem, e recomeça no fim). Três categorias que se alternam: terminal (como usar), estatistica (como ler os números) e mercado (conceitos e risco). Sem promessa de ganho e sem recomendação.",
+  "itens": [
+    {
+      "id": "o-que-e-setup",
+      "categoria": "mercado",
+      "titulo": "O que é um setup?",
+      "pontos": [
+        "É uma regra fixa que diz quando um gráfico chama atenção. Ex.: o IFR ficou abaixo de 30.",
+        "Regra fixa dá para testar: aplicamos a mesma regra em 6 anos de dados de cada ativo.",
+        "O teste mostra o que aconteceu nas vezes anteriores, inclusive quando deu errado.",
+        "Setup não é garantia. É um jeito de olhar o mercado com método."
+      ],
+      "legenda": "Setup é uma regra fixa de leitura do gráfico. Como a regra não muda, dá para contar quantas vezes ela apareceu num ativo e o que aconteceu depois. É isso que o terminal mostra em cada sinal.",
+      "pagina": "guia.html"
+    },
+    {
+      "id": "como-ler-o-historico",
+      "categoria": "estatistica",
+      "titulo": "Como ler \"11 de 15 no lucro\"",
+      "pontos": [
+        "15 é quantas vezes o mesmo setup apareceu neste ativo nos últimos anos.",
+        "11 é em quantas dessas vezes o preço estava a favor 10 pregões depois.",
+        "Entrada na abertura do dia seguinte ao sinal, saída no fechamento 10 pregões depois.",
+        "Sem custos nem impostos. Poucos casos = número instável."
+      ],
+      "legenda": "Cada sinal do terminal vem com o histórico daquele setup naquele ativo. Antes de olhar a porcentagem, olhe quantos casos existem: 3 de 3 diz muito menos do que 60 de 100.",
+      "pagina": "setups.html"
+    },
+    {
+      "id": "oportunidades-modo-simples",
+      "categoria": "terminal",
+      "titulo": "Primeiros passos: o modo Simples",
+      "pontos": [
+        "Abra Oportunidades e escolha o modo Simples.",
+        "Responda: comprar ou vender, qual mercado, que tipo de movimento e com que frequência.",
+        "O terminal lista os ativos que deram sinal no último fechamento.",
+        "Cada cartão traz o gráfico e o histórico daquele sinal no ativo."
+      ],
+      "legenda": "Não sabe por onde começar? O modo Simples de Oportunidades faz quatro perguntas e monta a lista do dia para você, com o histórico de cada sinal.",
+      "pagina": "setups.html"
+    },
+    {
+      "id": "amostra-pequena",
+      "categoria": "estatistica",
+      "titulo": "Por que 100% em 3 casos não vale muito",
+      "pontos": [
+        "Com poucos casos, o acaso pesa muito: 3 caras seguidas numa moeda não são raras.",
+        "Por isso o Top do dia exige pelo menos 10 casos no ativo.",
+        "E ordena por uma nota que desconta amostra pequena (limite inferior de Wilson).",
+        "Na dúvida, prefira histórico longo a porcentagem alta."
+      ],
+      "legenda": "Taxa de acerto alta com poucos casos costuma não se repetir. O terminal penaliza amostra pequena na hora de ordenar, mas vale treinar o olho: sempre veja o número de casos.",
+      "pagina": "ranking.html"
+    },
+    {
+      "id": "risco-por-trade",
+      "categoria": "mercado",
+      "titulo": "Quanto arriscar em cada trade?",
+      "pontos": [
+        "Defina o stop antes de entrar: é o preço em que você admite que errou.",
+        "Muita gente limita a perda de cada trade a 0,5% a 1% do capital.",
+        "Tamanho da posição = valor que aceita perder ÷ distância até o stop.",
+        "Assim uma sequência de perdas não tira você do jogo."
+      ],
+      "legenda": "Gestão de risco vem antes de qualquer setup. Decida o stop primeiro e calcule o tamanho da posição a partir dele. O simulador do terminal faz essa conta para você.",
+      "pagina": "setups.html"
+    },
+    {
+      "id": "simulador",
+      "categoria": "terminal",
+      "titulo": "Simule antes de arriscar dinheiro",
+      "pontos": [
+        "Em qualquer sinal, toque em Simular.",
+        "Entrada, stop e alvo já vêm sugeridos; ajuste como quiser.",
+        "O terminal acompanha o trade nos pregões seguintes, sem dinheiro de verdade.",
+        "Os trades simulados vão para o Diário, com o resultado em R."
+      ],
+      "legenda": "Treinar com trades simulados é o jeito mais barato de descobrir se um método combina com você. Simule, acompanhe e veja o resultado no Diário.",
+      "pagina": "setups.html"
+    },
+    {
+      "id": "taxa-base",
+      "categoria": "estatistica",
+      "titulo": "Compare com um dia qualquer",
+      "pontos": [
+        "Em ações que sobem no longo prazo, comprar num dia qualquer já dá lucro em boa parte das vezes.",
+        "Então 55% no lucro pode ser pouco, se um dia qualquer der 53%.",
+        "A coluna \"vantagem\" mostra quanto o setup fica acima de entrar num dia qualquer.",
+        "Vantagem perto de zero = o setup não acrescentou muito."
+      ],
+      "legenda": "Um número sozinho engana. O Backtest mostra cada setup ao lado do resultado de entrar num dia qualquer no mesmo ativo. É essa diferença que interessa.",
+      "pagina": "backtest.html"
+    },
+    {
+      "id": "stop",
+      "categoria": "mercado",
+      "titulo": "Stop: o que é e onde colocar",
+      "pontos": [
+        "Stop é a ordem que encerra o trade se o preço for contra você.",
+        "Coloque onde a ideia do trade deixa de fazer sentido, não num valor redondo.",
+        "Uma referência comum: abaixo da mínima recente ou a 1 a 2 vezes o ATR.",
+        "Stop longe demais = posição pequena. Stop perto demais = saída por ruído."
+      ],
+      "legenda": "Stop não é sinal de fraqueza, é o que limita o estrago quando a leitura não se confirma. O Plano de amanhã do terminal sugere um stop pela volatilidade (ATR) do ativo.",
+      "pagina": "setups.html"
+    },
+    {
+      "id": "top-do-dia",
+      "categoria": "terminal",
+      "titulo": "Como funciona o Top do dia",
+      "pontos": [
+        "Pega os sinais de entrada do último fechamento no Brasil, nos EUA e em cripto.",
+        "Fica só quem tem pelo menos 10 casos no ativo e resultado médio positivo.",
+        "Ordena por uma nota que desconta amostra pequena.",
+        "É uma lista estatística, não recomendação de compra ou venda."
+      ],
+      "legenda": "O Top do dia sai todo pregão aqui no canal e no site. A regra é pública e igual todos os dias. E toda semana mostramos como terminaram os sinais, inclusive os que deram prejuízo.",
+      "pagina": "ranking.html"
+    },
+    {
+      "id": "diario-em-r",
+      "categoria": "mercado",
+      "titulo": "Por que medir os trades em R",
+      "pontos": [
+        "R é o valor que você arriscou no trade (distância da entrada ao stop).",
+        "Ganhar 2R = ganhar o dobro do que arriscou. Perder 1R = bater o stop.",
+        "Em R, trades de tamanhos diferentes ficam comparáveis.",
+        "Expectativa positiva em R é o que mostra se o método se paga."
+      ],
+      "legenda": "Acertar muito não basta: um único prejuízo grande apaga vários ganhos pequenos. Medir em R mostra o que importa, e é assim que o Diário do terminal soma seus trades.",
+      "pagina": "diario.html"
+    },
+    {
+      "id": "regressao-a-media",
+      "categoria": "estatistica",
+      "titulo": "O recorde de hoje tende a cair amanhã",
+      "pontos": [
+        "Quando você escolhe o melhor de muitos números, parte do brilho é sorte.",
+        "Na próxima rodada, a sorte não se repete e o número volta para perto da média.",
+        "Por isso o resultado futuro de um Top costuma ser menor que o histórico mostrado.",
+        "O placar semanal do canal mostra o que aconteceu de verdade."
+      ],
+      "legenda": "Isso tem nome: regressão à média. Não é defeito do terminal, é estatística. A forma honesta de lidar é acompanhar o resultado real, e é por isso que publicamos o placar toda semana.",
+      "pagina": "resultados.html"
+    },
+    {
+      "id": "pagina-do-ativo",
+      "categoria": "terminal",
+      "titulo": "Veja os casos no gráfico",
+      "pontos": [
+        "Na página do ativo, escolha um setup na tabela de histórico.",
+        "O gráfico marca cada vez que ele apareceu: verde se terminou no lucro, vermelho se não.",
+        "Dá para ver em que tipo de mercado o setup funcionou e em qual falhou.",
+        "Ver os casos ajuda mais do que olhar só a porcentagem."
+      ],
+      "legenda": "Antes de confiar num número, olhe os casos. Na página de cada ativo o terminal marca no gráfico todas as vezes que o setup apareceu e como cada uma terminou.",
+      "pagina": "ativo.html"
+    },
+    {
+      "id": "ifr",
+      "categoria": "mercado",
+      "titulo": "IFR em 30 segundos",
+      "pontos": [
+        "O IFR (índice de força relativa) vai de 0 a 100 e mede a força das altas contra as quedas.",
+        "Abaixo de 30: o ativo caiu muito em pouco tempo (sobrevendido).",
+        "Acima de 70: subiu muito em pouco tempo (sobrecomprado).",
+        "Sobrevendido não quer dizer que vai subir. Por isso olhamos o histórico."
+      ],
+      "legenda": "IFR é um dos indicadores mais usados, e também um dos mais mal interpretados. No terminal, cada sinal de IFR vem com o que aconteceu nas vezes anteriores naquele ativo.",
+      "pagina": "guia.html"
+    },
+    {
+      "id": "custos",
+      "categoria": "estatistica",
+      "titulo": "O que o backtest não inclui",
+      "pontos": [
+        "Corretagem, emolumentos, spread e imposto: os números do terminal são sem custos.",
+        "Deslizamento: na vida real nem sempre você entra no preço exato.",
+        "Proventos: os retornos são só de preço.",
+        "Quanto menor a vantagem do setup, mais os custos pesam."
+      ],
+      "legenda": "Todo backtest simplifica a realidade. Saber o que ficou de fora é parte de usar a estatística com responsabilidade.",
+      "pagina": "backtest.html"
+    },
+    {
+      "id": "minha-lista",
+      "categoria": "terminal",
+      "titulo": "Monte a sua lista",
+      "pontos": [
+        "Toque na estrela de um ativo para colocá-lo na Minha lista.",
+        "No Painel, o bloco Minha lista mostra como eles estão hoje.",
+        "Em Oportunidades, o filtro \"Só da minha lista\" mostra só os sinais deles.",
+        "Fica salvo no seu navegador."
+      ],
+      "legenda": "Ninguém precisa acompanhar 400 ativos. Escolha os que você conhece e deixe o terminal avisar, na lista, quando algum deles der sinal.",
+      "pagina": "painel.html"
+    },
+    {
+      "id": "diario-semanal",
+      "categoria": "mercado",
+      "titulo": "Diário ou semanal?",
+      "pontos": [
+        "No gráfico diário, cada candle é um pregão: sinais mais frequentes e trades mais curtos.",
+        "No semanal, cada candle é uma semana: menos sinais e movimentos maiores.",
+        "Quem tem pouco tempo costuma preferir o semanal: uma olhada por semana basta.",
+        "O terminal mostra os dois; o histórico de cada um é medido em separado."
+      ],
+      "legenda": "Não existe tempo gráfico certo, existe o que cabe na sua rotina. Em Oportunidades você escolhe a frequência e o histórico acompanha a escolha.",
+      "pagina": "setups.html"
+    },
+    {
+      "id": "media-e-mediana",
+      "categoria": "estatistica",
+      "titulo": "Média ou mediana?",
+      "pontos": [
+        "A média soma tudo e divide: um único caso enorme puxa o número para cima.",
+        "A mediana é o caso do meio: metade foi melhor, metade foi pior.",
+        "Média muito acima da mediana = resultado dependente de poucos casos.",
+        "Olhe também o pior e o melhor caso."
+      ],
+      "legenda": "Um setup com média +3% pode ter quase todos os casos perto de zero e um único +40%. No Backtest, compare média, mediana e os extremos antes de tirar conclusão.",
+      "pagina": "backtest.html"
+    },
+    {
+      "id": "triagem",
+      "categoria": "terminal",
+      "titulo": "Triagem: decida rápido",
+      "pontos": [
+        "A Triagem mostra um sinal por vez, com gráfico e histórico.",
+        "Marque Gostei, Super ou Descartar, também pelo teclado.",
+        "No fim, sobra uma lista curta para estudar com calma.",
+        "Os marcados mostram depois quanto o preço andou desde a triagem."
+      ],
+      "legenda": "Muitos sinais e pouco tempo? Na Triagem você passa por eles um a um e fica só com os que valem um segundo olhar.",
+      "pagina": "triagem.html"
+    },
+    {
+      "id": "tendencia",
+      "categoria": "mercado",
+      "titulo": "A favor da tendência",
+      "pontos": [
+        "Tendência de alta: topos e fundos cada vez mais altos.",
+        "As médias móveis ajudam a ver: preço acima da média de 200 dias é um filtro comum.",
+        "Comprar correções dentro de uma alta é uma das ideias mais antigas da análise técnica.",
+        "Tendência também acaba. O stop continua obrigatório."
+      ],
+      "legenda": "Vários setups do terminal são pullbacks: compras numa correção dentro de uma tendência de alta. Cada um vem com o histórico no ativo para você ver se a ideia funcionou ali.",
+      "pagina": "guia.html"
+    },
+    {
+      "id": "historico-dos-sinais",
+      "categoria": "estatistica",
+      "titulo": "Por que mostramos os prejuízos",
+      "pontos": [
+        "A página Histórico dos sinais lista todos os sinais dos últimos 60 pregões.",
+        "Inclui os que deram prejuízo, sem escolher só os bons.",
+        "Mostra o placar geral: quantos no lucro e o resultado médio.",
+        "Quem só mostra acertos está escondendo metade da história."
+      ],
+      "legenda": "Confiança se constrói com transparência. Todo sinal do terminal tem resultado público depois de 10 pregões, para o bem e para o mal.",
+      "pagina": "resultados.html"
+    },
+    {
+      "id": "plano-de-amanha",
+      "categoria": "terminal",
+      "titulo": "Plano de amanhã",
+      "pontos": [
+        "Escolha os sinais que quer acompanhar e adicione ao Plano de amanhã.",
+        "Para cada um, o terminal sugere entrada, stop pelo ATR e alvo.",
+        "Com o capital e o risco por trade, ele calcula o tamanho da posição.",
+        "Você chega no pregão com tudo decidido, sem improviso."
+      ],
+      "legenda": "Decidir com o mercado fechado é mais fácil do que decidir com o preço andando. O Plano de amanhã organiza isso para você.",
+      "pagina": "setups.html"
+    },
+    {
+      "id": "volatilidade",
+      "categoria": "mercado",
+      "titulo": "Volatilidade e o ATR",
+      "pontos": [
+        "ATR é o tamanho médio do movimento de um pregão.",
+        "Ativo com ATR de 4% oscila muito mais que um com 1%.",
+        "Stop de 2% num ativo de ATR 4% sai por ruído quase todo dia.",
+        "Ajuste stop e tamanho da posição à volatilidade de cada ativo."
+      ],
+      "legenda": "O mesmo stop em porcentagem pode ser largo num ativo e apertado em outro. O ATR ajuda a colocar o stop numa distância que faz sentido para cada um.",
+      "pagina": "setups.html"
+    },
+    {
+      "id": "confluencia",
+      "categoria": "estatistica",
+      "titulo": "Vários setups juntos valem mais?",
+      "pontos": [
+        "Quando vários setups aparecem no mesmo ativo, o sinal parece mais forte.",
+        "Mas muitos setups medem a mesma coisa (por exemplo, tendência de alta).",
+        "Seis setups parecidos não são seis confirmações independentes.",
+        "Olhe o histórico de cada um, não só a contagem."
+      ],
+      "legenda": "Confluência ajuda quando os setups olham coisas diferentes: tendência, momento e volume, por exemplo. Contar setups parecidos dá uma falsa sensação de certeza.",
+      "pagina": "setups.html"
+    },
+    {
+      "id": "compartilhar",
+      "categoria": "terminal",
+      "titulo": "Discuta um sinal com quem você confia",
+      "pontos": [
+        "Em qualquer sinal, toque em Compartilhar.",
+        "O terminal gera uma imagem com o gráfico e o histórico do setup no ativo.",
+        "Mande pelo WhatsApp ou baixe para postar.",
+        "Segunda opinião antes de operar evita muito erro bobo."
+      ],
+      "legenda": "Trocar ideias com outras pessoas é um ótimo filtro. O botão Compartilhar gera uma imagem pronta com os números do sinal.",
+      "pagina": "setups.html"
+    }
+  ]
+}

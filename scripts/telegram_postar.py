@@ -19,10 +19,22 @@ Além do post diário, uma vez por semana ISO (datas em UTC):
   - resumo da semana (newsletter): na sexta, quando conteudo.py gera a newsletter;
   - "Como terminaram os sinais": a partir do sábado.
 
+Três criativos por dia (imagens de scripts/criativos.py), cada um uma vez:
+  1. Sinais do dia: assim que sai um Top do dia novo, um álbum com a imagem do Top do dia (3 de compra
+     e 3 de venda) e a imagem do post do dia, com o Top na legenda.
+  2. Educativo: a partir das 08:00 de Brasília, o próximo item de config/educativos.json (em rodízio).
+  3. Como terminou: a partir das 12:00 de Brasília, um sinal publicado 10 pregões antes, com entrada,
+     saída e o placar de todos os sinais daquele dia (inclusive os que deram prejuízo).
+No máximo um post do tipo 2 ou 3 por execução, para espaçar; o workflow telegram.yml roda várias vezes ao dia.
+
+Dados: lê data/ local; o que faltar baixa do site publicado (o workflow do Telegram roda sem gerar dados).
+Estado: data/conteudo/telegram.json (o workflow guarda na branch estado-telegram).
+
 Uso:
   python scripts/telegram_postar.py                   # publica o que estiver pendente
-  python scripts/telegram_postar.py --simular         # mostra os textos, sem enviar
+  python scripts/telegram_postar.py --simular         # mostra os textos, sem enviar (imagens em data/conteudo/simulacao/)
   python scripts/telegram_postar.py --forcar-semanal  # ignora o dia da semana e a semana já publicada
+  python scripts/telegram_postar.py --agora 2026-11-18T13:00   # finge outra hora de Brasília (testes)
 """
 from __future__ import annotations
 
@@ -36,6 +48,7 @@ import urllib.request
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 RAIZ = Path(__file__).resolve().parent.parent
 PASTA = RAIZ / "data" / "conteudo"
@@ -43,6 +56,12 @@ SITE = "https://lubra-lucas.github.io/site-investimentos/"
 LIMITE_LEGENDA = 1024  # limite do Telegram para legenda de foto
 LIMITE_TEXTO = 4096    # limite do Telegram para mensagem de texto
 MAX_POSTS = 200        # tamanho do histórico de posts guardado
+MAX_PUBLICADOS = 400   # registro dos sinais publicados (Top do dia e post do dia), base do "Como terminou"
+PRAZO = 10             # pregões até a saída (mesmo prazo do backtest diário)
+FUSO = ZoneInfo("America/Sao_Paulo")
+HORA_EDUCATIVO = 8     # a partir de que hora (Brasília) sai o educativo
+HORA_TERMINOU = 12     # e o "Como terminou"
+MIN_GRUPO = 3          # sinais publicados num dia para o placar usar só o registro
 AVISO_RESULTADO = ("Resultado passado não garante resultado futuro. Sem custos e impostos. "
                    "Estudo estatístico, não é recomendação.")
 
@@ -54,13 +73,35 @@ def ler_json(caminho: Path):
         return None
 
 
+def obter(rel: str) -> Path:
+    """Arquivo de data/: o local, senão baixa do site publicado (e guarda). Devolve o caminho, exista ou não."""
+    destino = RAIZ / "data" / rel
+    if not destino.is_file():
+        try:
+            with urllib.request.urlopen(SITE + "data/" + rel, timeout=60) as r:
+                corpo = r.read()
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            destino.write_bytes(corpo)
+        except (urllib.error.URLError, OSError, ValueError):
+            pass
+    return destino
+
+
+def ler_dado(rel: str):
+    return ler_json(obter(rel))
+
+
 def estado_publicado() -> dict:
     """Estado salvo: arquivo local, senão o publicado no site (data/ começa vazio a cada build).
 
     Aceita o formato antigo {"ultimo": "AAAA-MM-DD"}. Formato atual:
     {"ultimo": data, "posts": [{data, ticker, rotulo, setup, setup_nome, lado, relatado?}],
      "semanal": {"newsletter": "AAAA-Www", "resultados": "AAAA-Www"},
-     "ranking": "AAAA-MM-DD"}   # data do último Top do dia publicado
+     "ranking": "AAAA-MM-DD",   # data do último Top do dia publicado
+     "publicados": [{data, ticker, rotulo, setup, setup_nome, lado, origem: "top"|"post"}],
+     "educativo": {"proximo": 0, "dia": "AAAA-MM-DD"},
+     "terminou": {"dia": "AAAA-MM-DD", "datas": ["AAAA-MM-DD"]}}
+    Chaves desconhecidas são preservadas.
     """
     bruto = ler_json(PASTA / "telegram.json")
     if not bruto:
@@ -71,18 +112,29 @@ def estado_publicado() -> dict:
             bruto = None
     if not isinstance(bruto, dict):
         bruto = {}
+    estado = dict(bruto)
     posts = bruto.get("posts")
     semanal = bruto.get("semanal")
-    return {"ultimo": bruto.get("ultimo"),
-            "posts": [p for p in posts if isinstance(p, dict)] if isinstance(posts, list) else [],
-            "semanal": semanal if isinstance(semanal, dict) else {},
-            "ranking": bruto.get("ranking") if isinstance(bruto.get("ranking"), str) else None}
+    estado.update({"ultimo": bruto.get("ultimo"),
+                   "posts": [p for p in posts if isinstance(p, dict)] if isinstance(posts, list) else [],
+                   "semanal": semanal if isinstance(semanal, dict) else {},
+                   "ranking": bruto.get("ranking") if isinstance(bruto.get("ranking"), str) else None})
+    for chave in ("educativo", "terminou"):
+        if not isinstance(estado.get(chave), dict):
+            estado[chave] = {}
+    if not isinstance(estado.get("publicados"), list):
+        # semente: os posts do dia já feitos entram no registro
+        estado["publicados"] = [dict(p, origem="post") for p in estado["posts"] if p.get("data") and p.get("ticker")]
+    return estado
 
 
 def gravar_estado(estado: dict) -> None:
     try:
         PASTA.mkdir(parents=True, exist_ok=True)
-        estado = dict(estado, posts=estado.get("posts", [])[-MAX_POSTS:])
+        estado = dict(estado, posts=estado.get("posts", [])[-MAX_POSTS:],
+                      publicados=estado.get("publicados", [])[-MAX_PUBLICADOS:])
+        if isinstance(estado.get("terminou"), dict):
+            estado["terminou"] = dict(estado["terminou"], datas=sorted(estado["terminou"].get("datas", []))[-120:])
         (PASTA / "telegram.json").write_text(json.dumps(estado, ensure_ascii=False), encoding="utf-8")
     except OSError as e:
         print("Telegram: não gravou telegram.json:", e)
@@ -104,7 +156,7 @@ def pct(v: float) -> str:
 def montar_legenda(hoje: dict, principal: dict) -> str:
     texto = ""
     arq = principal.get("legenda")
-    if arq and (PASTA / arq).exists():
+    if arq and obter("conteudo/" + arq).is_file():
         texto = (PASTA / arq).read_text(encoding="utf-8").strip()
     if not texto:
         texto = (f"{principal.get('rotulo')} · {principal.get('setup_nome')}\n"
@@ -136,6 +188,31 @@ def chamar_api(token: str, metodo: str, dados: bytes, tipo: str) -> dict:
         return {"ok": False, "description": f"HTTP {e.code}: {corpo[:300]}"}
     except (urllib.error.URLError, OSError, ValueError) as e:
         return {"ok": False, "description": f"erro de rede: {e}"}
+
+
+def _multipart(campos: list[tuple[str, str]], arquivos: list[tuple[str, Path]]) -> tuple[bytes, str]:
+    limite = "----" + uuid.uuid4().hex
+    partes = [f'--{limite}\r\nContent-Disposition: form-data; name="{n}"\r\n\r\n{v}\r\n'.encode("utf-8")
+              for n, v in campos]
+    for nome, img in arquivos:
+        partes.append((f'--{limite}\r\nContent-Disposition: form-data; name="{nome}"; filename="{img.name}"\r\n'
+                       "Content-Type: image/png\r\n\r\n").encode("utf-8") + img.read_bytes() + b"\r\n")
+    partes.append(f"--{limite}--\r\n".encode("utf-8"))
+    return b"".join(partes), f"multipart/form-data; boundary={limite}"
+
+
+def enviar_foto_html(token: str, chat: str, imagem: Path, legenda: str) -> dict:
+    corpo, tipo = _multipart([("chat_id", chat), ("caption", legenda), ("parse_mode", "HTML")], [("photo", imagem)])
+    return chamar_api(token, "sendPhoto", corpo, tipo)
+
+
+def enviar_album(token: str, chat: str, imagens: list[Path], legenda: str) -> dict:
+    """Várias imagens num post só; a legenda (HTML) vai na primeira."""
+    media = [{"type": "photo", "media": f"attach://f{i}"} for i in range(len(imagens))]
+    media[0].update(caption=legenda, parse_mode="HTML")
+    corpo, tipo = _multipart([("chat_id", chat), ("media", json.dumps(media, ensure_ascii=False))],
+                             [(f"f{i}", img) for i, img in enumerate(imagens)])
+    return chamar_api(token, "sendMediaGroup", corpo, tipo)
 
 
 def enviar_foto(token: str, chat: str, imagem: Path, legenda: str) -> dict:
@@ -176,7 +253,7 @@ def resultado_do_post(post: dict, resultados: dict | None) -> float | None:
     tk, setup, data = post.get("ticker"), post.get("setup"), post.get("data")
     if not (tk and setup and data):
         return None
-    casos = ler_json(RAIZ / "data" / "casos" / f"{tk}.json")
+    casos = ler_dado(f"casos/{tk}.json")
     if casos:
         for k in ((casos.get("casos") or {}).get("D") or {}).get(setup) or []:
             if k and k[0] == data and len(k) > 4 and k[4] is not None:
@@ -250,7 +327,7 @@ def montar_como_terminaram(estado: dict, resultados: dict | None) -> tuple[str |
             continue
         tk, rot, _ = resultados["ativos"][l[1]]
         sid, snome, lado = resultados["setups"][l[2]]
-        casos = ler_json(RAIZ / "data" / "casos" / f"{tk}.json")
+        casos = ler_dado(f"casos/{tk}.json")
         for k in (((casos or {}).get("casos") or {}).get("D") or {}).get(sid) or []:
             if k and k[0] == d.isoformat() and desde < k[2] <= ref:
                 encerrados.append((rot, snome, lado, d.isoformat(), float(l[3])))
@@ -307,7 +384,7 @@ def md_para_html(md: str) -> str:
 
 def montar_newsletter(hoje: dict) -> str | None:
     arq = ((hoje or {}).get("newsletter") or {}).get("md")
-    if not arq or not (PASTA / arq).is_file():
+    if not arq or not obter("conteudo/" + arq).is_file():
         return None
     texto = md_para_html((PASTA / arq).read_text(encoding="utf-8"))
     texto = re.sub(r"\n*Terminal gratuito:.*$", "", texto, flags=re.S).strip()  # o rodapé já leva ao site
@@ -341,7 +418,7 @@ def publicar_diario(token: str, chat: str, simular: bool, hoje: dict | None, est
     data = principal.get("data") or hoje.get("data")
     if data and data == estado.get("ultimo"):
         return True, f"{data} já tinha sido publicado"
-    imagem = PASTA / (principal.get("post") or "")
+    imagem = obter("conteudo/" + (principal.get("post") or "_"))
     if not imagem.is_file():
         return False, f"imagem {imagem.name} não encontrada"
     legenda = montar_legenda(hoje, principal)
@@ -385,7 +462,7 @@ def montar_ranking(rk: dict) -> str | None:
 
 
 def publicar_ranking(token: str, chat: str, simular: bool, estado: dict) -> tuple[bool, str]:
-    rk = ler_json(RAIZ / "data" / "ranking.json")
+    rk = ler_dado("ranking.json")
     if not isinstance(rk, dict) or not rk.get("data"):
         return True, "sem ranking hoje"
     if rk["data"] == estado.get("ranking"):
@@ -446,7 +523,7 @@ def publicar_semanal(token: str, chat: str, simular: bool, forcar: bool, hoje: d
     elif hj.weekday() < 5 and not forcar:
         res["resultados"] = "aguardando o sábado"
     else:
-        texto, relatados = montar_como_terminaram(estado, ler_json(RAIZ / "data" / "resultados.json"))
+        texto, relatados = montar_como_terminaram(estado, ler_dado("resultados.json"))
         origem = "posts do canal" if relatados else "sinais do terminal"
         if not texto:
             res["resultados"] = "sem dados de resultados"
@@ -466,36 +543,328 @@ def publicar_semanal(token: str, chat: str, simular: bool, forcar: bool, hoje: d
     return res
 
 
+# ---------------------------------------------------------------- 1. Sinais do dia (álbum)
+
+def _criativos():
+    sys.path.insert(0, str(RAIZ / "scripts"))
+    import criativos  # PIL só é carregado quando há imagem para desenhar
+    return criativos
+
+
+def pasta_imagens(simular: bool) -> Path:
+    return PASTA / ("simulacao" if simular else "telegram")
+
+
+def legenda_top(rk: dict, com_destaque: str | None) -> str:
+    """Legenda do álbum (HTML, até 1024 caracteres): o Top do dia em texto."""
+    def linhas(lado: str) -> list[str]:
+        out = []
+        for i, x in enumerate(((rk.get(lado) or {}).get("geral") or [])[:3], 1):
+            setup = str(x.get("setup_nome") or x.get("setup"))
+            setup = setup if len(setup) <= 34 else setup[:33] + "…"
+            out.append(f"{i}. <b>{html.escape(str(x.get('rotulo')))}</b> · {html.escape(setup)} · "
+                       f"{x.get('ganhos')}/{x.get('casos')} · {pct(x.get('medio') or 0)}")
+        return out
+    corpo = ["🏆 <b>Top do dia</b> · fechamento de " + br(rk["data"])[:5], ""]
+    if linhas("compra"):
+        corpo += ["▲ <b>Compra</b>", *linhas("compra"), ""]
+    if linhas("venda"):
+        corpo += ["▼ <b>Venda</b> (lucro = queda)", *linhas("venda"), ""]
+    if com_destaque:
+        corpo += [f"Na 2ª imagem: <b>{html.escape(com_destaque)}</b> em detalhe, com o gráfico e os últimos casos.", ""]
+    corpo += ["Histórico do mesmo setup em cada ativo, 10 pregões depois (mín. 10 casos). "
+              "Daqui a 10 pregões mostramos como estes sinais terminaram, inclusive os prejuízos.",
+              "", AVISO_RESULTADO, f'🔗 <a href="{SITE}ranking.html">Top do dia completo</a>']
+    texto = "\n".join(corpo)
+    return texto if len(texto) <= LIMITE_LEGENDA else texto[:LIMITE_LEGENDA - 1] + "…"
+
+
+def registrar(estado: dict, itens: list[dict], origem: str) -> None:
+    chaves = {(p.get("data"), p.get("ticker"), p.get("setup")) for p in estado["publicados"]}
+    for x in itens:
+        k = (x.get("data"), x.get("ticker"), x.get("setup"))
+        if None in k or k in chaves:
+            continue
+        chaves.add(k)
+        estado["publicados"].append({"data": x["data"], "ticker": x["ticker"], "rotulo": x.get("rotulo"),
+                                     "setup": x["setup"], "setup_nome": x.get("setup_nome"),
+                                     "lado": x.get("lado"), "mercado": x.get("mercado"), "origem": origem})
+
+
+def publicar_sinais(token: str, chat: str, simular: bool, hoje: dict | None, estado: dict) -> tuple[bool, str]:
+    """Top do dia novo -> álbum [imagem do Top, imagem do post do dia] com o Top na legenda.
+    Sem Top novo, mas com post do dia novo -> só o post do dia (como antes)."""
+    rk = ler_dado("ranking.json")
+    tem_rk = isinstance(rk, dict) and rk.get("data") and rk["data"] != estado.get("ranking") and \
+        any(((rk.get(l) or {}).get("geral") or []) for l in ("compra", "venda"))
+    principal = (hoje or {}).get("principal") if hoje and not hoje.get("vazio") else None
+    data_post = (principal or {}).get("data") or (hoje or {}).get("data")
+    tem_post = bool(principal) and data_post != estado.get("ultimo")
+    if not tem_rk:
+        if not tem_post:
+            return True, f"top do dia de {rk.get('data') if isinstance(rk, dict) else '?'} já publicado"
+        return publicar_diario(token, chat, simular, hoje, estado)
+
+    img_top = pasta_imagens(simular) / f"top-{rk['data']}.png"
+    _criativos().top_do_dia(rk, img_top)
+    imagens = [img_top]
+    img_post = obter("conteudo/" + (principal.get("post") or "_")) if tem_post else None
+    if img_post is not None and img_post.is_file():
+        imagens.append(img_post)
+    destaque = principal.get("rotulo") if len(imagens) > 1 else None
+    legenda = legenda_top(rk, destaque)
+    if simular:
+        print(f"[simulação] álbum {[i.name for i in imagens]} ({len(legenda)} caracteres):\n{legenda}\n")
+        return True, "simulado"
+    r = enviar_album(token, chat, imagens, legenda) if len(imagens) > 1 else enviar_foto_html(token, chat, img_top, legenda)
+    if not r.get("ok"):
+        return False, f"falhou: {r.get('description')}"
+    estado["ranking"] = rk["data"]
+    itens = [dict(x, lado=lado) for lado in ("compra", "venda") for x in ((rk.get(lado) or {}).get("geral") or [])[:3]]
+    registrar(estado, itens, "top")
+    if len(imagens) > 1:
+        estado["ultimo"] = data_post
+        reg = {"data": data_post, "ticker": principal.get("ticker"), "rotulo": principal.get("rotulo"),
+               "setup": principal.get("setup"), "setup_nome": principal.get("setup_nome"), "lado": principal.get("lado")}
+        if not any(p.get("data") == data_post and p.get("ticker") == reg["ticker"] for p in estado["posts"]):
+            estado["posts"].append(reg)
+        registrar(estado, [dict(reg, mercado=principal.get("mercado"))], "post")
+    gravar_estado(estado)
+    return True, f"top do dia de {rk['data']} publicado" + (f" com {destaque}" if destaque else "")
+
+
+# ---------------------------------------------------------------- 2. Educativo
+
+def publicar_educativo(token: str, chat: str, simular: bool, estado: dict, dia: str) -> tuple[bool, str]:
+    cat = ler_json(RAIZ / "config" / "educativos.json") or {}
+    itens = cat.get("itens") or []
+    if not itens:
+        return True, "sem itens educativos"
+    ed = estado["educativo"]
+    k = int(ed.get("proximo") or 0) % len(itens)
+    item = itens[k]
+    img = pasta_imagens(simular) / f"educativo-{item['id']}.png"
+    _criativos().educativo(item, img, k + 1)
+    link = SITE + (item.get("pagina") or "")
+    legenda = (f"📚 <b>{html.escape(item['titulo'])}</b>\n\n{html.escape(item.get('legenda', ''))}\n\n"
+               f'🔗 <a href="{link}">Veja no terminal</a>\n\nConteúdo educativo, não é recomendação.')[:LIMITE_LEGENDA]
+    if simular:
+        print(f"[simulação] educativo {k + 1}/{len(itens)} {img.name}:\n{legenda}\n")
+        return True, "simulado"
+    r = enviar_foto_html(token, chat, img, legenda)
+    if not r.get("ok"):
+        return False, f"falhou: {r.get('description')}"
+    estado["educativo"] = {"proximo": k + 1, "dia": dia, "ultimo_id": item["id"]}
+    gravar_estado(estado)
+    return True, f"educativo {item['id']} publicado"
+
+
+# ---------------------------------------------------------------- 3. Como terminou
+
+def velas_fechadas(tk: str) -> tuple[list, str | None]:
+    """Candles diários fechados do ativo (sem o pregão em formação) e a moeda."""
+    d = ler_dado(f"ativos/{tk}.json")
+    if not isinstance(d, dict) or not d.get("c"):
+        return [], None
+    c = d["c"]
+    if d.get("parcial") and c and c[-1][0] == d["parcial"]:
+        c = c[:-1]
+    return c, d.get("moeda")
+
+
+def apurar(sinal: dict) -> dict | None:
+    """Resultado do sinal como no backtest: entra na abertura seguinte, sai no fechamento PRAZO pregões depois.
+    None se o prazo ainda não acabou ou faltam dados."""
+    c, moeda = velas_fechadas(sinal["ticker"])
+    idx = {v[0]: i for i, v in enumerate(c)}
+    i = idx.get(sinal["data"])
+    if i is None or i + PRAZO >= len(c):
+        return None
+    ent, sai = c[i + 1][1], c[i + PRAZO][4]
+    if not ent or not sai:
+        return None
+    s = -1 if sinal.get("lado") == "venda" else 1
+    ret = s * (sai / ent - 1) * 100
+    extremos = [(v[2] if s > 0 else v[3]) for v in c[i + 1:i + PRAZO + 1]]
+    melhor = max(s * (x / ent - 1) * 100 for x in extremos)
+    ini = max(0, i - 4)
+    return dict(sinal, ret=ret, melhor=melhor, moeda=moeda, velas=c[ini:i + PRAZO + 1],
+                i_ent=i + 1 - ini, i_sai=i + PRAZO - ini, saida=c[i + PRAZO][0])
+
+
+def top_refeito(data: str) -> list[dict]:
+    """Sinais de `data` que a regra do Top do dia escolheria (3 de compra e 3 de venda), para os dias
+    antes de existir o registro. Usa os sinais encerrados de resultados.json e o histórico de backtest.json."""
+    res, bt = ler_dado("resultados.json"), ler_dado("backtest.json")
+    if not res or not bt:
+        return []
+    sys.path.insert(0, str(RAIZ / "scripts"))
+    from ranking import MIN_CASOS, wilson_inferior
+    try:
+        dia = (date.fromisoformat(data) - date.fromisoformat(res["base"])).days
+    except (KeyError, ValueError):
+        return []
+    melhores: dict = {}
+    for l in res.get("linhas", []):
+        if l[0] != dia or len(l) < 4:  # encerrados e em aberto; quem decide se terminou é apurar()
+            continue
+        tk, rot, merc = res["ativos"][l[1]]
+        sid, snome, lado = res["setups"][l[2]]
+        e = (((bt.get("ativos") or {}).get(tk) or {}).get("D") or {}).get(sid) or {}
+        n, acerto, medio = e.get("n") or 0, e.get("acerto"), e.get("medio")
+        if n < MIN_CASOS or acerto is None or medio is None or medio <= 0:
+            continue
+        nota = wilson_inferior(round(acerto / 100 * n), n)
+        k = (tk, lado)
+        if k not in melhores or (nota, medio) > melhores[k][0]:
+            melhores[k] = ((nota, medio), {"data": data, "ticker": tk, "rotulo": rot, "mercado": merc, "setup": sid,
+                                           "setup_nome": snome, "lado": lado, "origem": "refeito"})
+    out = []
+    for lado in ("compra", "venda"):
+        lista = sorted((v for (tk, ld), v in melhores.items() if ld == lado), key=lambda v: v[0], reverse=True)
+        out += [x for _, x in lista[:3]]
+    return out
+
+
+def escolher_terminou(estado: dict, hoje_d: date) -> tuple[list[dict], str | None, str]:
+    """Grupo de sinais de um dia já encerrado e ainda não relatado: (apurados, data, origem)."""
+    feitas = set(estado["terminou"].get("datas") or [])
+    limite = (hoje_d - timedelta(days=30)).isoformat()
+    por_data: dict = {}
+    for p in estado["publicados"]:
+        if p.get("data") and p["data"] >= limite and p["data"] not in feitas:
+            por_data.setdefault(p["data"], []).append(p)
+    # 1) o registro, quando o dia teve sinais suficientes publicados
+    for d in sorted(por_data):
+        if len(por_data[d]) >= MIN_GRUPO:
+            ap = [a for a in map(apurar, por_data[d]) if a]
+            if ap and len(ap) == len(por_data[d]):
+                return ap, d, "top"
+    # 2) dias com poucos publicados: refaz o Top daquele dia pela mesma regra e junta com o que foi postado
+    res = ler_dado("resultados.json")
+    if not res or not res.get("linhas"):
+        return [], None, ""
+    base = date.fromisoformat(res["base"])
+    datas = sorted({(base + timedelta(days=l[0])).isoformat() for l in res["linhas"]}, reverse=True)
+    for d in datas:
+        if d < limite or d in feitas or date.fromisoformat(d).weekday() >= 5:
+            continue  # fim de semana só tem cripto: o placar fica pequeno demais
+        grupo = top_refeito(d)
+        chaves = {(x["ticker"], x["setup"]) for x in grupo}
+        grupo += [p for p in por_data.get(d, []) if (p["ticker"], p["setup"]) not in chaves]
+        ap = [a for a in map(apurar, grupo) if a]
+        if len(ap) >= MIN_GRUPO and len(ap) == len(grupo):  # só quando todos os sinais do dia terminaram
+            return ap, d, "refeito"
+    return [], None, ""
+
+
+def legenda_terminou(caso: dict, ap: list[dict], data: str, origem: str) -> str:
+    lucro = sum(a["ret"] > 0 for a in ap)
+    medio = sum(a["ret"] for a in ap) / len(ap)
+    compra = caso.get("lado") != "venda"
+    moeda = {"USD": "US$ ", "BRL": "R$ "}.get(caso.get("moeda"), "")
+    v = caso["velas"]
+    if caso["ret"] > 0:
+        cab = f"✅ <b>Deu certo: {html.escape(str(caso['rotulo']))} {pct(caso['ret'])}</b>"
+    else:
+        cab = "📉 <b>Nem sempre dá certo</b>"
+    quem = "do Top do dia" if origem == "top" else "com melhor histórico"
+    linhas = [cab, "",
+              f"Sinal de {'compra' if compra else 'venda'} de {br(data)[:5]} em <b>{html.escape(str(caso['rotulo']))}</b> "
+              f"({html.escape(str(caso.get('setup_nome') or caso.get('setup')))}).",
+              f"Quem entrasse na abertura de {br(v[caso['i_ent']][0])[:5]} a {moeda}{fmt_br(v[caso['i_ent']][1])} e saísse no "
+              f"fechamento de {br(v[caso['i_sai']][0])[:5]}, {PRAZO} pregões depois, a {moeda}{fmt_br(v[caso['i_sai']][4])}, "
+              f"teria <b>{pct(caso['ret'])}</b>" + ("" if compra else " (venda: lucro com a queda)") +
+              f". No melhor momento, {pct(caso['melhor'])}.", "",
+              f"<b>Placar dos sinais {quem} de {br(data)[:5]}:</b> {lucro} de {len(ap)} terminaram no lucro; "
+              f"média de {pct(medio)} por sinal."]
+    ruins = [a for a in ap if a["ret"] <= 0]
+    if ruins:
+        linhas.append("Não deram certo: " + ", ".join(f"{html.escape(str(a['rotulo']))} {pct(a['ret'])}" for a in ruins[:4]) + ".")
+    linhas += ["", AVISO_RESULTADO, f'🔗 <a href="{SITE}resultados.html">Todos os sinais e como terminaram</a>']
+    texto = "\n".join(linhas)
+    return texto if len(texto) <= LIMITE_LEGENDA else texto[:LIMITE_LEGENDA - 1] + "…"
+
+
+def fmt_br(v: float) -> str:
+    return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def publicar_terminou(token: str, chat: str, simular: bool, estado: dict, dia: str) -> tuple[bool, str]:
+    ap, data, origem = escolher_terminou(estado, date.fromisoformat(dia))
+    if not ap:
+        return True, "nenhum sinal publicado terminou o prazo ainda"
+    caso = max(ap, key=lambda a: a["ret"])
+    placar = {"n": len(ap), "lucro": sum(a["ret"] > 0 for a in ap), "medio": sum(a["ret"] for a in ap) / len(ap), "data": data}
+    img = pasta_imagens(simular) / f"terminou-{data}.png"
+    _criativos().como_terminou(dict(caso, origem=origem), placar, img)
+    legenda = legenda_terminou(caso, ap, data, origem)
+    if simular:
+        print(f"[simulação] como terminou ({origem}, {len(ap)} sinais de {data}) {img.name}:\n{legenda}\n")
+        return True, "simulado"
+    r = enviar_foto_html(token, chat, img, legenda)
+    if not r.get("ok"):
+        return False, f"falhou: {r.get('description')}"
+    t = estado["terminou"]
+    t["datas"] = sorted(set(t.get("datas") or []) | {data})
+    t["dia"] = dia
+    gravar_estado(estado)
+    return True, f"como terminou de {data} publicado ({caso['rotulo']} {pct(caso['ret'])}, {placar['lucro']} de {placar['n']})"
+
+
 def main() -> int:
     simular = "--simular" in sys.argv
     forcar = "--forcar-semanal" in sys.argv
+    agora = datetime.now(timezone.utc)
+    if "--agora" in sys.argv:
+        agora = datetime.fromisoformat(sys.argv[sys.argv.index("--agora") + 1]).replace(tzinfo=FUSO).astimezone(timezone.utc)
+    local = agora.astimezone(FUSO)
+    dia = local.date().isoformat()
     token, chat = ler_segredos()
 
     estado = estado_publicado()
-    gravar_estado(estado)  # mantém o registro no site mesmo quando não posta
+    gravar_estado(estado)
 
     if not simular and not (token and chat):
         status(False, "segredos não configurados" + ("" if token else " (falta TELEGRAM_BOT_TOKEN)") + ("" if chat else " (falta TELEGRAM_CHAT_ID)"))
         return 0
 
-    hoje = ler_json(PASTA / "hoje.json")
+    hoje = ler_dado("conteudo/hoje.json")
+    res: dict = {}
     try:
-        ok, msg = publicar_diario(token, chat, simular, hoje, estado)
-    except Exception as e:  # nada daqui pode derrubar o build
-        ok, msg = False, f"erro inesperado no post diário: {e}"
+        ok, msg = publicar_sinais(token, chat, simular, hoje, estado)
+    except Exception as e:  # nada daqui pode derrubar o workflow
+        ok, msg = False, f"erro inesperado nos sinais do dia: {e}"
+    print("Telegram sinais:", msg)
+
+    # um post extra por execução (educativo ou como terminou), para espaçar
+    extra = None
+    if local.hour >= HORA_EDUCATIVO and estado["educativo"].get("dia") != dia:
+        extra = "educativo"
+    elif local.hour >= HORA_TERMINOU and estado["terminou"].get("dia") != dia:
+        extra = "terminou"
+    for nome, funcao in (("educativo", publicar_educativo), ("terminou", publicar_terminou)):
+        if extra != nome:
+            res[nome] = "aguardando a hora" if estado[nome].get("dia") != dia else "já publicado hoje"
+            continue
+        try:
+            okx, msgx = funcao(token, chat, simular, estado, dia)
+        except Exception as e:
+            okx, msgx = False, f"erro inesperado: {e}"
+        if okx and not simular and estado[nome].get("dia") != dia:
+            estado[nome]["dia"] = dia  # nada para publicar hoje: não tenta de novo até amanhã
+            gravar_estado(estado)
+        res[nome] = msgx
+        ok = ok and okx
+        print(f"Telegram {nome}:", msgx)
     try:
-        ok_rk, msg_rk = publicar_ranking(token, chat, simular, estado)
-    except Exception as e:
-        ok_rk, msg_rk = False, f"erro inesperado no top do dia: {e}"
-    print("Telegram top do dia:", msg_rk)
-    try:
-        semanal = publicar_semanal(token, chat, simular, forcar, hoje, estado, datetime.now(timezone.utc))
+        semanal = publicar_semanal(token, chat, simular, forcar, hoje, estado, agora)
     except Exception as e:
         semanal = {"erro": f"erro inesperado nas publicações semanais: {e}"}
     print("Telegram semanal:", semanal)
     if not simular:
-        status(ok, msg, {"ranking": {"ok": ok_rk, "mensagem": msg_rk}, "semanal": semanal})
-    return 0 if ok and ok_rk else 1
+        status(ok, msg, {**res, "semanal": semanal})
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

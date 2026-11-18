@@ -61,16 +61,18 @@ jobs:
         continue-on-error: true
         run: python scripts/resultados.py
 
-      - name: Publicar no Telegram (post do dia e resumos semanais)
-        # Sem os segredos TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID não faz nada; não repete data nem semana.
-        # Vem depois de resultados.py, que alimenta o "Como terminaram os sinais".
+      - name: Estado do Telegram (cópia pública)
+        # Quem posta é o workflow telegram.yml, depois do deploy. Aqui só vai para o site uma cópia do
+        # estado (branch estado-telegram; se ainda não existir, a cópia que já está no ar).
         continue-on-error: true
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # também aceita um segredo único TELEGRAM com as linhas TELEGRAM_BOT_TOKEN=... e TELEGRAM_CHAT_ID=...
-          TELEGRAM: ${{ secrets.TELEGRAM }}
-        run: python scripts/telegram_postar.py
+        run: |
+          mkdir -p data/conteudo
+          if git fetch --depth=1 origin estado-telegram; then
+            git show FETCH_HEAD:telegram.json > data/conteudo/telegram.json
+            git show FETCH_HEAD:telegram-status.json > data/conteudo/telegram-status.json || true
+          else
+            curl -fsS https://lubra-lucas.github.io/site-investimentos/data/conteudo/telegram.json -o data/conteudo/telegram.json || true
+          fi
 
       - name: Páginas públicas por ativo (ativos/, sitemap.xml, robots.txt)
         # Opcional: páginas estáticas para o Google; sem elas o site segue igual.

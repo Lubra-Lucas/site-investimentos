@@ -1,6 +1,24 @@
 # Publicações no Telegram
 
-A cada atualização de dados, `scripts/conteudo.py` gera o post do dia e `scripts/telegram_postar.py` envia a imagem e a legenda para o canal.
+Três criativos (imagens 1080 x 1350) por dia no canal, desenhados por `scripts/criativos.py` e publicados por `scripts/telegram_postar.py`, que roda no workflow `telegram.yml`:
+
+| # | Post | Quando | De onde vem |
+|---|---|---|---|
+| 1 | **Sinais do dia**: álbum com a imagem do Top do dia (3 de compra e 3 de venda) e a imagem do post do dia; o Top também vai na legenda | logo depois de cada publicação do site com um Top do dia novo | `data/ranking.json` e `data/conteudo/hoje.json` |
+| 2 | **Educativo**: como usar o terminal, estatística sem mistério, mercado e risco | a partir das 08:00 de Brasília | `config/educativos.json`, em rodízio (24 itens) |
+| 3 | **Como terminou**: um sinal publicado 10 pregões antes, com entrada, saída, o caminho do preço, o melhor momento e o placar de todos os sinais daquele dia, inclusive os que deram prejuízo | a partir das 12:00 de Brasília | registro dos sinais publicados e candles de `data/ativos/` |
+
+No máximo um post do tipo 2 ou 3 por execução; o workflow roda a cada 2 horas das 08:41 às 22:41 de Brasília, então eles saem espaçados. Os semanais (resumo na sexta, "Como terminaram os sinais" no sábado) continuam iguais.
+
+### Como terminou: regras
+- Resultado igual ao do backtest: entrada na abertura do pregão seguinte ao sinal, saída no fechamento 10 pregões depois, sem custos (venda: lucro com a queda). "Melhor momento" = maior ganho intradiário a favor dentro do prazo.
+- O dia só é relatado quando **todos** os sinais dele já terminaram o prazo. O destaque é o melhor resultado do dia; se nenhum deu lucro, o post sai como "Nem sempre dá certo". O placar do dia (X de Y no lucro, média) e os que não deram certo vão sempre junto.
+- Fonte: o registro `publicados` (Top do dia e post do dia que foram ao canal). Enquanto um dia tiver menos de 3 sinais registrados (os dias antes deste registro existir), o Top daquele dia é refeito pela mesma regra do Top do dia, com os sinais de `resultados.json` e o histórico de `backtest.json`, e o texto diz "sinais com melhor histórico", não "do Top do dia". Fim de semana fica de fora (só cripto).
+
+### Estado e dados
+- O workflow `telegram.yml` não gera dados: o que precisa (ranking, hoje.json, imagens, resultados, backtest, candles) é baixado do site publicado. Por isso ele roda depois do deploy (`workflow_run`) e o canal só recebe o que já está no ar.
+- O estado (`telegram.json` e `telegram-status.json`) fica na branch `estado-telegram`, gravada a cada execução (um commit por mudança, o histórico serve de registro). O workflow principal só põe uma cópia em `data/conteudo/` para o site.
+- Testar sem enviar: `python scripts/telegram_postar.py --simular --agora 2026-11-18T13:00` (imagens em `data/conteudo/simulacao/`). Imagens de exemplo: `python scripts/criativos.py --amostras <pasta>`.
 
 ## Como ligar
 1. No canal do Telegram: Administradores → Adicionar administrador → o bot, com "Publicar mensagens".
@@ -11,13 +29,13 @@ A cada atualização de dados, `scripts/conteudo.py` gera o post do dia e `scrip
 Também funciona um segredo único `TELEGRAM` com as duas linhas `TELEGRAM_BOT_TOKEN=...` e `TELEGRAM_CHAT_ID=...`. Sem eles, o passo não faz nada; o resultado de cada tentativa fica em `data/conteudo/telegram-status.json`.
 
 ## Como funciona
-- Roda no workflow `atualizar.yml`, depois de gerar o conteúdo, com `continue-on-error` (uma falha no Telegram não derruba o site).
-- Não posta a mesma data duas vezes: a última data publicada fica em `data/conteudo/telegram.json`, que vai para o site e é lida de volta na execução seguinte.
+- Roda no workflow `telegram.yml` (separado do que publica o site), com `continue-on-error` no passo de publicar.
+- Não posta a mesma data duas vezes: o que já foi publicado fica no estado (branch `estado-telegram`).
 - Testar sem enviar: `python scripts/telegram_postar.py --simular`.
 - Se falhar, o log do passo mostra a resposta do Telegram (ex.: "chat not found" = ID errado; "not enough rights" = bot não é admin).
 
-## Top do dia (texto, diário)
-Logo depois do post diário, uma mensagem de texto "🏆 Top do dia — sinais com melhor histórico" com o top 3 de compra e o top 3 de venda de `data/ranking.json` (gerado por `scripts/ranking.py`, passo `continue-on-error` do workflow antes do Telegram). Cada linha: ativo · setup · X de Y no lucro · média. No fim, aviso de risco e link para `ranking.html`.
+## Top do dia (diário)
+Vai no álbum do post 1: imagem e legenda com o top 3 de compra e o top 3 de venda de `data/ranking.json` (gerado por `scripts/ranking.py`, passo `continue-on-error` do workflow antes do Telegram). Cada linha: ativo · setup · X de Y no lucro · média. No fim, aviso de risco e link para `ranking.html`.
 - Critério: último pregão fechado de cada mercado (BR, US, Cripto), setups de entrada, mínimo de 10 casos, retorno médio positivo, nota = limite inferior de Wilson (95%) da taxa de acerto, um setup por ativo.
 - Não repete a data: `telegram.json` guarda `"ranking": "AAAA-MM-DD"` (a data do ranking publicado). Formatos antigos sem a chave continuam aceitos.
 - Bloco com try/except próprio; o resultado vai em `telegram-status.json` na chave `ranking` (`ok`, `mensagem`). Sem ranking qualificado, não posta.
