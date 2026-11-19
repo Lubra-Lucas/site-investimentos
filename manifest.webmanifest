@@ -3,7 +3,7 @@
   "short_name": "Terminal",
   "description": "Terminal de estudo para investidores: oportunidades de compra e venda, simulação de trades e diário.",
   "lang": "pt-BR",
-  "start_url": "painel.html",
+  "start_url": "app.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",

@@ -2653,3 +2653,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   main .res-sit { max-width: 112px; }
   main .res-ret.sub { white-space: normal; font-size: 11px; line-height: 1.3; text-align: right; }
 }
+
+/* Triagem: placar de cada setup no chip ("11/13" = deu certo 11 de 13 vezes no ativo) */
+.chip.setup .tri-placar { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600; }
+.chip.setup .tri-placar.alta { color: var(--alta); }
+.chip.setup .tri-placar.baixa { color: var(--baixa-texto); }

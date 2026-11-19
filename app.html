@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%234c8dff'%3E%3Crect x='3' y='11' width='3.4' height='9' rx='1'/%3E%3Crect x='10.3' y='6' width='3.4' height='14' rx='1'/%3E%3Crect x='17.6' y='3' width='3.4' height='17' rx='1'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0c1016">
+  <link rel="apple-touch-icon" href="assets/img/icone-180.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Oportunidades de hoje · Carteira Terminal</title>
+  <meta name="description" content="As ações e criptos que deram sinal hoje, uma de cada vez, com quantas vezes o mesmo sinal deu certo antes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="preload" as="fetch" crossorigin href="data/radar.json">
+  <script defer src="assets/js/medicao.js"></script>
+  <script defer src="assets/js/app.js"></script>
+</head>
+<body>
+  <header class="ap-topo">
+    <a class="ap-marca" href="index.html" aria-label="Carteira Terminal: página inicial">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3" y="11" width="3.4" height="9" rx="1"/><rect x="10.3" y="6" width="3.4" height="14" rx="1"/><rect x="17.6" y="3" width="3.4" height="17" rx="1"/></g></svg>
+      <span>Hoje</span>
+    </a>
+    <div class="ap-lados" role="tablist" aria-label="Compra ou venda">
+      <button role="tab" data-lado="compra" aria-selected="true">Comprar</button>
+      <button role="tab" data-lado="venda" aria-selected="false">Vender</button>
+    </div>
+    <button class="ap-salvos-btn" id="btn-salvos" aria-label="Ver salvos">♥ <span id="n-salvos">0</span></button>
+  </header>
+
+  <nav class="ap-mercados" aria-label="Mercado">
+    <button data-mercado="" aria-pressed="true">Todos</button>
+    <button data-mercado="BR" aria-pressed="false">Brasil</button>
+    <button data-mercado="US" aria-pressed="false">EUA</button>
+    <button data-mercado="CRIPTO" aria-pressed="false">Cripto</button>
+  </nav>
+
+  <main class="ap-palco" id="palco" aria-live="polite">
+    <div class="ap-carregando">Buscando as oportunidades de hoje…</div>
+  </main>
+
+  <div class="ap-acoes" id="acoes" hidden>
+    <button class="ap-voltar" id="btn-voltar" aria-label="Voltar a carta anterior" title="Voltar" disabled>↶</button>
+    <button class="ap-pular" id="btn-pular" aria-label="Pular">✕<span>Pular</span></button>
+    <button class="ap-salvar" id="btn-salvar" aria-label="Salvar">♥<span>Salvar</span></button>
+    <a class="ap-grafico" id="btn-grafico" href="#" aria-label="Ver o gráfico completo" title="Gráfico completo">↗</a>
+  </div>
+
+  <footer class="ap-rodape">
+    Estudo estatístico, não é recomendação. Resultado passado não garante resultado futuro.
+    <a href="setups.html">Terminal completo</a> · <a href="termos.html">Termos</a>
+  </footer>
+
+  <!-- salvos -->
+  <div class="ap-folha" id="folha" hidden>
+    <div class="ap-folha-fundo" data-fechar></div>
+    <section class="ap-folha-corpo" role="dialog" aria-modal="true" aria-labelledby="folha-titulo">
+      <div class="ap-folha-topo">
+        <h2 id="folha-titulo">Salvos</h2>
+        <button class="ap-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <ul class="ap-lista" id="lista-salvos"></ul>
+    </section>
+  </div>
+
+  <!-- primeira visita -->
+  <div class="ap-intro" id="intro" hidden>
+    <section class="ap-intro-corpo" role="dialog" aria-modal="true" aria-labelledby="intro-titulo">
+      <div class="ap-intro-passo" data-passo="0">
+        <div class="ap-intro-icone">🔎</div>
+        <h2 id="intro-titulo">As oportunidades de hoje, uma por vez</h2>
+        <p>Cada carta é um ativo que deu sinal no último fechamento. As primeiras são as de melhor histórico.</p>
+      </div>
+      <div class="ap-intro-passo" data-passo="1" hidden>
+        <div class="ap-intro-icone">📊</div>
+        <h2>Quantas vezes deu certo</h2>
+        <p>O número grande mostra quantas vezes este mesmo sinal, neste ativo, terminou no lucro 10 pregões depois.</p>
+      </div>
+      <div class="ap-intro-passo" data-passo="2" hidden>
+        <div class="ap-intro-icone">👉</div>
+        <h2>Arraste para decidir</h2>
+        <p>Para a direita salva, para a esquerda pula. Os salvos ficam no ♥ lá em cima.</p>
+      </div>
+      <div class="ap-intro-pontos" aria-hidden="true"><i></i><i></i><i></i></div>
+      <button class="ap-intro-btn" id="intro-btn">Continuar</button>
+    </section>
+  </div>
+</body>
+</html>

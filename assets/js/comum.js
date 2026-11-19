@@ -838,6 +838,7 @@ const NAV_PRINCIPAL = [
     icone: "M6 3h12a1 1 0 011 1v16a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1zM9 8h6M9 12h6M9 16h3" },
 ];
 const NAV_MAIS = [
+  { id: "app", href: "app.html", rot: "Versão simples", dica: "As oportunidades de hoje, uma por vez: a versão enxuta, feita para o celular" },
   { id: "inicio", href: "guia.html", rot: "Guia", dica: "Como usar o terminal e para quem cada recurso é indicado" },
   { id: "triagem", href: "triagem.html", rot: "Triagem", dica: "Passe os sinais do dia, um a um, como num baralho" },
   { id: "backtest", href: "backtest.html", rot: "Backtest", dica: "Como cada setup se saiu nos últimos 6 anos" },

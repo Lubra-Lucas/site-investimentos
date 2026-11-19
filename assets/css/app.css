@@ -1,0 +1,172 @@
+/* Versão enxuta (app.html): baralho de oportunidades, pensado primeiro para o celular. */
+:root {
+  --bg: #0c1016; --painel: #141a23; --painel-2: #1a222d; --borda: #252e3b;
+  --texto: #e9edf3; --fraco: #8b96a7; --acento: #4c8dff;
+  --alta: #22b07d; --baixa: #f06a6e; --aviso: #e3a23b;
+  --raio: 20px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: var(--texto); }
+body {
+  display: grid; grid-template-rows: auto auto 1fr auto auto;
+  min-height: 100dvh; max-width: 520px; margin: 0 auto;
+  padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  -webkit-tap-highlight-color: transparent; overflow-x: hidden;
+}
+button, a.botao { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.alta { color: var(--alta); } .baixa { color: var(--baixa); }
+
+/* topo */
+.ap-topo { display: flex; align-items: center; gap: 12px; padding: 12px 0 8px; }
+.ap-marca { display: flex; align-items: center; gap: 6px; color: var(--texto); text-decoration: none; font-weight: 800; font-size: 18px; }
+.ap-marca svg { width: 22px; height: 22px; color: var(--acento); }
+.ap-lados { display: flex; flex: 1; background: var(--painel); border: 1px solid var(--borda); border-radius: 999px; padding: 3px; }
+.ap-lados button { flex: 1; border: 0; background: none; border-radius: 999px; padding: 8px 0; font-weight: 700; font-size: 14px; color: var(--fraco); min-height: 36px; }
+.ap-lados button[aria-selected="true"][data-lado="compra"] { background: var(--alta); color: #04130d; }
+.ap-lados button[aria-selected="true"][data-lado="venda"] { background: var(--baixa); color: #1c0506; }
+.ap-salvos-btn { border: 1px solid var(--borda); background: var(--painel); border-radius: 999px; padding: 8px 12px; font-weight: 700; min-height: 40px; color: var(--baixa); }
+.ap-salvos-btn span { color: var(--texto); }
+
+.ap-mercados { display: flex; gap: 8px; padding: 4px 0 10px; overflow-x: auto; scrollbar-width: none; }
+.ap-mercados button { border: 1px solid var(--borda); background: none; border-radius: 999px; padding: 6px 14px; font-size: 14px; color: var(--fraco); white-space: nowrap; min-height: 34px; }
+.ap-mercados button[aria-pressed="true"] { background: var(--painel-2); color: var(--texto); border-color: #3a4556; }
+
+/* palco e pilha */
+.ap-palco { position: relative; min-height: 0; display: flex; flex-direction: column; }
+.ap-carregando { margin: auto; color: var(--fraco); }
+.ap-progresso { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fraco); padding-bottom: 8px; }
+.ap-barra { flex: 1; height: 4px; background: var(--painel-2); border-radius: 4px; overflow: hidden; }
+.ap-barra i { display: block; height: 100%; background: var(--acento); transition: width .3s; }
+.ap-pilha { position: relative; }
+.ap-carta {
+  position: absolute; inset: 0; display: flex; flex-direction: column; gap: 14px;
+  background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio);
+  padding: 18px 18px 16px; overflow: hidden; touch-action: pan-y; user-select: none;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .35);
+  transform: translateY(calc(var(--fundo, 0) * 10px)) scale(calc(1 - var(--fundo, 0) * .04));
+  transition: transform .2s ease;
+}
+/* a carta de cima fica no fluxo (define a altura da pilha); as de trás se ajustam a ela */
+.ap-pilha .ap-carta:last-child { position: relative; }
+.ap-carta[aria-hidden="true"] { pointer-events: none; }
+.ap-carta.arrastando { transition: none; cursor: grabbing; }
+.ap-carta.compra { border-top: 3px solid var(--alta); }
+.ap-carta.venda { border-top: 3px solid var(--baixa); }
+.ap-carta-topo { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fraco); }
+.ap-rank { background: var(--painel-2); color: var(--texto); font-weight: 800; border-radius: 8px; padding: 3px 8px; }
+.ap-ativo { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.ap-ticker { margin: 0; font-size: 40px; line-height: 1; font-weight: 800; letter-spacing: -.02em; }
+.ap-nome { color: var(--fraco); font-size: 14px; margin-top: 4px; max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-preco { text-align: right; display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
+.ap-preco b { font-size: 18px; }
+.ap-preco span { font-size: 14px; font-weight: 600; }
+
+.ap-grafico-mini { height: 86px; }
+.ap-spark { position: relative; height: 100%; }
+.ap-spark svg { width: 100%; height: 72px; display: block; }
+.ap-spark span { font-size: 11px; color: var(--fraco); }
+.ap-spark .linha { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.ap-spark .linha.alta { stroke: var(--alta); } .ap-spark .linha.baixa { stroke: var(--baixa); }
+.ap-spark .area.alta { fill: rgba(34, 176, 125, .12); } .ap-spark .area.baixa { fill: rgba(240, 106, 110, .12); }
+.ap-spark .ponto.alta { fill: var(--alta); } .ap-spark .ponto.baixa { fill: var(--baixa); }
+
+.ap-stat { background: var(--painel-2); border-radius: 14px; padding: 14px; }
+.ap-stat-num { font-variant-numeric: tabular-nums; line-height: 1; }
+.ap-stat-num b { font-size: 46px; font-weight: 800; }
+.ap-carta.compra .ap-stat-num b { color: var(--alta); } .ap-carta.venda .ap-stat-num b { color: var(--baixa); }
+.ap-stat-num span { font-size: 24px; font-weight: 700; color: var(--texto); }
+.ap-stat-txt { font-size: 14px; color: var(--fraco); margin: 6px 0 10px; }
+.ap-pontos { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.ap-pontos i { width: 10px; height: 10px; border-radius: 50%; }
+.ap-pontos i.sim { background: var(--alta); } .ap-pontos i.nao { background: #3a4352; }
+.ap-carta.venda .ap-pontos i.sim { background: var(--baixa); }
+.ap-medidor { width: 100%; height: 8px; border-radius: 8px; background: #3a4352; overflow: hidden; }
+.ap-medidor i { display: block; height: 100%; background: var(--alta); }
+.ap-carta.venda .ap-medidor i { background: var(--baixa); }
+.ap-stat-media { font-size: 14px; color: var(--fraco); }
+.ap-stat-media b { font-variant-numeric: tabular-nums; }
+
+.ap-porque h3, .ap-outros h3 { margin: 0 0 4px; font-size: 16px; }
+.ap-porque p { margin: 0; color: var(--fraco); font-size: 14px; line-height: 1.4; }
+.ap-outros h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); font-weight: 700; }
+.ap-outros ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ap-outros li { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.ap-outros li b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ap-outros li em { color: var(--fraco); font-style: normal; font-size: 13px; white-space: nowrap; }
+
+.ap-carimbo { position: absolute; top: 26px; font-weight: 800; font-size: 26px; letter-spacing: .08em; padding: 4px 12px; border: 3px solid; border-radius: 10px; pointer-events: none; }
+.ap-carimbo.salvar { left: 22px; color: var(--alta); transform: rotate(-12deg); opacity: var(--salvar, 0); }
+.ap-carimbo.pular { right: 22px; color: var(--fraco); transform: rotate(12deg); opacity: var(--pular, 0); }
+
+/* botões de decisão */
+.ap-acoes { display: flex; justify-content: center; align-items: center; gap: 18px; padding: 14px 0 6px; }
+.ap-acoes button, .ap-grafico { border: 1px solid var(--borda); background: var(--painel); border-radius: 999px; display: grid; place-items: center; text-decoration: none; color: var(--texto); }
+.ap-pular, .ap-salvar { width: 72px; height: 72px; font-size: 26px; font-weight: 800; position: relative; }
+.ap-pular span, .ap-salvar span { position: absolute; bottom: -20px; font-size: 12px; font-weight: 600; color: var(--fraco); }
+.ap-pular { color: var(--fraco); }
+.ap-salvar { color: var(--baixa); border-color: rgba(240, 106, 110, .5); }
+.ap-voltar, .ap-grafico { width: 48px; height: 48px; font-size: 20px; color: var(--fraco); }
+.ap-voltar:disabled { opacity: .35; cursor: default; }
+.ap-acoes button:active:not(:disabled) { transform: scale(.94); }
+
+.ap-rodape { font-size: 11px; color: var(--fraco); text-align: center; padding: 22px 0 12px; line-height: 1.5; }
+.ap-rodape a { color: var(--acento); margin-left: 4px; }
+
+/* fim do baralho */
+.ap-fim { margin: auto; text-align: center; max-width: 360px; padding: 24px 8px; }
+.ap-fim-icone { font-size: 44px; width: 84px; height: 84px; margin: 0 auto 12px; border-radius: 50%; background: var(--painel); display: grid; place-items: center; color: var(--alta); }
+.ap-fim h2 { margin: 0 0 8px; font-size: 22px; }
+.ap-fim p { color: var(--fraco); margin: 0 0 10px; line-height: 1.45; }
+.ap-fim-sub { font-size: 13px; }
+.ap-fim-botoes { display: grid; gap: 10px; margin: 18px 0; }
+.ap-fim-botoes button, .ap-fim-botoes .botao { border: 1px solid var(--borda); background: var(--painel); border-radius: 12px; padding: 13px; font-weight: 600; text-decoration: none; display: block; }
+.ap-fim-botoes .primario, .ap-fim .primario { background: var(--acento); border-color: var(--acento); color: #06142e; }
+.ap-fim-canal { color: var(--acento); font-size: 14px; }
+
+/* salvos */
+.ap-folha { position: fixed; inset: 0; z-index: 20; }
+.ap-folha-fundo { position: absolute; inset: 0; background: rgba(0, 0, 0, .55); }
+.ap-folha-corpo { position: absolute; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto; max-height: 80dvh; overflow: auto;
+  background: var(--painel); border-radius: 20px 20px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+.ap-folha-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.ap-folha-topo h2 { margin: 0; font-size: 20px; }
+.ap-fechar { border: 0; background: var(--painel-2); width: 40px; height: 40px; border-radius: 50%; }
+.ap-lista { list-style: none; margin: 0; padding: 0; }
+.ap-lista li { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--borda); }
+.ap-lista li.ap-vazio { color: var(--fraco); padding: 20px 0; border: 0; }
+.ap-item { flex: 1; display: flex; justify-content: space-between; gap: 10px; padding: 12px 0; color: var(--texto); text-decoration: none; min-width: 0; }
+.ap-item b { font-size: 16px; }
+.ap-item-sub { font-size: 12px; color: var(--fraco); margin-top: 2px; }
+.ap-item-dir { text-align: right; font-variant-numeric: tabular-nums; }
+.ap-lado { font-size: 12px; font-weight: 600; }
+.ap-lado.compra { color: var(--alta); } .ap-lado.venda { color: var(--baixa); }
+.ap-remover { border: 0; background: none; color: var(--fraco); width: 40px; height: 40px; }
+
+/* primeira visita */
+.ap-intro { position: fixed; inset: 0; z-index: 30; background: rgba(5, 8, 12, .85); display: grid; place-items: center; padding: 16px; }
+.ap-intro-corpo { background: var(--painel); border: 1px solid var(--borda); border-radius: 22px; padding: 28px 22px 22px; max-width: 360px; text-align: center; }
+.ap-intro-icone { font-size: 44px; margin-bottom: 8px; }
+.ap-intro h2 { margin: 0 0 8px; font-size: 21px; }
+.ap-intro p { margin: 0; color: var(--fraco); line-height: 1.5; }
+.ap-intro-pontos { display: flex; justify-content: center; gap: 6px; margin: 20px 0 16px; }
+.ap-intro-pontos i { width: 8px; height: 8px; border-radius: 50%; background: #3a4352; }
+.ap-intro-pontos i.on { background: var(--acento); width: 22px; border-radius: 8px; }
+.ap-intro-btn { width: 100%; border: 0; background: var(--acento); color: #06142e; font-weight: 700; padding: 14px; border-radius: 12px; font-size: 16px; }
+
+.ap-aviso { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); background: var(--painel-2); border: 1px solid var(--borda); padding: 10px 14px; border-radius: 10px; font-size: 14px; z-index: 40; max-width: 90vw; }
+
+/* telas baixas: a carta encolhe por dentro em vez de cortar */
+@media (max-height: 760px) {
+  .ap-carta { gap: 10px; padding: 14px; }
+  .ap-ticker { font-size: 34px; }
+  .ap-stat-num b { font-size: 38px; }
+  .ap-grafico-mini { height: 70px; } .ap-spark svg { height: 58px; }
+  .ap-pular, .ap-salvar { width: 62px; height: 62px; }
+}
+@media (prefers-reduced-motion: reduce) { .ap-carta, .ap-barra i { transition: none; } }
+/* botões sempre à mão: em tela baixa a carta rola por baixo deles */
+.ap-acoes { position: sticky; bottom: 0; z-index: 5; background: linear-gradient(to bottom, transparent, var(--bg) 35%); padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
