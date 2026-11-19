@@ -91,6 +91,9 @@
       lado: t.lados[E[k]], preco: P[k], bt: I[k] >= 0 ? t.bt[I[k]] : null }));
   }
   const vibrar = () => navigator.vibrate?.(8);
+  /** Prazo do histórico em palavras: cripto negocia todo dia, então "dias"; bolsa, "pregões". */
+  const prazo = (a) => (a?.mercado === "CRIPTO" ? "10 dias" : "10 pregões");
+  const anunciar = (txt) => { const n = $("anuncio"); if (n) { n.textContent = ""; setTimeout(() => { n.textContent = txt; }, 50); } };
 
   // ------------------------------------------------------------- estado
 
@@ -98,10 +101,12 @@
   let E = guardar.ler(CHAVE, {});
   if (!E || typeof E !== "object") E = {};
   E.decisoes ??= {}; E.salvos ??= [];
-  const gravarE = () => guardar.gravar(CHAVE, E) || aviso("Não deu para salvar neste navegador (armazenamento cheio ou bloqueado).");
+  let avisouArmazenamento = false;
+  const gravarE = () => guardar.gravar(CHAVE, E) || avisouArmazenamento ||
+    (avisouArmazenamento = true, aviso("Não deu para salvar neste navegador (armazenamento cheio ou bloqueado)."));
 
-  let R = null, NOMES = new Map(), porTicker = new Map(), sessao = {}, ITENS = { compra: [], venda: [] }, foraDoBaralho = { compra: 0, venda: 0 };
-  let baralho = [], historicoAcoes = [], verTodos = false, restantes = 0;
+  let R = null, NOMES = new Map(), porTicker = new Map(), sessao = {}, ITENS = { compra: [], venda: [] }, foraDoBaralho = { compra: {}, venda: {} };
+  let baralho = [], historicoAcoes = [], verTodos = false, restantes = 0, animando = false;
   const velas = new Map();   // ticker -> Promise<[fechamentos]>
 
   const chaveDecisao = (i) => `${i.data}|${i.lado}|${i.ticker}`;
@@ -112,6 +117,7 @@
     const [radar, setups] = await Promise.all(["data/radar.json", "data/setups.json"].map((u) =>
       fetch(u, { cache: "no-cache" }).then((r) => { if (!r.ok) throw new Error(`${u}: ${r.status}`); return r.json(); })));
     R = radar;
+    if (!R?.ativos?.length || !R.sinais) throw new Error("radar sem dados");
     R.sinais = expandir(R.sinais);
     const entrada = new Set();
     for (const g of setups.grupos ?? []) for (const s of g.itens ?? []) {
@@ -119,13 +125,27 @@
       if (g.nome !== "Tendência" && s.vies !== "neutro") entrada.add(s.id);
     }
     for (const a of R.ativos) porTicker.set(a.ticker, a);
-    const ok = (e) => e.tf === "D" && entrada.has(e.setup) && (e.lado === "compra" || e.lado === "venda") &&
-      MERCADOS[porTicker.get(e.ticker)?.mercado] && porTicker.get(e.ticker)?.liquido !== false;
-    const sinais = R.sinais.filter(ok);
-    for (const e of sinais) {
-      const m = porTicker.get(e.ticker).mercado;
-      if (!sessao[m] || e.data > sessao[m]) sessao[m] = e.data;
+    // pregão de referência de cada mercado = a regra do Top do dia (scripts/conteudo.py, montar_contexto):
+    // a data em que está a maior parte dos ativos; se esse pregão ainda está em formação, o anterior
+    for (const m of Object.keys(MERCADOS)) {
+      const conta = new Map();
+      for (const a of R.ativos) if (a.mercado === m && a.data) conta.set(a.data, (conta.get(a.data) ?? 0) + 1);
+      const melhor = [...conta].sort((x, y) => y[1] - x[1] || (y[0] > x[0] ? 1 : -1))[0];
+      if (melhor) sessao[m] = melhor[0];
+      const f = R.em_formacao?.[m];
+      if (f && sessao[m] === f.data) {
+        const ant = [...conta.keys()].filter((d) => d < f.data).sort();
+        if (ant.length) sessao[m] = ant[ant.length - 1]; else delete sessao[m];
+      }
     }
+    // ativo líquido e com preço em dia (sem conferência pendente depois do último candle), como em ativo_ok
+    const ativoOk = (a) => a && a.liquido !== false && !(a.verificacao?.pendente && a.verificacao.pendente > a.data);
+    const ok = (e) => {
+      const a = porTicker.get(e.ticker);
+      return e.tf === "D" && entrada.has(e.setup) && (e.lado === "compra" || e.lado === "venda") && MERCADOS[a?.mercado] &&
+        ativoOk(a) && sessao[a.mercado] === e.data && a.data === e.data;
+    };
+    const sinais = R.sinais.filter(ok);
     const mapa = { compra: new Map(), venda: new Map() };
     for (const e of sinais) {
       const a = porTicker.get(e.ticker);
@@ -136,17 +156,21 @@
     }
     for (const lado of ["compra", "venda"]) {
       const lista = [];
-      let fora = 0;
+      const fora = { "": 0 };
       for (const i of mapa[lado].values()) {
         // o melhor setup do ativo pela regra do Top do dia; os outros viram "também hoje"
         let melhor = null;
         for (const e of i.eventos) {
           const h = historico(e.bt);
           if (!h || h.n < MIN_CASOS || h.medio <= 0) continue;
-          const nota = wilson(h.ganhos, h.n);
+          const nota = Math.round(wilson(h.ganhos, h.n) * 10) / 10;   // 1 casa, como no ranking.py
           if (!melhor || nota > melhor.nota || (nota === melhor.nota && h.medio > melhor.h.medio)) melhor = { nota, h, e };
         }
-        if (!melhor) { fora++; continue; }
+        if (!melhor) {
+          const m = porTicker.get(i.ticker).mercado;
+          fora[""]++; fora[m] = (fora[m] ?? 0) + 1;
+          continue;
+        }
         i.melhor = melhor;
         i.outros = i.eventos.filter((e) => e !== melhor.e)
           .map((e) => ({ e, h: historico(e.bt) }))
@@ -175,9 +199,12 @@
   // ------------------------------------------------------------- baralho
 
   /** As TOPO melhores do dia (menos é mais); o resto só se a pessoa pedir no fim do baralho. */
-  function montarBaralho() {
+  function listaAtual() {
     const todas = ITENS[P.lado].filter((i) => !P.mercado || porTicker.get(i.ticker).mercado === P.mercado);
-    const lista = verTodos ? todas : todas.slice(0, TOPO);
+    return { todas, lista: verTodos ? todas : todas.slice(0, TOPO) };
+  }
+  function montarBaralho() {
+    const { todas, lista } = listaAtual();
     restantes = todas.length - lista.length;
     baralho = lista.filter((i) => !E.decisoes[chaveDecisao(i)]);
     return lista.length;
@@ -189,6 +216,8 @@
     palco.replaceChildren();
     $("acoes").hidden = !baralho.length;
     $("btn-voltar").disabled = !historicoAcoes.length;
+    const velho = dadosVelhos();
+    if (velho) palco.append(el("p", { class: "ap-velho", role: "status" }, velho));
     if (!baralho.length) return palco.append(fimDoBaralho(total));
     const vistos = total - baralho.length;
     palco.append(el("div", { class: "ap-progresso" },
@@ -208,6 +237,15 @@
     baralho.slice(1, 4).forEach((i) => fechamentos(i.ticker));   // pré-carrega as próximas
   }
 
+  /** Aviso quando o pipeline parou: o pregão mais recente tem mais de 4 dias corridos (cobre fim de semana e feriado). */
+  function dadosVelhos() {
+    const datas = Object.entries(sessao).filter(([m]) => m !== "CRIPTO").map(([, d]) => d).sort();
+    const ult = datas[datas.length - 1];
+    if (!ult) return null;
+    const dias = (Date.now() - new Date(ult + "T21:00:00Z").getTime()) / 864e5;
+    return dias > 4 ? `Atenção: os dados são do pregão de ${dataCurta(ult)} e não foram atualizados desde então.` : null;
+  }
+
   function carta(i, topo) {
     const a = porTicker.get(i.ticker), { h, e } = i.melhor, compra = i.lado === "compra";
     const p = precoAtual(a);
@@ -219,7 +257,7 @@
     const c = el("article", { class: `ap-carta ${compra ? "compra" : "venda"}`, "data-tk": i.ticker, "aria-hidden": topo ? null : "true" },
       el("div", { class: "ap-carta-topo" },
         el("span", { class: "ap-rank" }, `#${i.rank}`),
-        el("span", { class: "ap-tag" }, `${compra ? "▲ Compra" : "▼ Venda"} · ${MERCADOS[a.mercado]} · sinal de ${dataCurta(i.data)}`)),
+        el("span", { class: "ap-tag" }, `${compra ? "▲ Compra" : "▼ Venda (ganha se cair)"} · ${MERCADOS[a.mercado]} · ${dataCurta(i.data)}`)),
       el("div", { class: "ap-ativo" },
         el("div", {},
           el("h2", { class: "ap-ticker" }, a.rotulo ?? i.ticker),
@@ -231,10 +269,10 @@
       el("section", { class: "ap-stat" },
         el("div", { class: "ap-stat-num" }, el("b", {}, `${h.ganhos}`), el("span", {}, ` de ${h.n}`)),
         el("div", { class: "ap-stat-txt" },
-          `vezes deu certo${compra ? "" : " (o preço caiu)"} quando este sinal apareceu em ${a.rotulo ?? i.ticker}`),
+          `vezes deu certo${compra ? "" : " (o preço caiu)"} quando este sinal apareceu em ${a.rotulo ?? i.ticker}, ${prazo(a)} depois`),
         pontos,
         el("div", { class: "ap-stat-media" },
-          "Em média ", el("b", { class: h.medio >= 0 ? "alta" : "baixa" }, pct(h.medio)), compra ? " em 10 pregões" : " a favor em 10 pregões")),
+          "Em média ", el("b", { class: h.medio >= 0 ? "alta" : "baixa" }, pct(h.medio)), `${compra ? "" : " a favor"} por vez, sem custos`)),
       el("section", { class: "ap-porque" },
         el("h3", {}, simples?.[0] ?? nomeSimples(e.setup)),
         el("p", {}, simples?.[1] ?? "")),
@@ -244,14 +282,15 @@
           el("span", {}, nomeSimples(o.setup)),
           ho && ho.n >= MIN_CASOS ? el("b", { class: ho.acerto >= 50 ? "alta" : "baixa" }, `${ho.ganhos} de ${ho.n}`)
             : el("em", {}, "poucos casos"))))) : null,
-      el("div", { class: "ap-carimbo pular" }, "PULAR"),
-      el("div", { class: "ap-carimbo salvar" }, "SALVAR"));
+      el("p", { class: "ap-aviso-carta" }, "Histórico não é garantia. Não é recomendação."),
+      el("div", { class: "ap-carimbo pular", "aria-hidden": "true" }, "PULAR"),
+      el("div", { class: "ap-carimbo salvar", "aria-hidden": "true" }, "SALVAR"));
     if (topo) fechamentos(i.ticker).then((v) => grafico.append(sparkline(v, compra)));
     return c;
   }
 
   function sparkline(v, compra) {
-    if (!v || v.length < 2) return el("span", { class: "ap-sem-grafico" }, "");
+    if (!v || v.length < 2) return el("span", { class: "ap-sem-grafico" }, "Gráfico indisponível agora");
     const W = 300, H = 72, lo = Math.min(...v), hi = Math.max(...v), d = hi - lo || 1;
     const xy = v.map((p, k) => [(k / (v.length - 1)) * W, H - 4 - ((p - lo) / d) * (H - 8)]);
     const linha = xy.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("");
@@ -273,10 +312,9 @@
   }
 
   function fimDoBaralho(total) {
-    const fora = foraDoBaralho[P.lado];
+    const fora = foraDoBaralho[P.lado][P.mercado] ?? 0;
     const nSalvos = E.salvos.length;
-    const pulados = ITENS[P.lado].filter((i) => (!P.mercado || porTicker.get(i.ticker).mercado === P.mercado) &&
-      E.decisoes[chaveDecisao(i)] === "pulou");
+    const pulados = listaAtual().lista.filter((i) => E.decisoes[chaveDecisao(i)] === "pulou");
     return el("div", { class: "ap-fim" },
       el("div", { class: "ap-fim-icone" }, total ? "✓" : "☕"),
       el("h2", {}, total ? (restantes ? `Você viu as ${total} melhores de hoje` : "Você viu tudo de hoje")
@@ -298,18 +336,22 @@
 
   // ------------------------------------------------------------- decisões
 
-  function decidir(d) {
-    const i = baralho[0];
+  function decidir(d, i = baralho[0]) {
     if (!i) return;
     E.decisoes[chaveDecisao(i)] = d;
-    historicoAcoes.push({ i, d });
+    const acao = { i, d, mercado: P.mercado, adicionou: false };
+    historicoAcoes.push(acao);
     if (d === "salvou") {
       const a = porTicker.get(i.ticker), { h, e } = i.melhor;
       E.salvos = E.salvos.filter((s) => !(s.ticker === i.ticker && s.lado === i.lado && s.data === i.data));
       E.salvos.unshift({ ticker: i.ticker, lado: i.lado, data: i.data, setup: e.setup, ganhos: h.ganhos, n: h.n,
         medio: h.medio, preco: precoAtual(a).v, em: new Date().toISOString() });
       E.salvos = E.salvos.slice(0, 200);
-      naMinhaLista(i.ticker);
+      acao.adicionou = naMinhaLista(i.ticker);
+      if (!guardar.ler(CHAVE + "-dica-lista", false)) {
+        guardar.gravar(CHAVE + "-dica-lista", true);
+        aviso("Salvo. Ele também aparece na Minha lista do terminal completo.");
+      }
     }
     // descartes antigos não precisam ficar guardados
     const datas = new Set(Object.values(sessao));
@@ -318,16 +360,27 @@
     vibrar();
     contarSalvos();
     desenhar();
+    const prox = baralho[0];
+    anunciar(`${d === "salvou" ? "Salvo" : "Pulado"}: ${porTicker.get(i.ticker)?.rotulo ?? i.ticker}.` +
+      (prox ? ` Próxima: ${porTicker.get(prox.ticker)?.rotulo ?? prox.ticker}.` : " Fim das cartas."));
   }
 
   function voltar() {
+    if (animando) return;
     const u = historicoAcoes.pop();
     if (!u) return;
     delete E.decisoes[chaveDecisao(u.i)];
-    if (u.d === "salvou") E.salvos = E.salvos.filter((s) => !(s.ticker === u.i.ticker && s.lado === u.i.lado && s.data === u.i.data));
+    if (u.d === "salvou") {
+      E.salvos = E.salvos.filter((s) => !(s.ticker === u.i.ticker && s.lado === u.i.lado && s.data === u.i.data));
+      if (u.adicionou) foraDaMinhaLista(u.i.ticker);
+    }
     gravarE();
     contarSalvos();
-    if (u.i.lado !== P.lado) trocarLado(u.i.lado); else desenhar();
+    // volta para onde a carta estava (lado e mercado), para ela aparecer de novo no topo
+    P.lado = u.i.lado; P.mercado = u.mercado;
+    sincronizarControles();
+    desenhar();
+    anunciar(`De volta: ${porTicker.get(u.i.ticker)?.rotulo ?? u.i.ticker}.`);
   }
 
   /** Mesma lista ("multitela", rótulos separados por vírgula) que a estrela ☆ do terminal completo. */
@@ -336,7 +389,16 @@
     const obj = atual && typeof atual === "object" ? atual : {};
     const rot = (porTicker.get(tk)?.rotulo ?? tk).toUpperCase();
     const lista = String(obj.tickers ?? "").split(/[\s,;]+/).map((t) => t.trim().toUpperCase()).filter(Boolean);
-    if (!lista.includes(rot)) guardar.gravar("multitela", { ...obj, tickers: [...lista, rot].join(", ") });
+    if (lista.includes(rot)) return false;
+    guardar.gravar("multitela", { ...obj, tickers: [...lista, rot].join(", ") });
+    return true;
+  }
+  function foraDaMinhaLista(tk) {
+    const obj = guardar.ler("multitela", {});
+    if (!obj || typeof obj !== "object" || obj.tickers == null) return;
+    const rot = (porTicker.get(tk)?.rotulo ?? tk).toUpperCase();
+    const lista = String(obj.tickers).split(/[\s,;]+/).map((t) => t.trim().toUpperCase()).filter((t) => t && t !== rot);
+    guardar.gravar("multitela", { ...obj, tickers: lista.join(", ") });
   }
 
   // ------------------------------------------------------------- arrastar
@@ -372,20 +434,28 @@
   }
 
   function jogar(c, d) {
-    if (!c || c.dataset.saindo) return;
+    if (!c || c.dataset.saindo || animando) return;
+    const item = baralho.find((i) => i.ticker === c.dataset.tk) ?? baralho[0];
     c.dataset.saindo = "1";
-    if (reduzir) return decidir(d);
+    if (reduzir) return decidir(d, item);
+    animando = true;
     c.style.setProperty(d === "salvou" ? "--salvar" : "--pular", "1");
     c.style.transition = "transform .28s ease-in, opacity .28s ease-in";
     c.style.transform = `translateX(${d === "salvou" ? "" : "-"}${innerWidth}px) rotate(${d === "salvou" ? 18 : -18}deg)`;
     c.style.opacity = "0";
-    setTimeout(() => decidir(d), 240);
+    setTimeout(() => { animando = false; decidir(d, item); }, 240);
   }
   const cartaDoTopo = () => document.querySelector(".ap-pilha .ap-carta:last-child");
 
   // ------------------------------------------------------------- salvos
 
-  function contarSalvos() { $("n-salvos").textContent = String(E.salvos.length); }
+  function contarSalvos() {
+    $("n-salvos").textContent = String(E.salvos.length);
+    $("btn-salvos").setAttribute("aria-label", `Ver salvos (${E.salvos.length})`);
+  }
+  /** Com um diálogo aberto, o resto da página fica inerte (o Tab não escapa para trás do fundo escuro). */
+  const FUNDO = () => document.querySelectorAll("body > header, body > nav, body > main, #acoes, body > footer");
+  const inerte = (on) => FUNDO().forEach((n) => { n.inert = on; });
 
   function abrirSalvos() {
     const lista = $("lista-salvos");
@@ -410,23 +480,29 @@
         } }, "✕")));
     }
     $("folha").hidden = false;
+    inerte(true);
     $("folha").querySelector(".ap-fechar").focus();
   }
-  const fecharSalvos = () => { $("folha").hidden = true; $("btn-salvos").focus(); };
+  const fecharSalvos = () => { $("folha").hidden = true; inerte(false); $("btn-salvos").focus(); };
 
   // ------------------------------------------------------------- controles
 
-  function trocarLado(lado) {
-    P.lado = lado; verTodos = false;
+  function sincronizarControles() {
     guardar.gravar(CHAVE + "-prefs", P);
-    document.querySelectorAll(".ap-lados button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.lado === lado)));
-    document.body.dataset.lado = lado;
+    document.querySelectorAll(".ap-lados button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.lado === P.lado)));
+    document.querySelectorAll(".ap-mercados button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mercado === P.mercado)));
+    document.body.dataset.lado = P.lado;
+  }
+  function trocarLado(lado) {
+    if (animando) return;
+    P.lado = lado; verTodos = false;
+    sincronizarControles();
     desenhar();
   }
   function trocarMercado(m) {
+    if (animando) return;
     P.mercado = m; verTodos = false;
-    guardar.gravar(CHAVE + "-prefs", P);
-    document.querySelectorAll(".ap-mercados button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mercado === m)));
+    sincronizarControles();
     desenhar();
   }
 
@@ -448,12 +524,15 @@
       pts.forEach((p, j) => p.classList.toggle("on", j === k));
       $("intro-btn").textContent = k === passos.length - 1 ? "Começar" : "Continuar";
     };
+    const fechar = () => { caixa.hidden = true; inerte(false); guardar.gravar(INTRO, true); };
     $("intro-btn").addEventListener("click", () => {
       if (k < passos.length - 1) { k++; mostrar(); return; }
-      caixa.hidden = true; guardar.gravar(INTRO, true);
+      fechar();
     });
+    caixa.addEventListener("keydown", (ev) => { if (ev.key === "Escape") fechar(); });
     mostrar();
     caixa.hidden = false;
+    inerte(true);
     $("intro-btn").focus();
   }
 
@@ -469,6 +548,7 @@
       if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
       if (!$("folha").hidden) { if (ev.key === "Escape") fecharSalvos(); return; }
       if (!$("intro").hidden || /input|select|textarea/i.test(ev.target.tagName)) return;
+      if (ev.target.closest?.('[role="tab"], .ap-mercados')) return;   // setas nas abas não decidem a carta
       if (ev.key === "ArrowLeft") { ev.preventDefault(); jogar(cartaDoTopo(), "pulou"); }
       else if (ev.key === "ArrowRight") { ev.preventDefault(); jogar(cartaDoTopo(), "salvou"); }
       else if (ev.key === "Backspace" || ev.key === "z") voltar();
@@ -477,9 +557,7 @@
 
   async function iniciar() {
     ligar();
-    document.querySelectorAll(".ap-lados button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.lado === P.lado)));
-    document.querySelectorAll(".ap-mercados button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mercado === P.mercado)));
-    document.body.dataset.lado = P.lado;
+    sincronizarControles();
     contarSalvos();
     intro();
     try {
