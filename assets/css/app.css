@@ -170,3 +170,20 @@ button, a.botao { font: inherit; color: inherit; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .ap-carta, .ap-barra i { transition: none; } }
 /* botões sempre à mão: em tela baixa a carta rola por baixo deles */
 .ap-acoes { position: sticky; bottom: 0; z-index: 5; background: linear-gradient(to bottom, transparent, var(--bg) 35%); padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+
+/* ---- revisão: toque, contraste, avisos, leitor de tela ---- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ap-lados button, .ap-mercados button, .ap-salvos-btn { min-height: 44px; }
+.ap-marca { min-height: 44px; }
+.ap-fechar, .ap-remover { width: 44px; height: 44px; }
+.ap-rodape a { display: inline-block; padding: 12px 4px; }
+.ap-mercados button { border-color: #5b6678; }
+.ap-pontos i.nao { background: #6b7686; }
+.ap-medidor { background: #6b7686; }
+/* "deu certo" é bom nos dois lados: o número e as bolinhas ficam verdes também na venda */
+.ap-carta.venda .ap-stat-num b { color: var(--alta); }
+.ap-carta.venda .ap-pontos i.sim, .ap-carta.venda .ap-medidor i { background: var(--alta); }
+.ap-aviso-carta { margin: auto 0 0; font-size: 12px; color: var(--fraco); }
+.ap-sem-grafico { display: grid; place-items: center; height: 100%; font-size: 13px; color: var(--fraco); border: 1px dashed var(--borda); border-radius: 10px; }
+.ap-velho { background: rgba(227, 162, 59, .12); border: 1px solid rgba(227, 162, 59, .4); color: var(--aviso); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin: 0 0 10px; }
+.ap-aviso { bottom: calc(150px + env(safe-area-inset-bottom)); }
