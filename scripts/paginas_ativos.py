@@ -39,7 +39,7 @@ MARCA_SVG = ('<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#4c8dff"><rec
              '<rect x="10.3" y="6" width="3.4" height="14" rx="1"/><rect x="17.6" y="3" width="3.4" height="17" rx="1"/></g></svg>')
 TEND = {"alta": "em alta", "baixa": "em baixa", "lateral": "lateral (sem direção clara)"}
 MOEDA = {"BRL": "R$", "USD": "US$"}
-PRINCIPAIS = ("index.html", "painel.html", "setups.html", "ranking.html", "resultados.html", "backtest.html", "guia.html")
+PRINCIPAIS = ("index.html", "app.html", "painel.html", "setups.html", "ranking.html", "resultados.html", "backtest.html", "guia.html")
 
 e = html.escape
 
@@ -262,7 +262,7 @@ def pagina(ctx, a: dict, sl: str, dados: Path, ativos: list[dict], slugs: dict, 
 
     h.append('<div class="pa-acoes">'
              f'<a class="pa-botao pri" href="../ativo.html#{e(rot)}">Ver {e(rot)} no terminal</a>'
-             '<a class="pa-botao" href="../setups.html">Ver as oportunidades de hoje</a>'
+             '<a class="pa-botao" href="../app.html">Ver as oportunidades de hoje</a>'
              '<a class="pa-botao" href="../ranking.html">Top do dia</a>'
              f'<a class="pa-botao" href="{TELEGRAM}" rel="noopener">Canal no Telegram</a></div>\n')
 

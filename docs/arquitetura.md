@@ -103,6 +103,7 @@ estocastico, estoc_cruz, bollinger, comprimida, atr, variacao, rompimento, perto
   `assets/js/diario-dados.js`), senão `ativo.html?simular=compra|venda&setup=ID&tf=D#TICKER`, que abre um rascunho no gráfico
   do ativo (`simulador.contexto = {setup, tf, origem}`). Pontos de entrada: botão do card, menu ⋯ e alvo de arrastar
   (`arrastar.js`), cabeçalho do Ativo, Triagem (Hoje) e Início.
+- **Versão simples** (`app.html`): a porta de entrada para leigos, no celular. Baralho com as 20 melhores oportunidades do dia, cada carta com "X de Y vezes deu certo" e a explicação do sinal em português simples. Página independente (não usa `comum.js`). Ver `docs/app.md`.
 - **Triagem** (`triagem.html`): um "Tinder" dos setups do dia. Baralho de compra ou de venda com os ativos que
   deram sinal no último pregão do seu mercado; → gostei, ↑ super, ← descartar (só naquele pregão). As decisões
   ficam no navegador (`triagem-v1`, por data do pregão e lado), com o resultado do dia e os dias anteriores.

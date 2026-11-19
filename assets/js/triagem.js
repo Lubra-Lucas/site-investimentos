@@ -155,9 +155,19 @@
 
   // ------------------------------------------------------------- card
 
-  function chipsSetups(setups, lado) {
-    return setups.map((id) => el("span", { class: `chip setup vies-${lado} ${ehTendencia(id) ? "" : "foco"}`,
-      title: `${SETUP_POR_ID.get(id)?.nome ?? id}${SETUP_POR_ID.get(id)?.desc ? `: ${SETUP_POR_ID.get(id).desc}` : ""}` }, nomeCurto(id)));
+  /** Chips dos setups; com os eventos do dia, cada chip diz quantas vezes aquele setup deu certo no ativo ("11/13"). */
+  function chipsSetups(setups, lado, eventos = null) {
+    const bt = new Map((eventos ?? []).filter((e) => e.bt).map((e) => [e.setup, e.bt]));
+    return setups.map((id) => {
+      const b = bt.get(id);
+      const ganhos = b && b[1] != null ? Math.round(b[1] / 100 * b[0]) : null;
+      const placar = ganhos != null ? `${ganhos}/${b[0]}` : null;
+      const desc = SETUP_POR_ID.get(id)?.desc ? `: ${SETUP_POR_ID.get(id).desc}` : "";
+      const hist = placar ? ` Neste ativo, deu certo ${ganhos} de ${b[0]} vezes (10 pregões depois).` : "";
+      return el("span", { class: `chip setup vies-${lado} ${ehTendencia(id) ? "" : "foco"}`,
+        title: `${SETUP_POR_ID.get(id)?.nome ?? id}${desc}${hist}` },
+      nomeCurto(id), placar ? el("b", { class: `tri-placar ${b[1] >= 50 ? "alta" : "baixa"}` }, ` ${placar}`) : null);
+    });
   }
 
   function blocoContexto(i) {
@@ -197,7 +207,7 @@
       el("div", { class: "chips tri-chips" },
         el("span", { class: `chip ctx ${i.lado === "compra" ? "alta" : "baixa"}` }, `${i.lado === "compra" ? "▲" : "▼"} ${fmtData(i.data, true)}`),
         n >= 2 ? el("span", { class: "chip destaque" }, `${n} setups`) : null,
-        chipsSetups(i.setups, i.lado),
+        chipsSetups(i.setups, i.lado, i.eventos),
         seloHistorico(i.melhor?.bt, "D"), tfs),
       corpo, ctx, ...carimbos);
     const c = { no, corpo, ctx, i, g: null, carimbos: Object.fromEntries(carimbos.map((x) => [x.dataset.d, x])) };
